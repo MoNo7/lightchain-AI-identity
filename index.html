@@ -20,13 +20,14 @@
         .small-btn { padding: 8px; font-size: 0.75rem; flex: 1; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; }
         #adminConsole { display: none; border-top: 3px solid var(--admin); padding-top: 15px; }
         .treasury-box { background: #fff5f5; border: 1px solid #feb2b2; padding: 12px; border-radius: 8px; margin-bottom: 15px; text-align: center; }
+        .admin-status-msg { font-size: 0.7rem; margin-top: 10px; padding: 8px; border-radius: 4px; text-align: center; font-weight: bold; display: none; }
         .result-window { margin-top: 20px; padding: 15px; background: #f8f9fa; border: 2px dashed #cbd5e0; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 0.9rem; color: #2d3748; min-height: 40px; text-align: center; }
         .verified-badge-inline { background: #1877F2; color: white; border-radius: 50%; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; margin-left: 8px; }
     </style>
 </head>
 <body>
     <div id="topNav">
-        <div class="nav-title"><h1>Lightchain Identity</h1><span style="font-size:0.7rem; color:#999;">v5.4</span></div>
+        <div class="nav-title"><h1>Lightchain Identity</h1><span style="font-size:0.7rem; color:#999;">v5.9</span></div>
         <div class="token-display"><span id="tokenBalance">0.00</span> LCAI</div>
     </div>
     <div class="content-wrapper">
@@ -45,7 +46,11 @@
                     <button id="withdrawBtn" class="small-btn" style="width:100%; margin-top:10px; background:#c53030;">Claim Fees</button>
                 </div>
                 <input type="text" id="verifyAddr" placeholder="Target 0x...">
-                <div style="display:flex; gap: 4px;"><button id="verifyBtn" class="small-btn" style="background:var(--primary);">Verify</button><button id="revokeBtn" class="small-btn">Revoke</button></div>
+                <div style="display:flex; gap: 4px; margin-top: 10px;">
+                    <button id="verifyBtn" class="small-btn" style="background:var(--primary);">Verify</button>
+                    <button id="revokeBtn" class="small-btn">Revoke</button>
+                </div>
+                <div id="adminFeedback" class="admin-status-msg"></div>
             </div>
         </div>
         
@@ -71,8 +76,8 @@
     </div>
 
     <script>
-        const IDENTITY_CONTRACT = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34"; // REVERTED TO ORIGINAL REGISTRY
-        const BALL_CONTRACT_ADDR = "0x3CC611AF8Ac08A084a2758eB61fa7025854F6f13"; // YOUR LATEST ORACLE DEPLOYMENT
+        const IDENTITY_CONTRACT = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34"; 
+        const BALL_CONTRACT_ADDR = "0x3CC611AF8Ac08A084a2758eB61fa7025854F6f13"; 
         
         const BALL_ABI = [{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"string","name":"question","type":"string"},{"indexed":false,"internalType":"string","name":"answer","type":"string"}],"name":"OracleAnswer","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"admin","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"timestamp","type":"uint256"}],"name":"Withdrawal","type":"event"},{"inputs":[{"internalType":"string","name":"_question","type":"string"}],"name":"getPrediction","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"totalPredictions","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"withdraw","outputs":[],"stateMutability":"nonpayable","type":"function"}];
         const IDENTITY_ABI = [{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"getIdentity","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"isAdmin","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"verifyIdentity","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"revokeVerification","outputs":[],"stateMutability":"nonpayable","type":"function"}];
@@ -86,11 +91,19 @@
                 const address = await signer.getAddress();
                 const balance = await signer.provider.getBalance(address);
                 document.getElementById('tokenBalance').innerText = parseFloat(ethers.formatEther(balance)).toFixed(4);
-                
-                // Fetches balance of the Magic8Ball contract directly
                 const tBal = await signer.provider.getBalance(BALL_CONTRACT_ADDR);
                 document.getElementById('treasuryBalance').innerText = parseFloat(ethers.formatEther(tBal)).toFixed(4);
-            } catch(e) { console.error("Sync Failure:", e); }
+            } catch(e) { console.error(e); }
+        }
+
+        function showAdminMsg(msg, isError = false) {
+            const el = document.getElementById('adminFeedback');
+            el.innerText = msg;
+            el.style.display = 'block';
+            el.style.backgroundColor = isError ? '#fff5f5' : '#f0fff4';
+            el.style.color = isError ? '#c53030' : '#2f855a';
+            el.style.border = `1px solid ${isError ? '#feb2b2' : '#9ae6b4'}`;
+            setTimeout(() => { el.style.display = 'none'; }, 6000);
         }
 
         async function connectWallet(auto = false) {
@@ -111,36 +124,24 @@
                 
                 await hardSync();
 
-                // RESTORE PERSISTENCE
-                const savedAnswer = localStorage.getItem('lastAnswerText');
-                if (savedAnswer) {
-                    const resWin = document.getElementById('resultText');
-                    resWin.innerText = savedAnswer;
-                    resWin.style.borderColor = "#28a745";
-                }
-
                 ballContract.on("OracleAnswer", (user, question, answer) => {
-                    document.getElementById('txFeed').innerText = `Recent: "${question.substring(0,10)}..."`;
                     if (user.toLowerCase() === accounts[0].toLowerCase()) {
-                        const resWin = document.getElementById('resultText');
-                        resWin.innerText = answer;
-                        resWin.style.borderColor = "#28a745";
+                        document.getElementById('resultText').innerText = answer;
+                        document.getElementById('resultText').style.borderColor = "#28a745";
                         localStorage.setItem('lastAnswerText', answer);
                     }
                     hardSync();
                 });
 
-                setTimeout(async () => {
-                    const profile = await identityContract.getIdentity(accounts[0]).catch(() => null);
-                    if(profile && profile[2]) {
-                        document.getElementById('userStatusHeader').style.display = 'block';
-                        document.getElementById('userNameDisplay').innerHTML = `${profile[0]} <span class="verified-badge-inline">✓</span>`;
-                        document.getElementById('oracleUI').style.display = 'block';
-                    }
-                    const isAdmin = await identityContract.isAdmin(accounts[0]);
-                    if(isAdmin) document.getElementById('adminConsole').style.display = 'block';
-                }, 800);
-            } catch(e) { console.error("Connection Error:", e); }
+                const profile = await identityContract.getIdentity(accounts[0]).catch(() => null);
+                if(profile && profile[2]) {
+                    document.getElementById('userStatusHeader').style.display = 'block';
+                    document.getElementById('userNameDisplay').innerHTML = `${profile[0]} <span class="verified-badge-inline">✓</span>`;
+                    document.getElementById('oracleUI').style.display = 'block';
+                }
+                const isAdmin = await identityContract.isAdmin(accounts[0]);
+                if(isAdmin) document.getElementById('adminConsole').style.display = 'block';
+            } catch(e) { console.error(e); }
         }
 
         document.getElementById('oracleQuestion').oninput = (e) => {
@@ -154,36 +155,38 @@
             const cost = (0.001 * (Math.floor(question.length / 10) + 1)).toFixed(3);
             document.getElementById('resultText').innerText = "Processing Inference...";
             try {
-                const tx = await ballContract.getPrediction(question, { 
-                    value: ethers.parseEther(cost), 
-                    gasLimit: 600000 
-                });
+                const tx = await ballContract.getPrediction(question, { value: ethers.parseEther(cost), gasLimit: 600000 });
                 await tx.wait();
                 hardSync();
-            } catch (e) { 
-                document.getElementById('resultText').innerText = "Execution Failed. Ensure MiMo Verification and LCAI balance."; 
-                console.error(e);
-            }
+            } catch (e) { document.getElementById('resultText').innerText = "Execution Failed. Ensure MiMo status."; }
+        };
+
+        document.getElementById('verifyBtn').onclick = async () => {
+            const addr = document.getElementById('verifyAddr').value;
+            if(!addr) return;
+            showAdminMsg("Broadcasting Verification...");
+            try {
+                const tx = await identityContract.verifyIdentity(addr);
+                await tx.wait();
+                showAdminMsg(`SUCCESS: Address Verified.`);
+                hardSync();
+            } catch(e) { showAdminMsg("ERROR: Reverted or Unauthorized.", true); }
+        };
+
+        document.getElementById('revokeBtn').onclick = async () => {
+            const addr = document.getElementById('verifyAddr').value;
+            if(!addr) return;
+            showAdminMsg("Broadcasting Revocation...");
+            try {
+                const tx = await identityContract.revokeVerification(addr);
+                await tx.wait();
+                showAdminMsg(`SUCCESS: Verification Revoked.`);
+                hardSync();
+            } catch(e) { showAdminMsg("ERROR: Reverted or Unauthorized.", true); }
         };
 
         document.getElementById('withdrawBtn').onclick = async () => {
-            try { await (await ballContract.withdraw({ gasLimit: 250000 })).wait(); hardSync(); } catch(e) { alert("Withdraw Failed."); }
-        };
-
-        document.getElementById('verifyBtn').onclick = async () => { 
-            try { 
-                const addr = document.getElementById('verifyAddr').value;
-                await (await identityContract.verifyIdentity(addr)).wait(); 
-                location.reload(); 
-            } catch(e) { alert("Verify Failed."); } 
-        };
-
-        document.getElementById('revokeBtn').onclick = async () => { 
-            try { 
-                const addr = document.getElementById('verifyAddr').value;
-                await (await identityContract.revokeVerification(addr)).wait(); 
-                location.reload(); 
-            } catch(e) { alert("Revoke Failed."); } 
+            try { await (await ballContract.withdraw({ gasLimit: 250000 })).wait(); hardSync(); } catch(e) { alert("Failed."); }
         };
 
         document.getElementById('connectBtn').onclick = () => connectWallet(false);
@@ -192,5 +195,3 @@
     </script>
 </body>
 </html>
-
-

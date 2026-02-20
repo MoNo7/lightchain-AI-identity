@@ -29,7 +29,7 @@
 </head>
 <body>
     <div id="topNav">
-        <div class="nav-title"><h1>Lightchain Identity</h1><span style="font-size:0.7rem; color:#999;">v4.3</span></div>
+        <div class="nav-title"><h1>Lightchain Identity</h1><span style="font-size:0.7rem; color:#999;">v4.4</span></div>
         <div class="token-display"><span id="tokenBalance">0.00</span> LCAI</div>
     </div>
     <div class="content-wrapper">
@@ -83,17 +83,19 @@
 
         let signer, ballContract, identityContract;
 
-        async function updateData() {
+        async function hardSync() {
             try {
+                // Force call direct to contract storage
                 const count = await ballContract.totalPredictions();
                 document.getElementById('globalCount').innerText = count.toString();
+                
                 const address = await signer.getAddress();
                 const balance = await signer.provider.getBalance(address);
                 document.getElementById('tokenBalance').innerText = parseFloat(ethers.formatEther(balance)).toFixed(3);
                 
                 const tBal = await signer.provider.getBalance(BALL_CONTRACT_ADDR);
-                document.getElementById('treasuryBalance').innerText = parseFloat(ethers.formatEther(tBal)).toFixed(2);
-            } catch(e) { console.error("Sync Error:", e); }
+                document.getElementById('treasuryBalance').innerText = parseFloat(ethers.formatEther(tBal)).toFixed(4);
+            } catch(e) { console.error("Hard Sync Failed:", e); }
         }
 
         async function connectWallet() {
@@ -108,17 +110,17 @@
                 localStorage.setItem('isWalletConnected', 'true');
                 document.getElementById('connectBtn').style.display = 'none';
                 document.getElementById('disconnectBtn').style.display = 'block';
-                document.getElementById('walletStatus').innerText = "Wallet: " + accounts[0].substring(0, 8);
+                document.getElementById('walletStatus').innerText = "Wallet: " + accounts[0].substring(0, 10);
 
-                await updateData();
+                await hardSync();
                 
                 ballContract.on("OracleAnswer", (user, question, answer) => {
-                    const feed = document.getElementById('txFeed');
-                    feed.innerHTML = `<div><strong>Latest Inference:</strong> "${question.substring(0, 15)}..."</div>`;
+                    document.getElementById('txFeed').innerHTML = `<div><strong>Latest Inference:</strong> "${question.substring(0, 15)}..."</div>`;
                     if (user.toLowerCase() === accounts[0].toLowerCase()) {
                         document.getElementById('response').innerText = answer;
                         localStorage.setItem('lastAnswer', answer);
                     }
+                    hardSync(); // Update counts and treasury immediately after event
                 });
 
                 // RECONNECTION HEARTBEAT
@@ -132,7 +134,7 @@
                     }
                     const isAdmin = await identityContract.isAdmin(accounts[0]);
                     if(isAdmin) document.getElementById('adminConsole').style.display = 'block';
-                }, 750);
+                }, 1000); // Increased delay to ensure provider stability
             } catch(e) { console.error("Auth Error:", e); }
         }
 
@@ -140,27 +142,29 @@
             const question = document.getElementById('oracleQuestion').value;
             if(!question) return;
             const cost = (0.01 * (Math.floor(question.length / 10) + 1)).toFixed(2);
-            document.getElementById('ball').classList.add('shake');
+            const ball = document.getElementById('ball');
+            ball.classList.add('shake');
             document.getElementById('response').innerText = "Analyzing AIVM...";
             try {
-                const tx = await ballContract.getPrediction(question, { value: ethers.parseEther(cost), gasLimit: 850000 });
+                const tx = await ballContract.getPrediction(question, { value: ethers.parseEther(cost), gasLimit: 1000000 });
                 await tx.wait();
-                await updateData();
-            } catch (e) { document.getElementById('response').innerText = "Error: Block Timeout"; }
-            finally { document.getElementById('ball').classList.remove('shake'); }
+                await hardSync();
+            } catch (e) { 
+                console.error(e);
+                document.getElementById('response').innerText = "Error: Block Timeout"; 
+            }
+            finally { ball.classList.remove('shake'); }
         };
 
         document.getElementById('withdrawBtn').onclick = async () => {
             try { 
-                const tx = await ballContract.withdraw({ gasLimit: 300000 });
+                const tx = await ballContract.withdraw({ gasLimit: 500000 });
                 await tx.wait(); 
                 alert("Treasury claimed!");
-                await updateData(); 
+                await hardSync(); 
             } catch(e) { alert("Withdrawal failed: Access restricted."); }
         };
 
-        document.getElementById('verifyBtn').onclick = async () => { try { await (await identityContract.verifyIdentity(document.getElementById('verifyAddr').value)).wait(); location.reload(); } catch(e) { alert("Failed."); } };
-        document.getElementById('revokeBtn').onclick = async () => { try { await (await identityContract.revokeVerification(document.getElementById('verifyAddr').value)).wait(); location.reload(); } catch(e) { alert("Failed."); } };
         document.getElementById('connectBtn').onclick = connectWallet;
         document.getElementById('disconnectBtn').onclick = () => { localStorage.clear(); location.reload(); };
         window.addEventListener('DOMContentLoaded', () => { if (localStorage.getItem('isWalletConnected') === 'true') setTimeout(connectWallet, 500); });

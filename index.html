@@ -19,14 +19,15 @@
         .primary-btn { background: var(--primary); color: white; border: none; padding: 14px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: 600; margin-top: 10px; transition: 0.2s; }
         .small-btn { padding: 8px; font-size: 0.75rem; flex: 1; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; }
         .admin-status-msg { font-size: 0.75rem; margin-top: 15px; padding: 10px; border-radius: 6px; text-align: center; font-weight: 600; border: 1px solid transparent; min-height: 20px; line-height: 1.4; }
-        .lookup-results { margin-top: 10px; font-size: 0.75rem; background: #f8f9fa; padding: 10px; border-radius: 6px; border: 1px solid #e1e4e8; display: none; word-break: break-all; }
         .result-window { margin-top: 20px; padding: 15px; background: #f8f9fa; border: 2px dashed #cbd5e0; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 0.95rem; color: #2d3748; min-height: 50px; text-align: center; line-height: 1.5; }
+        .tx-item { font-size: 0.75rem; color: #555; border-bottom: 1px solid #eee; padding: 8px 0; }
+        .tx-item strong { color: #0056b3; display: block; }
         input[type="text"] { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 12px; box-sizing: border-box; font-size: 1rem; }
     </style>
 </head>
 <body>
     <div id="topNav">
-        <div class="nav-title"><h1>Lightchain Identity</h1><span style="font-size:0.7rem; color:#999;">v6.8</span></div>
+        <div class="nav-title"><h1>Lightchain Identity</h1><span style="font-size:0.7rem; color:#999;">v6.9</span></div>
         <div class="token-display"><span id="tokenBalance">0.0000</span> LCAI</div>
     </div>
     <div class="content-wrapper">
@@ -40,19 +41,16 @@
             
             <div id="adminConsole" class="card" style="display:none;">
                 <h4 style="color:var(--admin); margin: 0 0 10px 0; font-size: 0.85rem;">Admin Management</h4>
-                
                 <div style="padding-bottom:15px; border-bottom:1px solid #eee; margin-bottom:15px;">
                     <input type="text" id="lookupAddr" placeholder="Lookup 0x..." style="margin-bottom:5px; padding:8px;">
                     <button id="lookupBtn" class="small-btn" style="width:100%; background: var(--primary);">Query Global Registry</button>
-                    <div id="lookupResults" class="lookup-results"></div>
+                    <div id="lookupResults" class="lookup-results" style="display:none;"></div>
                 </div>
-
                 <div class="treasury-box" style="background:#fff5f5; border:1px solid #feb2b2; padding:12px; border-radius:8px; margin-bottom:15px; text-align:center;">
                     <div style="font-size: 0.65rem; color:#c53030; margin-bottom:5px;">ADMIN CLAIM VERIFICATION: <span id="adminCheck">PENDING</span></div>
                     <div style="font-size: 1.4rem; font-weight: 800; color: #c53030;"><span id="treasuryBalance">0.0000</span> LCAI</div>
                     <button id="withdrawBtn" class="small-btn" style="width:100%; margin-top:10px; background:#c53030;">Claim Fees</button>
                 </div>
-
                 <input type="text" id="verifyAddr" placeholder="Target 0x..." style="padding:8px;">
                 <div style="display:flex; gap: 4px;">
                     <button id="verifyBtn" class="small-btn" style="background:var(--success);">Verify User</button>
@@ -78,7 +76,7 @@
                 <h4 style="margin: 0 0 10px 0; color: #0056b3; font-size:0.9rem;">Network Metrics</h4>
                 <div style="font-size: 0.85rem;">Predictions Logged: <strong id="globalCount">0</strong></div>
                 <hr style="border:0; border-top:1px solid #eee; margin:15px 0;">
-                <div id="txFeed" style="font-size:0.75rem; color:#666;">Awaiting Activity...</div>
+                <div id="txFeed" style="font-size:0.75rem; color:#666;">No recent activity.</div>
             </div>
         </div>
     </div>
@@ -105,12 +103,20 @@
 
         function showAdminMsg(msg, isError = false) {
             const el = document.getElementById('adminFeedback');
-            el.innerText = msg;
-            el.style.display = 'block';
+            el.innerText = msg; el.style.display = 'block';
             el.style.backgroundColor = isError ? '#fff5f5' : '#f0fff4';
             el.style.color = isError ? '#c53030' : '#2f855a';
             el.style.border = `1px solid ${isError ? '#feb2b2' : '#9ae6b4'}`;
-            // Removed auto-hide to ensure user reads the result
+        }
+
+        // LOGGING HELPER FOR RIGHT SIDEBAR
+        function logToFeed(user, q) {
+            const feed = document.getElementById('txFeed');
+            if(feed.innerText.includes("No recent")) feed.innerHTML = "";
+            const div = document.createElement('div');
+            div.className = 'tx-item';
+            div.innerHTML = `<strong>Query: ${q.substring(0, 20)}...</strong> User: ${user.substring(0,8)}...`;
+            feed.prepend(div);
         }
 
         async function hardSync() {
@@ -153,7 +159,9 @@
                 
                 await hardSync();
 
+                // FIX: Listener now updates central answer AND right sidebar log
                 ballContract.on("OracleAnswer", (user, question, answer) => {
+                    logToFeed(user, question);
                     if (user.toLowerCase() === accounts[0].toLowerCase()) {
                         const resWin = document.getElementById('resultText');
                         resWin.innerText = answer;
@@ -200,7 +208,6 @@
             }
         };
 
-        // FIXED VERIFY LOGIC
         document.getElementById('verifyBtn').onclick = async () => {
             const addr = document.getElementById('verifyAddr').value;
             if(!addr) return;
@@ -213,7 +220,6 @@
             } catch(e) { showAdminMsg("ERROR: Admin Authorization Required.", true); }
         };
 
-        // FIXED REVOKE LOGIC
         document.getElementById('revokeBtn').onclick = async () => {
             const addr = document.getElementById('verifyAddr').value;
             if(!addr) return;

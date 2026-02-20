@@ -19,17 +19,14 @@
         .primary-btn { background: var(--primary); color: white; border: none; padding: 14px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: 600; margin-top: 10px; transition: 0.2s; }
         .small-btn { padding: 8px; font-size: 0.75rem; flex: 1; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; }
         .mimo-badge { background: var(--mimo); color: white; border-radius: 50%; width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; margin-left: 8px; box-shadow: 0 0 8px rgba(24, 119, 242, 0.6); font-weight: bold; vertical-align: middle; }
-        .lookup-results { margin-top: 10px; font-size: 0.75rem; background: #f8f9fa; padding: 10px; border-radius: 6px; border: 1px solid #e1e4e8; display: none; word-break: break-all; }
+        .admin-status-msg { font-size: 0.7rem; margin-top: 10px; padding: 8px; border-radius: 4px; text-align: center; font-weight: bold; min-height: 15px; }
         .result-window { margin-top: 20px; padding: 20px; background: #f8f9fa; border: 2px dashed #cbd5e0; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 1rem; color: #2d3748; text-align: center; line-height: 1.5; }
-        .tx-item { font-size: 0.75rem; color: #555; border-bottom: 1px solid #eee; padding: 8px 0; animation: fadeIn 0.5s ease; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
-        .tx-item strong { color: #0056b3; display: block; }
-        input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 10px; box-sizing: border-box; }
+        input[type="text"] { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 10px; box-sizing: border-box; }
     </style>
 </head>
 <body>
     <div id="topNav">
-        <div class="nav-title"><h1>Lightchain Identity</h1><span style="font-size:0.7rem; color:#999;">v7.6</span></div>
+        <div class="nav-title"><h1>Lightchain Identity</h1><span style="font-size:0.7rem; color:#999;">v7.8</span></div>
         <div class="token-display"><span id="tokenBalance">0.0000</span> LCAI</div>
     </div>
     <div class="content-wrapper">
@@ -46,9 +43,9 @@
                 
                 <div style="background: #f8f9fa; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #eee;">
                     <h5 style="margin: 0 0 8px 0; font-size: 0.75rem;">Global Registry Search</h5>
-                    <input type="text" id="lookupAddr" placeholder="Search 0x..." style="margin-bottom:5px;">
+                    <input type="text" id="lookupAddr" placeholder="Search 0x...">
                     <button id="lookupBtn" class="small-btn" style="width:100%; background: var(--primary);">Query Database</button>
-                    <div id="lookupResults" class="lookup-results"></div>
+                    <div id="lookupResults" class="lookup-results" style="display:none; padding-top:10px; font-size:0.7rem;"></div>
                 </div>
 
                 <div class="treasury-box" style="background:#fff5f5; border:1px solid #feb2b2; padding:12px; border-radius:8px; margin-bottom:15px; text-align:center;">
@@ -56,7 +53,8 @@
                     <div style="font-size: 1.4rem; font-weight: 800; color: #c53030;"><span id="treasuryBalance">0.0000</span> LCAI</div>
                     <button id="withdrawBtn" class="small-btn" style="width:100%; margin-top:10px; background:#c53030;">Claim Fees</button>
                 </div>
-                <input type="text" id="verifyAddr" placeholder="Target 0x...">
+
+                <input type="text" id="verifyAddr" placeholder="Verify 0x...">
                 <div style="display:flex; gap: 4px;">
                     <button id="verifyBtn" class="small-btn" style="background:var(--success);">Verify User</button>
                     <button id="revokeBtn" class="small-btn">Revoke User</button>
@@ -66,11 +64,11 @@
         </div>
 
         <div class="main-utility-area">
-            <div class="card" style="max-width: 500px; text-align: center;">
-                <h2 style="margin:0; font-size:1.4rem;">AIVM Oracle</h2>
+            <div class="card" style="max-width: 600px; text-align: center;">
+                <h2 style="margin:0; font-size:1.4rem;">AIVM Inference Engine</h2>
                 <div id="oracleUI" style="display:none; margin-top: 20px;">
-                    <input type="text" id="oracleQuestion" placeholder="Enter query for inference..." autocomplete="off">
-                    <button id="shakeBtn" class="primary-btn" style="background: var(--success);">Execute for 0.001 LCAI</button>
+                    <input type="text" id="oracleQuestion" placeholder="Ask about future applications..." autocomplete="off">
+                    <button id="shakeBtn" class="primary-btn" style="background: var(--success);">Query AIVM for 0.001 LCAI</button>
                     <div class="result-window" id="resultText">Waiting for AIVM Consultation...</div>
                 </div>
             </div>
@@ -90,27 +88,15 @@
         const IDENTITY_CONTRACT = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34"; 
         const BALL_CONTRACT_ADDR = "0x6C921cbC1C12Af06fE22df549cA89053928afe64"; 
 
-        const answers = {
-            crypto: ["Decentralized consensus indicates a strong bullish divergence for native assets.", "Security audit required: The smart contract logic shows high complexity parameters.", "Liquidity provision on Lightchain is currently yielding optimal POI scores."],
-            identity: ["MiMo verification successful. Your DID is now anchored to the AIVM layer.", "Identity privacy protocols are active. Zero-knowledge proofs are shielding your metadata.", "Registry query complete: The subject wallet has achieved 'Trusted Admin' status."],
-            tools: ["A hammer is a primary mechanical tool used to deliver impact force. It converts kinetic energy into high-pressure impulses for driving fasteners or shaping materials.", "The purpose of a tool like a hammer is the amplification of human manual force via a lever-based impact head.", "In engineering terms, a hammer provides the necessary percussion to overcome static friction in construction tasks."],
-            physics: ["Water is wet because of strong hydrogen bonding between H2O molecules.", "The AIVM has calculated the physical variables; the outcome follows entropy.", "Quantum fluctuations in the data stream suggest a non-linear path."],
-            future: ["AIVM trajectory analysis predicts high probability of success in this epoch.", "Variables are shifting; the upcoming block height will determine resolution.", "Your current path is synchronized with the most probable positive timeline."],
-            default: ["The AIVM has processed your request. The logic suggests a favorable result.", "Consensus reached: The requested operation is statistically supported.", "Analysis complete: System parameters indicate a high confidence in success."]
-        };
-
         const BALL_ABI = [{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"string","name":"question","type":"string"},{"indexed":false,"internalType":"string","name":"answer","type":"string"}],"name":"OracleAnswer","type":"event"},{"inputs":[{"internalType":"string","name":"_question","type":"string"}],"name":"getPrediction","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"totalPredictions","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"withdraw","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"admin","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"}];
         const IDENTITY_ABI = [{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"getIdentity","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"isAdmin","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"verifyIdentity","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"revokeVerification","outputs":[],"stateMutability":"nonpayable","type":"function"}];
 
         let signer, ballContract, identityContract;
 
-        function logToFeed(q) {
-            const feed = document.getElementById('txFeed');
-            if(feed.innerText.includes("No recent")) feed.innerHTML = "";
-            const div = document.createElement('div');
-            div.className = 'tx-item';
-            div.innerHTML = `<strong>Query: ${q.substring(0, 24)}...</strong> User: Anonymous User`;
-            feed.prepend(div);
+        function showAdminMsg(msg, isError = false) {
+            const el = document.getElementById('adminFeedback');
+            el.innerText = msg; el.style.display = 'block';
+            el.style.color = isError ? '#c53030' : '#28a745';
         }
 
         async function hardSync() {
@@ -145,19 +131,7 @@
                 await hardSync();
 
                 ballContract.on("OracleAnswer", (user, question) => {
-                    logToFeed(question);
-                    if (user.toLowerCase() === accounts[0].toLowerCase()) {
-                        const qLower = question.toLowerCase();
-                        let cat = "default";
-                        if (qLower.includes("crypto") || qLower.includes("coin")) cat = "crypto";
-                        else if (qLower.includes("identity") || qLower.includes("mimo")) cat = "identity";
-                        else if (qLower.includes("hammer") || qLower.includes("tool") || qLower.includes("purpose")) cat = "tools";
-                        else if (qLower.includes("water") || qLower.includes("physics")) cat = "physics";
-                        else if (qLower.includes("future") || qLower.includes("will")) cat = "future";
-                        
-                        document.getElementById('resultText').innerText = answers[cat][Math.floor(Math.random() * answers[cat].length)];
-                        hardSync();
-                    }
+                    if (user.toLowerCase() === accounts[0].toLowerCase()) generateAIVMInference(question);
                 });
 
                 const profile = await identityContract.getIdentity(accounts[0]).catch(() => null);
@@ -170,26 +144,72 @@
             } catch(e) {}
         }
 
-        document.getElementById('lookupBtn').onclick = async () => {
-            const addr = document.getElementById('lookupAddr').value;
-            const resBox = document.getElementById('lookupResults');
-            if(!ethers.isAddress(addr)) return alert("Invalid Address");
+        // IMPROVED: RELEVANCE KEYWORD ENGINE
+        function generateAIVMInference(q) {
+            const qL = q.toLowerCase();
+            const res = document.getElementById('resultText');
+            let response = "Analyzing block patterns... The AIVM suggests that the requested application is statistically probable within the next 3 epochs.";
+            
+            if (qL.includes("water") && qL.includes("future")) {
+                response = "Inference complete: Water-based technologies will anchor future energy grids via decentralized hydrogen electrolysis, managed by AIVM-layer sustainability nodes.";
+            } else if (qL.includes("identity") || qL.includes("mimo")) {
+                response = "Future application of MiMo-anchored identity involves zero-knowledge reputation scores, facilitating global access without exposing raw biometric data.";
+            } else if (qL.includes("hammer") || qL.includes("tool")) {
+                response = "Traditional mechanical tools like hammers are transitioning to AIVM-guided percussion systems, ensuring molecular precision in advanced robotic construction.";
+            } else if (qL.includes("crypto") || qL.includes("market")) {
+                response = "AIVM analysis indicates a structural shift toward automated POI-based staking where network rewards are distributed according to verified computational contribution.";
+            }
+
+            res.innerText = response;
+            res.style.borderColor = "#28a745";
+            hardSync();
+        }
+
+        // FIXED: ADMIN VERIFY LOGIC
+        document.getElementById('verifyBtn').onclick = async () => {
+            const target = document.getElementById('verifyAddr').value;
+            if(!target) return;
+            showAdminMsg("Requesting Admin Signature...");
             try {
-                const data = await identityContract.getIdentity(addr);
-                resBox.innerHTML = `<strong>User:</strong> ${data[0]}<br><strong>Verified:</strong> ${data[2] ? 'YES <span class="mimo-badge">✓</span>' : 'NO'}`;
-                resBox.style.display = 'block';
-            } catch(e) { resBox.innerText = "No identity found."; resBox.style.display = 'block'; }
+                const tx = await identityContract.verifyIdentity(target, { gasLimit: 200000 });
+                showAdminMsg("Transaction Pending...");
+                await tx.wait();
+                showAdminMsg("User Successfully Verified ✓");
+                await hardSync();
+            } catch (e) { showAdminMsg("ERROR: Admin Authorization Denied.", true); }
+        };
+
+        // FIXED: CLAIM FEES LOGIC
+        document.getElementById('withdrawBtn').onclick = async () => {
+            showAdminMsg("Requesting Claim Signature...");
+            try {
+                const tx = await ballContract.withdraw({ gasLimit: 200000 });
+                showAdminMsg("Withdrawing Funds...");
+                await tx.wait();
+                showAdminMsg("Fees Successfully Claimed ✓");
+                await hardSync();
+            } catch (e) { showAdminMsg("ERROR: Withdrawal Failed.", true); }
         };
 
         document.getElementById('shakeBtn').onclick = async () => {
             const q = document.getElementById('oracleQuestion').value;
             if(!q) return;
             const cost = (0.001 * (Math.floor(q.length / 10) + 1)).toFixed(3);
-            document.getElementById('resultText').innerText = "Inference Engine Processing...";
+            document.getElementById('resultText').innerText = "Streaming Inference from AIVM Nodes...";
             try {
                 const tx = await ballContract.getPrediction(q, { value: ethers.parseEther(cost), gasLimit: 500000 });
                 await tx.wait();
-            } catch (e) { document.getElementById('resultText').innerText = "Execution Failed. Ensure MiMo status."; }
+            } catch (e) { document.getElementById('resultText').innerText = "Inference Failed. Check MiMo status."; }
+        };
+
+        document.getElementById('lookupBtn').onclick = async () => {
+            const addr = document.getElementById('lookupAddr').value;
+            const res = document.getElementById('lookupResults');
+            try {
+                const data = await identityContract.getIdentity(addr);
+                res.innerHTML = `<strong>User:</strong> ${data[0]}<br><strong>Status:</strong> ${data[2] ? 'VERIFIED' : 'PENDING'}`;
+                res.style.display = 'block';
+            } catch(e) { res.innerText = "Identity Not Found."; res.style.display = 'block'; }
         };
 
         document.getElementById('connectBtn').onclick = () => connectWallet(false);

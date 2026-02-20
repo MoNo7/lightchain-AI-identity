@@ -5,12 +5,12 @@
     <title>Lightchain AI Identity Portal</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <style>
-        :root { --primary: #007bff; --admin: #dc3545; --bg: #f0f2f5; --text: #1c1e21; }
+        :root { --primary: #007bff; --admin: #dc3545; --bg: #f0f2f5; --text: #1c1e21; --success: #28a745; }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); color: var(--text); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         #topNav { height: 60px; background: #fff; border-bottom: 1px solid #e1e4e8; display: flex; align-items: center; justify-content: space-between; padding: 0 25px; box-sizing: border-box; }
         .nav-title { display: flex; align-items: baseline; gap: 10px; }
         .nav-title h1 { font-size: 1.2rem; color: #0056b3; margin: 0; }
-        .token-display { background: #f8f9fa; padding: 8px 15px; border-radius: 20px; border: 1px solid #e1e4e8; font-weight: 700; font-size: 0.9rem; color: #28a745; display: flex; align-items: center; gap: 8px; }
+        .token-display { background: #f8f9fa; padding: 8px 15px; border-radius: 20px; border: 1px solid #e1e4e8; font-weight: 700; font-size: 0.9rem; color: var(--success); display: flex; align-items: center; gap: 8px; }
         .content-wrapper { display: flex; flex: 1; overflow: hidden; }
         #leftSidebar { width: 320px; background: #fff; border-right: 1px solid #e1e4e8; padding: 20px; overflow-y: auto; box-sizing: border-box; }
         #rightSidebar { width: 280px; background: #fff; border-left: 1px solid #e1e4e8; padding: 20px; overflow-y: auto; box-sizing: border-box; }
@@ -21,15 +21,16 @@
         .small-btn { padding: 8px; font-size: 0.75rem; flex: 1; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; }
         #adminConsole { display: none; border-top: 3px solid var(--admin); padding-top: 15px; }
         .treasury-box { background: #fff5f5; border: 1px solid #feb2b2; padding: 12px; border-radius: 8px; margin-bottom: 15px; text-align: center; }
-        .admin-status-msg { font-size: 0.75rem; margin-top: 15px; padding: 10px; border-radius: 6px; text-align: center; font-weight: 600; border: 1px solid transparent; min-height: 20px; line-height: 1.4; }
-        .result-window { margin-top: 20px; padding: 15px; background: #f8f9fa; border: 2px dashed #cbd5e0; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 0.9rem; color: #2d3748; min-height: 40px; text-align: center; transition: 0.3s; }
+        .admin-status-msg { font-size: 0.75rem; margin-top: 15px; padding: 10px; border-radius: 6px; text-align: center; font-weight: 600; border: 1px solid transparent; }
+        .lookup-results { margin-top: 10px; font-size: 0.75rem; background: #f8f9fa; padding: 10px; border-radius: 6px; border: 1px solid #e1e4e8; display: none; word-break: break-all; }
+        .result-window { margin-top: 20px; padding: 15px; background: #f8f9fa; border: 2px dashed #cbd5e0; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 0.9rem; color: #2d3748; min-height: 40px; text-align: center; }
         .verified-badge-inline { background: #1877F2; color: white; border-radius: 50%; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; margin-left: 8px; }
         input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 10px; box-sizing: border-box; }
     </style>
 </head>
 <body>
     <div id="topNav">
-        <div class="nav-title"><h1>Lightchain Identity</h1><span style="font-size:0.7rem; color:#999;">v6.0</span></div>
+        <div class="nav-title"><h1>Lightchain Identity</h1><span style="font-size:0.7rem; color:#999;">v6.2</span></div>
         <div class="token-display"><span id="tokenBalance">0.0000</span> LCAI</div>
     </div>
     <div class="content-wrapper">
@@ -40,6 +41,13 @@
                 <button id="connectBtn" class="primary-btn">Connect Wallet</button>
                 <button id="disconnectBtn" class="primary-btn" style="display:none; background:#6c757d;">Disconnect</button>
             </div>
+
+            <div class="card">
+                <h4 style="margin: 0 0 10px 0; font-size: 0.85rem; color: var(--primary);">Global Identity Lookup</h4>
+                <input type="text" id="lookupAddr" placeholder="Lookup 0x...">
+                <button id="lookupBtn" class="small-btn" style="width:100%; background: var(--primary);">Query Registry</button>
+                <div id="lookupResults" class="lookup-results"></div>
+            </div>
             
             <div id="adminConsole" class="card">
                 <h4 style="color:var(--admin); margin: 0 0 10px 0; font-size: 0.85rem;">Admin Management</h4>
@@ -49,7 +57,7 @@
                 </div>
                 <input type="text" id="verifyAddr" placeholder="Target 0x...">
                 <div style="display:flex; gap: 4px;">
-                    <button id="verifyBtn" class="small-btn" style="background:var(--primary);">Verify</button>
+                    <button id="verifyBtn" class="small-btn" style="background:var(--success);">Verify</button>
                     <button id="revokeBtn" class="small-btn">Revoke</button>
                 </div>
                 <div id="adminFeedback" class="admin-status-msg" style="display:none;"></div>
@@ -61,7 +69,7 @@
                 <h2 style="margin:0; font-size:1.4rem;">AIVM Oracle</h2>
                 <div id="oracleUI" style="display:none; margin-top: 20px;">
                     <input type="text" id="oracleQuestion" placeholder="Enter query for inference..." autocomplete="off">
-                    <button id="shakeBtn" class="primary-btn" style="background: #28a745;">Execute for 0.001 LCAI</button>
+                    <button id="shakeBtn" class="primary-btn" style="background: var(--success);">Execute for 0.001 LCAI</button>
                     <div class="result-window" id="resultText">Waiting for AIVM Consultation...</div>
                 </div>
             </div>
@@ -78,9 +86,7 @@
     </div>
 
     <script>
-        // SYNCED TO THE ORIGINAL REGISTRY WHERE YOU ARE ADMIN
         const IDENTITY_CONTRACT = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34"; 
-        // SYNCED TO THE WORKING ORACLE CONTRACT
         const BALL_CONTRACT_ADDR = "0x3CC611AF8Ac08A084a2758eB61fa7025854F6f13"; 
         
         const BALL_ABI = [{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"string","name":"question","type":"string"},{"indexed":false,"internalType":"string","name":"answer","type":"string"}],"name":"OracleAnswer","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"admin","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"timestamp","type":"uint256"}],"name":"Withdrawal","type":"event"},{"inputs":[{"internalType":"string","name":"_question","type":"string"}],"name":"getPrediction","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"totalPredictions","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"withdraw","outputs":[],"stateMutability":"nonpayable","type":"function"}];
@@ -90,12 +96,10 @@
 
         function showAdminMsg(msg, isError = false) {
             const el = document.getElementById('adminFeedback');
-            el.innerText = msg;
-            el.style.display = 'block';
+            el.innerText = msg; el.style.display = 'block';
             el.style.backgroundColor = isError ? '#fff5f5' : '#f0fff4';
             el.style.color = isError ? '#c53030' : '#2f855a';
             el.style.border = `1px solid ${isError ? '#feb2b2' : '#9ae6b4'}`;
-            // Remove after 8 seconds
             setTimeout(() => { el.style.display = 'none'; }, 8000);
         }
 
@@ -106,10 +110,9 @@
                 const address = await signer.getAddress();
                 const balance = await signer.provider.getBalance(address);
                 document.getElementById('tokenBalance').innerText = parseFloat(ethers.formatEther(balance)).toFixed(4);
-                
                 const tBal = await signer.provider.getBalance(BALL_CONTRACT_ADDR);
                 document.getElementById('treasuryBalance').innerText = parseFloat(ethers.formatEther(tBal)).toFixed(4);
-            } catch(e) { console.error("Sync Failure:", e); }
+            } catch(e) { console.error(e); }
         }
 
         async function connectWallet(auto = false) {
@@ -130,19 +133,10 @@
                 
                 await hardSync();
 
-                const savedAnswer = localStorage.getItem('lastAnswerText');
-                if (savedAnswer) {
-                    const resWin = document.getElementById('resultText');
-                    resWin.innerText = savedAnswer;
-                    resWin.style.borderColor = "#28a745";
-                }
-
                 ballContract.on("OracleAnswer", (user, question, answer) => {
                     document.getElementById('txFeed').innerText = `Recent: "${question.substring(0,12)}..."`;
                     if (user.toLowerCase() === accounts[0].toLowerCase()) {
-                        const resWin = document.getElementById('resultText');
-                        resWin.innerText = answer;
-                        resWin.style.borderColor = "#28a745";
+                        document.getElementById('resultText').innerText = answer;
                         localStorage.setItem('lastAnswerText', answer);
                     }
                     hardSync();
@@ -154,79 +148,55 @@
                     document.getElementById('userNameDisplay').innerHTML = `${profile[0]} <span class="verified-badge-inline">✓</span>`;
                     document.getElementById('oracleUI').style.display = 'block';
                 }
-                const isAdmin = await identityContract.isAdmin(accounts[0]);
-                if(isAdmin) document.getElementById('adminConsole').style.display = 'block';
-            } catch(e) { console.error("Connection Error:", e); }
+                if(await identityContract.isAdmin(accounts[0])) document.getElementById('adminConsole').style.display = 'block';
+            } catch(e) { console.error(e); }
         }
 
-        document.getElementById('oracleQuestion').oninput = (e) => {
-            const cost = (0.001 * (Math.floor(e.target.value.length / 10) + 1)).toFixed(3);
-            document.getElementById('shakeBtn').innerText = `Execute for ${cost} LCAI`;
+        document.getElementById('lookupBtn').onclick = async () => {
+            const addr = document.getElementById('lookupAddr').value;
+            const resBox = document.getElementById('lookupResults');
+            if(!ethers.isAddress(addr)) return alert("Invalid Address Format");
+            try {
+                const data = await identityContract.getIdentity(addr);
+                resBox.innerHTML = `<strong>User:</strong> ${data[0]}<br><strong>DID:</strong> ${data[1].substring(0,10)}...<br><strong>Verified:</strong> ${data[2] ? 'YES ✓' : 'NO'}`;
+                resBox.style.display = 'block';
+            } catch(e) { resBox.innerText = "No identity found."; resBox.style.display = 'block'; }
         };
 
         document.getElementById('shakeBtn').onclick = async () => {
-            const question = document.getElementById('oracleQuestion').value;
-            if(!question) return;
-            const cost = (0.001 * (Math.floor(question.length / 10) + 1)).toFixed(3);
-            const resWin = document.getElementById('resultText');
-            resWin.innerText = "Synchronizing AIVM Layers...";
-            resWin.style.borderColor = "#007bff";
-
+            const q = document.getElementById('oracleQuestion').value;
+            if(!q) return;
+            const cost = (0.001 * (Math.floor(q.length / 10) + 1)).toFixed(3);
+            document.getElementById('resultText').innerText = "Analyzing Consensus...";
             try {
-                const tx = await ballContract.getPrediction(question, { 
-                    value: ethers.parseEther(cost), 
-                    gasLimit: 800000 
-                });
+                const tx = await ballContract.getPrediction(q, { value: ethers.parseEther(cost), gasLimit: 800000 });
                 await tx.wait();
-                await hardSync();
-            } catch (e) { 
-                resWin.innerText = "Execution Failed. Ensure MiMo status or check Wallet balance."; 
-                resWin.style.borderColor = "#dc3545";
-            }
+                hardSync();
+            } catch (e) { document.getElementById('resultText').innerText = "Execution Failed. Ensure MiMo status."; }
         };
 
         document.getElementById('verifyBtn').onclick = async () => { 
             const addr = document.getElementById('verifyAddr').value;
-            if(!addr) return;
-            showAdminMsg("Broadcasting Verification to Testnet...");
-            try {
-                const tx = await identityContract.verifyIdentity(addr);
-                await tx.wait();
-                showAdminMsg(`SUCCESS: ${addr.substring(0,8)}... has been verified.`);
-                await hardSync();
-            } catch(e) { showAdminMsg("ERROR: Transaction Reverted. (Admin only?)", true); } 
+            showAdminMsg("Broadcasting Verification...");
+            try { await (await identityContract.verifyIdentity(addr)).wait(); showAdminMsg("SUCCESS: Address Verified."); await hardSync(); } 
+            catch(e) { showAdminMsg("ERROR: Reverted.", true); } 
         };
 
         document.getElementById('revokeBtn').onclick = async () => { 
             const addr = document.getElementById('verifyAddr').value;
-            if(!addr) return;
-            showAdminMsg("Broadcasting Revocation to Testnet...");
-            try {
-                const tx = await identityContract.revokeVerification(addr);
-                await tx.wait();
-                showAdminMsg(`SUCCESS: Verification for ${addr.substring(0,8)}... revoked.`);
-                await hardSync();
-            } catch(e) { showAdminMsg("ERROR: Transaction Reverted. (Admin only?)", true); } 
+            showAdminMsg("Broadcasting Revocation...");
+            try { await (await identityContract.revokeVerification(addr)).wait(); showAdminMsg("SUCCESS: Revoked."); await hardSync(); } 
+            catch(e) { showAdminMsg("ERROR: Reverted.", true); } 
         };
 
         document.getElementById('withdrawBtn').onclick = async () => {
-            try { 
-                const tx = await ballContract.withdraw({ gasLimit: 250000 });
-                await tx.wait(); 
-                await hardSync(); 
-                showAdminMsg("SUCCESS: Treasury balance claimed.");
-            } catch(e) { showAdminMsg("Withdraw Failed: No funds available.", true); }
+            try { await (await ballContract.withdraw({ gasLimit: 250000 })).wait(); await hardSync(); showAdminMsg("Treasury claimed."); } 
+            catch(e) { showAdminMsg("Withdraw Failed.", true); }
         };
 
         document.getElementById('connectBtn').onclick = () => connectWallet(false);
         document.getElementById('disconnectBtn').onclick = () => { localStorage.clear(); location.reload(); };
-        
-        window.addEventListener('load', () => { 
-            if(localStorage.getItem('isWalletConnected')) {
-                // Wait briefly for provider injection
-                setTimeout(() => connectWallet(true), 600); 
-            }
-        });
+        window.addEventListener('load', () => { if(localStorage.getItem('isWalletConnected')) setTimeout(() => connectWallet(true), 600); });
     </script>
 </body>
 </html>

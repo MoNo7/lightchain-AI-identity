@@ -31,7 +31,7 @@
 </head>
 <body>
     <div id="topNav">
-        <div class="nav-title"><h1>Lightchain Identity</h1><span class="version-tag">v3.8</span></div>
+        <div class="nav-title"><h1>Lightchain Identity</h1><span class="version-tag">v3.9</span></div>
         <div class="token-display"><span id="tokenBalance">0.00</span> LCAI</div>
     </div>
     <div class="content-wrapper">
@@ -44,7 +44,7 @@
                 <button id="disconnectBtn" class="primary-btn" style="display:none; background:#6c757d;">Disconnect</button>
             </div>
             <div id="adminConsole" class="card">
-                <h4 style="color:var(--admin); margin: 0 0 10px 0;">Admin Console</h4>
+                <h4 style="color:var(--admin); margin: 0 0 10px 0; font-size: 0.9rem;">Admin Console</h4>
                 <input type="text" id="verifyAddr" placeholder="Target 0x...">
                 <div style="display:flex; gap: 4px;"><button id="verifyBtn" class="small-btn" style="background:var(--admin);">Verify</button><button id="revokeBtn" class="small-btn">Revoke</button></div>
             </div>
@@ -63,7 +63,7 @@
         <div id="rightSidebar">
             <div class="card">
                 <h4 style="margin: 0 0 10px 0; color: #0056b3;">Oracle Stats</h4>
-                <div>Global Predictions: <strong id="globalCount">0</strong></div>
+                <div style="font-size: 0.9rem;">Global Predictions: <strong id="globalCount">0</strong></div>
                 <hr style="border:0; border-top:1px solid #eee; margin:15px 0;">
                 <h4 style="font-size:0.85rem; margin-bottom:10px;">Live Feed (Recent)</h4>
                 <div id="txFeed"></div>
@@ -72,7 +72,7 @@
     </div>
     <script>
         const IDENTITY_CONTRACT = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34";
-        const BALL_CONTRACT_ADDR = "0x76478Cc8495c84ab6C5c0Ce6f63a44CF4FaabdD7"; 
+        const BALL_CONTRACT_ADDR = "0x76478Cc8495c84ab6C5c0Ce6f63a44CF4FaabdD7";
         const BAD_WORDS = ["fuck", "shit", "bitch", "asshole", "cunt", "nigger"]; 
 
         const BALL_ABI = [{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"string","name":"question","type":"string"},{"indexed":false,"internalType":"string","name":"answer","type":"string"}],"name":"OracleAnswer","type":"event"},{"inputs":[{"internalType":"string","name":"_question","type":"string"}],"name":"getPrediction","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"totalPredictions","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"withdraw","outputs":[],"stateMutability":"nonpayable","type":"function"}];
@@ -81,50 +81,55 @@
         let signer, ballContract, identityContract;
 
         async function updateData() {
-            const count = await ballContract.totalPredictions();
-            document.getElementById('globalCount').innerText = count.toString();
-            const balance = await signer.provider.getBalance(await signer.getAddress());
-            document.getElementById('tokenBalance').innerText = parseFloat(ethers.formatEther(balance)).toFixed(3);
+            try {
+                const count = await ballContract.totalPredictions();
+                document.getElementById('globalCount').innerText = count.toString();
+                const balance = await signer.provider.getBalance(await signer.getAddress());
+                document.getElementById('tokenBalance').innerText = parseFloat(ethers.formatEther(balance)).toFixed(3);
+            } catch(e) { console.error("Update failed", e); }
         }
 
         async function connectWallet() {
             if (!window.ethereum) return;
-            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-            const provider = new ethers.BrowserProvider(window.ethereum);
-            signer = await provider.getSigner();
-            ballContract = new ethers.Contract(BALL_CONTRACT_ADDR, BALL_ABI, signer);
-            identityContract = new ethers.Contract(IDENTITY_CONTRACT, IDENTITY_ABI, signer);
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                const provider = new ethers.BrowserProvider(window.ethereum);
+                signer = await provider.getSigner();
+                ballContract = new ethers.Contract(BALL_CONTRACT_ADDR, BALL_ABI, signer);
+                identityContract = new ethers.Contract(IDENTITY_CONTRACT, IDENTITY_ABI, signer);
 
-            document.getElementById('connectBtn').style.display = 'none';
-            document.getElementById('disconnectBtn').style.display = 'block';
-            document.getElementById('walletStatus').innerText = "Addr: " + accounts[0].substring(0,10) + "...";
+                localStorage.setItem('isWalletConnected', 'true');
+                document.getElementById('connectBtn').style.display = 'none';
+                document.getElementById('disconnectBtn').style.display = 'block';
+                document.getElementById('walletStatus').innerText = "Addr: " + accounts[0].substring(0, 10) + "...";
 
-            updateData();
-            
-            // Listen for Oracle Events
-            ballContract.on("OracleAnswer", (user, question, answer) => {
-                const feed = document.getElementById('txFeed');
-                const item = document.createElement('div');
-                item.className = 'feed-item';
-                item.innerHTML = `<strong>Consultation:</strong> "${question.substring(0,20)}..."`;
-                feed.prepend(item);
+                await updateData();
                 
-                // If the event is for the current user, show it in the ball
-                if (user.toLowerCase() === accounts[0].toLowerCase()) {
-                    document.getElementById('response').innerText = answer;
-                }
-            });
+                // Set up event listener for Oracle
+                ballContract.on("OracleAnswer", (user, question, answer) => {
+                    const feed = document.getElementById('txFeed');
+                    const item = document.createElement('div');
+                    item.className = 'feed-item';
+                    item.innerHTML = `<strong>Consultation:</strong> "${question.substring(0, 20)}..."`;
+                    feed.prepend(item);
+                    if (user.toLowerCase() === accounts[0].toLowerCase()) {
+                        document.getElementById('response').innerText = answer;
+                    }
+                });
 
-            const profile = await identityContract.getIdentity(accounts[0]).catch(() => null);
-            if(profile && profile[0]) {
-                document.getElementById('userStatusHeader').style.display = 'block';
-                document.getElementById('userNameDisplay').innerHTML = `${profile[0]} ${profile[2] ? '<span class="verified-badge-inline">✓</span>' : ''}`;
-                if(profile[2]) document.getElementById('oracleUI').style.display = 'block';
-            }
-            if(await identityContract.isAdmin(accounts[0])) {
-                document.getElementById('adminConsole').style.display = 'block';
-                document.getElementById('withdrawBtn').style.display = 'block';
-            }
+                const profile = await identityContract.getIdentity(accounts[0]).catch(() => null);
+                if(profile && profile[0]) {
+                    document.getElementById('userStatusHeader').style.display = 'block';
+                    document.getElementById('userNameDisplay').innerHTML = `${profile[0]} ${profile[2] ? '<span class="verified-badge-inline">✓</span>' : ''}`;
+                    if(profile[2]) document.getElementById('oracleUI').style.display = 'block';
+                }
+
+                const isAdmin = await identityContract.isAdmin(accounts[0]);
+                if(isAdmin) {
+                    document.getElementById('adminConsole').style.display = 'block';
+                    document.getElementById('withdrawBtn').style.display = 'block';
+                }
+            } catch(e) { console.error("Connection failed", e); }
         }
 
         document.getElementById('oracleQuestion').oninput = (e) => {
@@ -137,37 +142,38 @@
         document.getElementById('shakeBtn').onclick = async () => {
             const question = document.getElementById('oracleQuestion').value;
             if(!question) return alert("Ask a question.");
-            const multiplier = Math.floor(question.length / 10) + 1;
-            const cost = (0.01 * multiplier).toFixed(2);
-            
+            const cost = (0.01 * (Math.floor(question.length / 10) + 1)).toFixed(2);
             const ball = document.getElementById('ball');
             const res = document.getElementById('response');
             ball.classList.add('shake');
             res.innerText = "Mining Wisdom...";
-            
             try {
-                const tx = await ballContract.getPrediction(question, { 
-                    value: ethers.parseEther(cost), 
-                    gasLimit: 500000 
-                });
+                const tx = await ballContract.getPrediction(question, { value: ethers.parseEther(cost), gasLimit: 500000 });
                 await tx.wait(); 
-                updateData();
-                // Note: The answer will be set by the .on("OracleAnswer") listener above!
+                await updateData();
             } catch (e) { 
                 alert("Consultation Failed."); 
                 res.innerText = "?";
-            } finally { 
-                ball.classList.remove('shake'); 
-            }
+            } finally { ball.classList.remove('shake'); }
         };
 
-        document.getElementById('withdrawBtn').onclick = async () => { await (await ballContract.withdraw()).wait(); alert("Fees Claimed!"); updateData(); };
-        document.getElementById('verifyBtn').onclick = async () => { await (await identityContract.verifyIdentity(document.getElementById('verifyAddr').value)).wait(); location.reload(); };
-        document.getElementById('revokeBtn').onclick = async () => { await (await identityContract.revokeVerification(document.getElementById('verifyAddr').value)).wait(); location.reload(); };
+        document.getElementById('withdrawBtn').onclick = async () => { try { await (await ballContract.withdraw()).wait(); alert("Fees Claimed!"); await updateData(); } catch(e) { alert("Withdraw failed"); } };
+        document.getElementById('verifyBtn').onclick = async () => { try { await (await identityContract.verifyIdentity(document.getElementById('verifyAddr').value)).wait(); location.reload(); } catch(e) { alert("Verify failed"); } };
+        document.getElementById('revokeBtn').onclick = async () => { try { await (await identityContract.revokeVerification(document.getElementById('verifyAddr').value)).wait(); location.reload(); } catch(e) { alert("Revoke failed"); } };
         document.getElementById('connectBtn').onclick = connectWallet;
         document.getElementById('disconnectBtn').onclick = () => { localStorage.removeItem('isWalletConnected'); location.reload(); };
-        window.addEventListener('DOMContentLoaded', () => { if (localStorage.getItem('isWalletConnected') === 'true') setTimeout(connectWallet, 500); });
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            if (localStorage.getItem('isWalletConnected') === 'true' && window.ethereum) {
+                // Check if already authorized in MetaMask
+                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                if (accounts.length > 0) {
+                    await connectWallet();
+                } else {
+                    localStorage.removeItem('isWalletConnected');
+                }
+            }
+        });
     </script>
 </body>
 </html>
-

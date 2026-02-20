@@ -25,7 +25,7 @@
 </head>
 <body>
     <div id="topNav">
-        <div class="nav-title"><h1>Lightchain Identity</h1><span style="font-size:0.7rem; color:#999;">v4.8</span></div>
+        <div class="nav-title"><h1>Lightchain Identity</h1><span style="font-size:0.7rem; color:#999;">v4.9</span></div>
         <div class="token-display"><span id="tokenBalance">0.00</span> LCAI</div>
     </div>
     <div class="content-wrapper">
@@ -40,7 +40,7 @@
             <div id="adminConsole" class="card">
                 <h4 style="color:var(--admin); margin: 0 0 10px 0; font-size: 0.85rem;">Admin Management</h4>
                 <div class="treasury-box">
-                    <div style="font-size: 1.4rem; font-weight: 800; color: #c53030;"><span id="treasuryBalance">0.00</span> <small style="font-size: 0.8rem;">LCAI</small></div>
+                    <div style="font-size: 1.4rem; font-weight: 800; color: #c53030;"><span id="treasuryBalance">0.0000</span> <small style="font-size: 0.8rem;">LCAI</small></div>
                     <button id="withdrawBtn" class="small-btn" style="width:100%; margin-top:10px; background:#c53030;">Claim Fees</button>
                     <div id="withdrawLog" style="font-size:0.6rem; margin-top:5px; color:#666;"></div>
                 </div>
@@ -54,7 +54,7 @@
                 <h2 style="margin:0; font-size:1.4rem;">AIVM Oracle</h2>
                 <div id="oracleUI" style="display:none; margin-top: 20px;">
                     <input type="text" id="oracleQuestion" placeholder="Enter query for inference..." autocomplete="off">
-                    <button id="shakeBtn" class="primary-btn" style="background: #28a745;">Execute for 0.01 LCAI</button>
+                    <button id="shakeBtn" class="primary-btn" style="background: #28a745;">Execute for 0.001 LCAI</button>
                     <div class="result-window" id="resultText">Waiting for AIVM Consultation...</div>
                 </div>
             </div>
@@ -72,10 +72,9 @@
 
         async function hardSync() {
             try {
-                const count = await ballContract.totalPredictions();
                 const address = await signer.getAddress();
                 const balance = await signer.provider.getBalance(address);
-                document.getElementById('tokenBalance').innerText = parseFloat(ethers.formatEther(balance)).toFixed(3);
+                document.getElementById('tokenBalance').innerText = parseFloat(ethers.formatEther(balance)).toFixed(4);
                 const tBal = await signer.provider.getBalance(BALL_CONTRACT_ADDR);
                 document.getElementById('treasuryBalance').innerText = parseFloat(ethers.formatEther(tBal)).toFixed(4);
             } catch(e) { console.error(e); }
@@ -99,6 +98,7 @@
                     document.getElementById('resultText').innerText = answer;
                     document.getElementById('resultText').style.borderColor = "#28a745";
                 }
+                hardSync();
             });
 
             setTimeout(async () => {
@@ -114,13 +114,14 @@
         }
 
         document.getElementById('oracleQuestion').oninput = (e) => {
-            const cost = (0.01 * (Math.floor(e.target.value.length / 10) + 1)).toFixed(2);
+            const cost = (0.001 * (Math.floor(e.target.value.length / 10) + 1)).toFixed(3);
             document.getElementById('shakeBtn').innerText = `Execute for ${cost} LCAI`;
         };
 
         document.getElementById('shakeBtn').onclick = async () => {
             const question = document.getElementById('oracleQuestion').value;
-            const cost = (0.01 * (Math.floor(question.length / 10) + 1)).toFixed(2);
+            if(!question) return;
+            const cost = (0.001 * (Math.floor(question.length / 10) + 1)).toFixed(3);
             try {
                 const tx = await ballContract.getPrediction(question, { 
                     value: ethers.parseEther(cost), 

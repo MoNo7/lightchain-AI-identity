@@ -56,7 +56,7 @@
     </div>
 
     <script>
-        const CONTRACT_ADDRESS = "0xE0087e581f11b9de0d61697A0cb0CDffca8f1F34";
+        const CONTRACT_ADDRESS = "0xe0087E581F11B9de0D61697A0cb0CDffca8F1F34";
         const LIGHTCHAIN_SETUP = {
             chainId: '0x1f8', // 504
             chainName: 'Lightchain AI Testnet',
@@ -69,54 +69,48 @@
 
         let signer, contract, provider;
 
-        async function connectWallet() {
+async function connectWallet() {
             if (!window.ethereum) return alert("MetaMask not detected!");
-            
             try {
-                // Force the account request
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                
-                // Target the Lightchain Network (504)
+                provider = new ethers.BrowserProvider(window.ethereum);
                 const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+                
+                // Prompt switch if not on Lightchain Testnet (504)
                 if (chainId !== LIGHTCHAIN_SETUP.chainId) {
                     document.getElementById('switchNetBtn').style.display = 'block';
-                    document.getElementById('walletStatus').innerText = "Status: Switch to Lightchain";
+                    document.getElementById('walletStatus').innerText = "Status: Wrong Network";
                     return;
                 }
-        
-                provider = new ethers.BrowserProvider(window.ethereum);
+
                 signer = await provider.getSigner();
                 contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
-        
+
                 const userAddr = accounts[0];
                 document.getElementById('walletStatus').innerText = "Status: Connected (" + userAddr.substring(0,6) + "...)";
                 document.getElementById('walletStatus').style.color = "#4ade80";
+                
+                // Toggle Buttons
                 document.getElementById('connectBtn').style.display = 'none';
                 document.getElementById('disconnectBtn').style.display = 'inline-block';
                 document.getElementById('switchNetBtn').style.display = 'none';
-        
-                // Check Admin Status - This shows the panel
+
+                // Admin Check
                 const adminStatus = await contract.isAdmin(userAddr);
-                if(adminStatus) {
-                    document.getElementById('adminPanel').style.display = 'block';
-                }
-        
-            } catch (err) { 
-                console.error(err);
-                alert("Connection failed: " + err.message); 
-            }
+                if(adminStatus) document.getElementById('adminPanel').style.display = 'block';
+
+            } catch (err) { alert("Connection failed: " + err.message); }
         }
-                
+
         async function disconnect() {
-            signer = null; contract = null;
+            signer = null; 
+            contract = null;
             document.getElementById('walletStatus').innerText = "Status: Disconnected";
             document.getElementById('walletStatus').style.color = "white";
             document.getElementById('connectBtn').style.display = 'inline-block';
             document.getElementById('disconnectBtn').style.display = 'none';
             document.getElementById('adminPanel').style.display = 'none';
-            document.getElementById('switchNetBtn').style.display = 'none';
         }
-
         async function switchNetwork() {
             try {
                 await window.ethereum.request({ 
@@ -173,6 +167,7 @@
     </script>
 </body>
 </html>
+
 
 
 

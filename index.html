@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Lightchain AI Identity Portal</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; padding: 20px; max-width: 800px; margin: auto; background: #f0f2f5; color: #1c1e21; }
+        .card { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 25px; border: 1px solid #e1e4e8; }
+        .header { text-align: center; background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); color: white; padding: 40px 20px; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 1rem; }
+        button { background: #007bff; color: white; border: none; padding: 14px; border-radius: 10px; cursor: pointer; width: 100%; font-weight: 600; font-size: 1rem; transition: 0.3s; margin-top: 10px; }
+        button:hover { background: #0056b3; transform: translateY(-2px); }
+        .status-text { font-size: 0.9rem; margin-top: 15px; opacity: 0.9; display: block; }
+        .verified-badge { color: #1877F2; font-weight: bold; }
+        .checkmark { background: #1877F2; color: white; border-radius: 50%; width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; margin-right: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="card header">
+    <h1 style="margin:0; font-size: 2.2rem;">Lightchain Identity Portal</h1>
+    <p style="margin: 10px 0 20px;">Secure On-Chain Identity on Lightchain AI Testnet</p>
+    
+    <div id="actionButtons">
+        <button id="connectBtn" style="background: white; color: #007bff; max-width: 250px; margin: auto;">Connect MetaMask</button>
+        <button id="switchNetBtn" style="display:none; background: #ffc107; color: #000; max-width: 250px; margin: 10px auto;">Switch to Lightchain</button>
+    </div>
+    
+    <span id="walletStatus" class="status-text">Not Connected</span>
+</div>
+
+    <div class="card">
+        <h3 style="margin-top:0;">Global Identity Lookup</h3>
+        <div style="display:flex; gap: 10px;">
+            <input type="text" id="searchAddr" placeholder="Search by Wallet Address (0x...)">
+            <button id="searchBtn" style="width: 120px; margin-top: 10px; background: #6c757d;">Search</button>
+        </div>
+        <div id="searchResult" style="display:none; margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 10px;">
+            <p style="margin:0;"><strong>User:</strong> <span id="resName"></span> <span id="resStatus"></span></p>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3 style="margin-top:0;">Register Your Identity</h3>
+        <input type="text" id="regName" placeholder="Desired Username">
+        <input type="text" id="regDID" placeholder="DID or Profile Link">
+        <button id="createBtn" style="background: #28a745;">Register Identity</button>
+    </div>
+
+<script>
+    // 1. LIGHTCHAIN NETWORK PARAMS
+    const LIGHTCHAIN_SETUP = {
+        chainId: '0x763', // 1891 in Hex (Match for Hardhat/IDE config)
+        chainName: 'Lightchain AI Testnet',
+        nativeCurrency: { name: 'LCAI', symbol: 'LCAI', decimals: 18 },
+        rpcUrls: ['https://light-testnet-rpc.lightchain.ai'],
+        blockExplorerUrls: ['https://testnet-explorer.lightchain.ai']
+    };
+
+const CONTRACT_ADDRESS = "0xE0087e581f11b9de0d61697a0cb0cdffca8f1f34";
+  const ABI = [
+    {"inputs":[],"stateMutability":"nonpayable","type":"constructor"},
+    {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"newAdmin","type":"address"}],"name":"AdminAdded","type":"event"},
+    {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"oldAdmin","type":"address"}],"name":"AdminRemoved","type":"event"},
+    {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"userAddress","type":"address"},{"indexed":false,"internalType":"string","name":"username","type":"string"},{"indexed":false,"internalType":"string","name":"did","type":"string"}],"name":"IdentityCreated","type":"event"},
+    {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"userAddress","type":"address"}],"name":"IdentityVerified","type":"event"},
+    {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"userAddress","type":"address"}],"name":"VerificationRevoked","type":"event"},
+    {"inputs":[{"internalType":"address","name":"_newAdmin","type":"address"}],"name":"addAdmin","outputs":[],"stateMutability":"nonpayable","type":"function"},
+    {"inputs":[{"internalType":"string","name":"_username","type":"string"},{"internalType":"string","name":"_did","type":"string"}],"name":"createIdentity","outputs":[],"stateMutability":"nonpayable","type":"function"},
+    {"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"getIdentity","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},
+    {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"isAdmin","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},
+    {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"profiles","outputs":[{"internalType":"string","name":"username","type":"string"},{"internalType":"string","name":"did","type":"string"},{"internalType":"bool","name":"isVerified","type":"bool"},{"internalType":"bool","name":"exists","type":"bool"}],"stateMutability":"view","type":"function"},
+    {"inputs":[{"internalType":"address","name":"_admin","type":"address"}],"name":"removeAdmin","outputs":[],"stateMutability":"nonpayable","type":"function"},
+    {"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"revokeVerification","outputs":[],"stateMutability":"nonpayable","type":"function"},
+    {"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"verifyIdentity","outputs":[],"stateMutability":"nonpayable","type":"function"}
+];
+
+    let signer;
+    let contract;
+
+    // 2. NETWORK SWITCHER FUNCTION
+    async function handleNetworkSwitch() {
+        try {
+            await window.ethereum.request({
+                method: 'wallet_switchEthereumChain',
+                params: [{ chainId: LIGHTCHAIN_SETUP.chainId }],
+            });
+        } catch (error) {
+            if (error.code === 4902) { // Network not added yet
+                await window.ethereum.request({
+                    method: 'wallet_addEthereumChain',
+                    params: [LIGHTCHAIN_SETUP],
+                });
+            }
+        }
+    }
+
+    // 3. IMPROVED CONNECTION LOGIC
+async function connectWallet() {
+    // Check if MetaMask is present
+    if (window.ethereum) {
+        try {
+            // Request account access - this forces MetaMask to wake up
+            const accounts = await window.ethereum.request({ 
+                method: 'eth_requestAccounts' 
+            });
+
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            signer = await provider.getSigner();
+            contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+
+            document.getElementById('walletStatus').innerText = "Connected: " + accounts[0];
+            document.getElementById('connectBtn').innerText = "Wallet Linked";
+            
+            // Success! Now check the network
+            await checkNetwork(); 
+
+        } catch (err) {
+            console.error(err);
+            alert("Connection failed. Please unlock MetaMask and try again.");
+        }
+    } else {
+        alert("MetaMask not detected. If you are on Chrome, try refreshing (Ctrl+F5) or use a local server like VS Code Live Server.");
+    }
+}
+
+    document.getElementById('connectBtn').onclick = connectWallet;
+    document.getElementById('switchNetBtn').onclick = handleNetworkSwitch;
+
+    // Auto-reload if user manually changes network in MetaMask
+    if (window.ethereum) {
+        window.ethereum.on('chainChanged', () => window.location.reload());
+    }
+</script></body>
+</html>
+

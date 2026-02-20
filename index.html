@@ -13,18 +13,18 @@
         .header-brand h1 { font-size: 1.4rem; color: #0056b3; margin: 0; }
         #userStatusHeader { text-align: center; padding: 10px 0; border-bottom: 1px solid #eee; margin-bottom: 15px; display: none; }
         .identity-name { font-size: 1.1rem; font-weight: bold; color: #1c1e21; display: flex; align-items: center; justify-content: center; }
-        input { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 0.9rem; }
-        button { background: #007bff; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: 600; transition: 0.2s; margin-top: 5px; }
-        button:hover { background: #0056b3; }
+        
+        /* 8-Ball Styles */
+        .eight-ball-container { text-align: center; margin-top: 30px; }
+        .eight-ball { width: 200px; height: 200px; background: #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; margin: 0 auto; position: relative; cursor: pointer; transition: transform 0.1s; }
+        .eight-ball:active { transform: scale(0.95) rotate(5deg); }
+        .inner-circle { width: 100px; height: 100px; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #000; font-size: 14px; padding: 10px; text-align: center; font-weight: bold; line-height: 1.2; }
+        .shake { animation: shake 0.5s; }
+        @keyframes shake { 0% { transform: translate(1px, 1px) rotate(0deg); } 10% { transform: translate(-1px, -2px) rotate(-1deg); } 20% { transform: translate(-3px, 0px) rotate(1deg); } 100% { transform: translate(1px, 1px) rotate(0deg); } }
+        
+        button { background: #007bff; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: 600; transition: 0.2s; margin-top: 10px; }
         #adminConsole { display: none; margin-top: 10px; }
-        .admin-section { border-top: 1px solid #eee; margin-top: 15px; padding-top: 15px; }
-        .status-dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; background: #bbb; margin-right: 5px; }
-        .online { background: #4ade80; }
-        .verified-badge-inline { background: #1877F2; color: white; border-radius: 50%; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; margin-left: 8px; vertical-align: middle; box-shadow: 0 0 5px rgba(24, 119, 242, 0.4); }
-        .member-item { padding: 10px; border-bottom: 1px solid #eee; font-size: 0.85rem; }
-        .btn-group { display: flex; gap: 4px; margin-top: 5px; }
-        .small-btn { padding: 6px; font-size: 0.75rem; flex: 1; background: #6c757d; }
-        .placeholder-utility { border: 2px dashed #bbb; color: #888; display: flex; justify-content: center; align-items: center; height: 500px; font-style: italic; text-align: center; border-radius: 12px; }
+        .verified-badge-inline { background: #1877F2; color: white; border-radius: 50%; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; margin-left: 8px; vertical-align: middle; }
     </style>
 </head>
 <body>
@@ -32,197 +32,80 @@
     <div id="leftSidebar">
         <div class="header-brand">
             <h1>Lightchain ID</h1>
-            <small>Portal v2.7</small>
+            <small>Portal v2.9</small>
         </div>
-
-        <div id="userStatusHeader">
-            <div class="identity-name" id="userNameDisplay"></div>
-        </div>
-        
+        <div id="userStatusHeader"><div class="identity-name" id="userNameDisplay"></div></div>
         <div class="card" style="padding: 15px; margin-top: 10px;">
-            <div id="walletStatus"><span class="status-dot"></span> Disconnected</div>
+            <div id="walletStatus">Disconnected</div>
             <button id="connectBtn">Connect Wallet</button>
             <button id="disconnectBtn" style="display:none; background:#6c757d;">Disconnect</button>
-            <button id="switchNetBtn" style="display:none; background:#ffc107; color:black;">Switch Network</button>
         </div>
-
         <div id="adminConsole" class="card" style="border-top: 3px solid #dc3545;">
-            <h4 style="color:#dc3545; margin: 0 0 15px 0;">Admin Console</h4>
-            
-            <div style="margin-bottom: 20px;">
-                <label style="font-size: 0.75rem; font-weight: bold; color: #999; text-transform: uppercase;">Global Lookup</label>
-                <div style="display:flex; gap: 5px;">
-                    <input type="text" id="searchAddr" placeholder="Search 0x..." style="margin: 5px 0;">
-                    <button id="searchBtn" style="width: 45px; background:#6c757d; margin: 5px 0; padding: 0;">🔍</button>
-                </div>
-                <div id="searchResult" style="display:none; margin-top:10px; font-size:0.8rem; background: #f9f9f9; padding: 10px; border-radius: 8px; border: 1px solid #eee;">
-                    <p style="margin: 2px 0;"><strong>User:</strong> <span id="resName"></span></p>
-                    <p style="margin: 2px 0;"><strong>Status:</strong> <span id="resStatus"></span></p>
-                    <button id="adminQuickSelect" class="small-btn" style="margin-top:8px; width: 100%; background: #007bff;">Select for Action</button>
-                </div>
-            </div>
-
-            <div class="admin-section">
-                <label style="font-size: 0.75rem; font-weight: bold; color: #999; text-transform: uppercase;">Identity Actions</label>
-                <input type="text" id="verifyAddr" placeholder="Target Address 0x...">
-                <div class="btn-group">
-                    <button id="verifyBtn" style="background:#dc3545;">Verify</button>
-                    <button id="revokeBtn" style="background:#6c757d;">Revoke</button>
-                </div>
-            </div>
-            
-            <div class="admin-section">
-                <label style="font-size: 0.75rem; font-weight: bold; color: #999; text-transform: uppercase;">Registration Queue</label>
-                <div id="memberList" style="margin-top: 10px;"></div>
-            </div>
+            <h4 style="color:#dc3545; margin: 0;">Admin Console</h4>
+            <div id="memberList" style="margin-top:10px; font-size:0.8rem;"></div>
         </div>
     </div>
 
     <div class="main-utility-area">
-        <div class="card" style="max-width: 800px;">
-            <h2 style="margin-top:0;">Utility Integration</h2>
-            <p>This space is reserved for the application that requires Identity Verification.</p>
+        <div class="card" style="max-width: 600px; text-align: center;">
+            <h2 style="margin:0;">🎱 Verified Magic 8-Ball</h2>
+            <p id="lockMessage" style="color: #dc3545; font-weight: bold;">[ Locked: Verification Required ]</p>
             
-            <div id="regSection" style="display:none; margin-bottom: 20px; padding: 20px; background: #f8f9fa; border-radius: 12px; border: 1px solid #eee;">
-                <h4>Registration Required</h4>
-                <p style="font-size: 0.9rem;">Please register your identity to use this utility.</p>
-                <input type="text" id="regName" placeholder="Enter Username">
-                <input type="text" id="regDID" placeholder="DID Link (Optional)">
-                <button id="createBtn" style="background:#28a745;">Register Identity</button>
+            <div class="eight-ball-container">
+                <div class="eight-ball" id="ball">
+                    <div class="inner-circle" id="response">Ask me...</div>
+                </div>
+                <button id="shakeBtn" style="display:none; max-width: 200px; margin: 20px auto;">Shake Ball</button>
             </div>
-
-            <div class="placeholder-utility">[ Your Secondary Utility UI Goes Here ]</div>
         </div>
     </div>
 
     <script>
         const RAW_CONTRACT = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34";
-        const LIGHTCHAIN_SETUP = { chainId: '0x1f8', chainName: 'Lightchain AI Testnet', nativeCurrency: { name: 'LCAI', symbol: 'LCAI', decimals: 18 }, rpcUrls: ['https://light-testnet-rpc.lightchain.ai'], blockExplorerUrls: ['https://testnet-explorer.lightchain.ai'] };
-        const ABI = [{"inputs":[],"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"newAdmin","type":"address"}],"name":"AdminAdded","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"oldAdmin","type":"address"}],"name":"AdminRemoved","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"userAddress","type":"address"},{"indexed":false,"internalType":"string","name":"username","type":"string"},{"indexed":false,"internalType":"string","name":"did","type":"string"}],"name":"IdentityCreated","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"userAddress","type":"address"}],"name":"IdentityVerified","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"userAddress","type":"address"}],"name":"VerificationRevoked","type":"event"},{"inputs":[{"internalType":"address","name":"_newAdmin","type":"address"}],"name":"addAdmin","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"string","name":"_username","type":"string"},{"internalType":"string","name":"_did","type":"string"}],"name":"createIdentity","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"getIdentity","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"isAdmin","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"profiles","outputs":[{"internalType":"string","name":"username","type":"string"},{"internalType":"string","name":"did","type":"string"},{"internalType":"bool","name":"isVerified","type":"bool"},{"internalType":"bool","name":"exists","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_admin","type":"address"}],"name":"removeAdmin","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"revokeVerification","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"verifyIdentity","outputs":[],"stateMutability":"nonpayable","type":"function"}];
+        const ABI = [{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"getIdentity","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"isAdmin","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"}];
+        
+        const JOKES = ["Signs point to... probably not.", "The AIVM says YES.", "My sources say your gas fee is too low.", "Verified users only: Definitely!", "Error 404: Future not found.", "Ask again after the next block."];
 
-        let signer, contract, provider;
-
-        // V2.7 Persistence & Account Listener
-        window.addEventListener('DOMContentLoaded', async () => {
-            if (window.ethereum) {
-                // Monitor Account Changes
-                window.ethereum.on('accountsChanged', (accounts) => {
-                    if (accounts.length > 0) {
-                        connectWallet();
-                    } else {
-                        disconnect();
-                    }
-                });
-
-                // Auto-reconnect on load if flagged
-                if (localStorage.getItem('isWalletConnected') === 'true') {
-                    setTimeout(async () => {
-                        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-                        if (accounts.length > 0) await connectWallet();
-                    }, 500);
-                }
-            }
-        });
+        let signer, contract;
 
         async function connectWallet() {
             if (!window.ethereum) return;
-            try {
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                provider = new ethers.BrowserProvider(window.ethereum);
-                const network = await provider.getNetwork();
-                const chainIdHex = "0x" + network.chainId.toString(16);
+            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            signer = await provider.getSigner();
+            contract = new ethers.Contract(RAW_CONTRACT, ABI, signer);
 
-                if (chainIdHex !== LIGHTCHAIN_SETUP.chainId) {
-                    document.getElementById('switchNetBtn').style.display = 'block';
-                    document.getElementById('walletStatus').innerText = "Wrong Network";
-                    return;
+            document.getElementById('connectBtn').style.display = 'none';
+            document.getElementById('disconnectBtn').style.display = 'block';
+
+            const profile = await contract.getIdentity(accounts[0]).catch(() => null);
+            if(profile && profile[0]) {
+                const check = profile[2] ? '<span class="verified-badge-inline">✓</span>' : '';
+                document.getElementById('userStatusHeader').style.display = 'block';
+                document.getElementById('userNameDisplay').innerHTML = `${profile[0]} ${check}`;
+                
+                // UNLOCK UTILITY IF VERIFIED
+                if(profile[2]) {
+                    document.getElementById('lockMessage').style.display = 'none';
+                    document.getElementById('shakeBtn').style.display = 'block';
                 }
-
-                signer = await provider.getSigner();
-                contract = new ethers.Contract(RAW_CONTRACT, ABI, signer);
-                const userAddr = accounts[0];
-
-                localStorage.setItem('isWalletConnected', 'true');
-                document.getElementById('switchNetBtn').style.display = 'none';
-                document.getElementById('walletStatus').innerHTML = `<span class="status-dot online"></span> ${userAddr.substring(0,8)}...`;
-                document.getElementById('connectBtn').style.display = 'none';
-                document.getElementById('disconnectBtn').style.display = 'block';
-
-                const profile = await contract.getIdentity(userAddr).catch(() => null);
-                if(profile && profile[0]) {
-                    const check = profile[2] ? '<span class="verified-badge-inline">✓</span>' : '';
-                    document.getElementById('userStatusHeader').style.display = 'block';
-                    document.getElementById('userNameDisplay').innerHTML = `${profile[0]} ${check}`;
-                    document.getElementById('regSection').style.display = 'none';
-                } else {
-                    document.getElementById('userStatusHeader').style.display = 'none';
-                    document.getElementById('regSection').style.display = 'block';
-                }
-
-                const adminStatus = await contract.isAdmin(userAddr);
-                document.getElementById('adminConsole').style.display = adminStatus ? 'block' : 'none';
-                if(adminStatus) loadMemberList();
-
-            } catch (err) { console.error("Identity update failed:", err); }
+            }
         }
 
-        async function disconnect() {
-            localStorage.removeItem('isWalletConnected');
-            location.reload();
-        }
-
-        async function loadMemberList() {
-            const listDiv = document.getElementById('memberList');
-            try {
-                const events = await contract.queryFilter(contract.filters.IdentityCreated(), -500000); 
-                listDiv.innerHTML = "";
-                events.forEach(e => {
-                    const addr = e.args[0];
-                    const item = document.createElement('div');
-                    item.className = 'member-item';
-                    item.innerHTML = `<strong>${e.args[1]}</strong><br>${addr.substring(0,12)}...
-                    <div class="btn-group"><button class="small-btn" onclick="document.getElementById('verifyAddr').value='${addr}'">Select</button></div>`;
-                    listDiv.prepend(item);
-                });
-            } catch (e) { listDiv.innerHTML = "Error loading list."; }
-        }
-
-        document.getElementById('connectBtn').onclick = () => connectWallet();
-        document.getElementById('disconnectBtn').onclick = disconnect;
-        
-        document.getElementById('searchBtn').onclick = async () => {
-            const addr = document.getElementById('searchAddr').value;
-            if(!ethers.isAddress(addr)) return alert("Invalid Address");
-            const p = await contract.getIdentity(addr);
-            document.getElementById('searchResult').style.display = 'block';
-            document.getElementById('resName').innerText = p[0];
-            document.getElementById('resStatus').innerText = p[2] ? "Verified ✓" : "Pending";
+        document.getElementById('shakeBtn').onclick = () => {
+            const ball = document.getElementById('ball');
+            const res = document.getElementById('response');
+            ball.classList.add('shake');
+            res.innerText = "Thinking...";
+            
+            setTimeout(() => {
+                ball.classList.remove('shake');
+                res.innerText = JOKES[Math.floor(Math.random() * JOKES.length)];
+            }, 600);
         };
 
-        document.getElementById('adminQuickSelect').onclick = () => {
-            document.getElementById('verifyAddr').value = document.getElementById('searchAddr').value;
-        };
-        
-        document.getElementById('createBtn').onclick = async () => {
-            let n = document.getElementById('regName').value;
-            let d = document.getElementById('regDID').value || ("did:lcai:" + (await signer.getAddress()).toLowerCase());
-            await (await contract.createIdentity(n, d)).wait();
-            location.reload();
-        };
-
-        document.getElementById('verifyBtn').onclick = async () => {
-            const tx = await contract.verifyIdentity(document.getElementById('verifyAddr').value);
-            await tx.wait();
-            alert("Verified!");
-            location.reload();
-        };
-
-        document.getElementById('revokeBtn').onclick = async () => {
-            const tx = await contract.revokeVerification(document.getElementById('verifyAddr').value);
-            await tx.wait();
-            alert("Revoked!");
-            location.reload();
-        };
+        document.getElementById('connectBtn').onclick = connectWallet;
+        document.getElementById('disconnectBtn').onclick = () => location.reload();
     </script>
 </body>
 </html>

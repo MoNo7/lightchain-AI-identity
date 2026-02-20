@@ -20,8 +20,9 @@
         .small-btn { padding: 8px; font-size: 0.75rem; flex: 1; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; }
         #adminConsole { display: none; border-top: 3px solid var(--admin); padding-top: 15px; }
         .treasury-box { background: #fff5f5; border: 1px solid #feb2b2; padding: 12px; border-radius: 8px; margin-bottom: 15px; text-align: center; }
-        .eight-ball { width: 200px; height: 200px; background: #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; margin: 20px auto; box-shadow: 0 10px 20px rgba(0,0,0,0.3); position: relative; }
-        .inner-circle { width: 110px; height: 110px; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #000; font-size: 11px; padding: 10px; text-align: center; font-weight: bold; border: 4px solid #111; z-index: 2; }
+        .eight-ball { width: 160px; height: 160px; background: #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; margin: 10px auto; box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
+        .inner-circle { width: 80px; height: 80px; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #000; font-size: 10px; padding: 10px; text-align: center; font-weight: bold; border: 3px solid #111; }
+        .result-window { margin-top: 20px; padding: 15px; background: #f8f9fa; border: 2px dashed #cbd5e0; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 0.9rem; color: #2d3748; min-height: 40px; display: flex; align-items: center; justify-content: center; text-align: center; }
         .shake { animation: shake 0.5s; }
         @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } }
         .verified-badge-inline { background: #1877F2; color: white; border-radius: 50%; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; margin-left: 8px; }
@@ -29,7 +30,7 @@
 </head>
 <body>
     <div id="topNav">
-        <div class="nav-title"><h1>Lightchain Identity</h1><span style="font-size:0.7rem; color:#999;">v4.4</span></div>
+        <div class="nav-title"><h1>Lightchain Identity</h1><span style="font-size:0.7rem; color:#999;">v4.5</span></div>
         <div class="token-display"><span id="tokenBalance">0.00</span> LCAI</div>
     </div>
     <div class="content-wrapper">
@@ -57,9 +58,10 @@
             <div class="card" style="max-width: 500px; text-align: center;">
                 <h2 style="margin:0; font-size:1.4rem;">AIVM Oracle</h2>
                 <div id="oracleUI" style="display:none; margin-top: 20px;">
-                    <input type="text" id="oracleQuestion" placeholder="Enter query for inference...">
+                    <input type="text" id="oracleQuestion" placeholder="Enter query for inference..." autocomplete="off">
                     <div class="eight-ball" id="ball"><div class="inner-circle" id="response">?</div></div>
-                    <button id="shakeBtn" class="primary-btn" style="background: #28a745;">Execute Consultation</button>
+                    <button id="shakeBtn" class="primary-btn" style="background: #28a745;">Execute for 0.01 LCAI</button>
+                    <div class="result-window" id="resultText">Waiting for AIVM Consultation...</div>
                 </div>
             </div>
         </div>
@@ -69,7 +71,7 @@
                 <h4 style="margin: 0 0 10px 0; color: #0056b3; font-size:0.9rem;">Network Metrics</h4>
                 <div style="font-size: 0.85rem;">Predictions Logged: <strong id="globalCount">0</strong></div>
                 <hr style="border:0; border-top:1px solid #eee; margin:15px 0;">
-                <div id="txFeed" style="font-size:0.75rem; color:#666;">Awaiting AIVM activity...</div>
+                <div id="txFeed" style="font-size:0.75rem; color:#666;">Awaiting activity...</div>
             </div>
         </div>
     </div>
@@ -85,17 +87,14 @@
 
         async function hardSync() {
             try {
-                // Force call direct to contract storage
                 const count = await ballContract.totalPredictions();
                 document.getElementById('globalCount').innerText = count.toString();
-                
                 const address = await signer.getAddress();
                 const balance = await signer.provider.getBalance(address);
                 document.getElementById('tokenBalance').innerText = parseFloat(ethers.formatEther(balance)).toFixed(3);
-                
                 const tBal = await signer.provider.getBalance(BALL_CONTRACT_ADDR);
                 document.getElementById('treasuryBalance').innerText = parseFloat(ethers.formatEther(tBal)).toFixed(4);
-            } catch(e) { console.error("Hard Sync Failed:", e); }
+            } catch(e) { console.error(e); }
         }
 
         async function connectWallet() {
@@ -117,26 +116,34 @@
                 ballContract.on("OracleAnswer", (user, question, answer) => {
                     document.getElementById('txFeed').innerHTML = `<div><strong>Latest Inference:</strong> "${question.substring(0, 15)}..."</div>`;
                     if (user.toLowerCase() === accounts[0].toLowerCase()) {
-                        document.getElementById('response').innerText = answer;
-                        localStorage.setItem('lastAnswer', answer);
+                        document.getElementById('response').innerText = "SUCCESS";
+                        document.getElementById('resultText').innerText = "AIVM RESPONSE: " + answer;
+                        localStorage.setItem('lastAnswerText', answer);
                     }
-                    hardSync(); // Update counts and treasury immediately after event
+                    hardSync();
                 });
 
-                // RECONNECTION HEARTBEAT
                 setTimeout(async () => {
                     const profile = await identityContract.getIdentity(accounts[0]).catch(() => null);
                     if(profile && profile[2]) {
                         document.getElementById('userStatusHeader').style.display = 'block';
                         document.getElementById('userNameDisplay').innerHTML = `${profile[0]} <span class="verified-badge-inline">✓</span>`;
                         document.getElementById('oracleUI').style.display = 'block';
-                        if(localStorage.getItem('lastAnswer')) document.getElementById('response').innerText = localStorage.getItem('lastAnswer');
+                        if(localStorage.getItem('lastAnswerText')) {
+                            document.getElementById('resultText').innerText = "PREVIOUS: " + localStorage.getItem('lastAnswerText');
+                        }
                     }
                     const isAdmin = await identityContract.isAdmin(accounts[0]);
                     if(isAdmin) document.getElementById('adminConsole').style.display = 'block';
-                }, 1000); // Increased delay to ensure provider stability
-            } catch(e) { console.error("Auth Error:", e); }
+                }, 800);
+            } catch(e) { console.error(e); }
         }
+
+        // Dynamic Button Fee Label
+        document.getElementById('oracleQuestion').oninput = (e) => {
+            const cost = (0.01 * (Math.floor(e.target.value.length / 10) + 1)).toFixed(2);
+            document.getElementById('shakeBtn').innerText = `Execute for ${cost} LCAI`;
+        };
 
         document.getElementById('shakeBtn').onclick = async () => {
             const question = document.getElementById('oracleQuestion').value;
@@ -144,25 +151,22 @@
             const cost = (0.01 * (Math.floor(question.length / 10) + 1)).toFixed(2);
             const ball = document.getElementById('ball');
             ball.classList.add('shake');
-            document.getElementById('response').innerText = "Analyzing AIVM...";
+            document.getElementById('resultText').innerText = "Inference in progress... Synchronizing AIVM layers.";
             try {
-                const tx = await ballContract.getPrediction(question, { value: ethers.parseEther(cost), gasLimit: 1000000 });
+                const tx = await ballContract.getPrediction(question, { 
+                    value: ethers.parseEther(cost), 
+                    gasLimit: 400000 
+                });
                 await tx.wait();
                 await hardSync();
             } catch (e) { 
-                console.error(e);
-                document.getElementById('response').innerText = "Error: Block Timeout"; 
+                document.getElementById('resultText').innerText = "Error: Block Timeout or Verification Failed."; 
             }
             finally { ball.classList.remove('shake'); }
         };
 
         document.getElementById('withdrawBtn').onclick = async () => {
-            try { 
-                const tx = await ballContract.withdraw({ gasLimit: 500000 });
-                await tx.wait(); 
-                alert("Treasury claimed!");
-                await hardSync(); 
-            } catch(e) { alert("Withdrawal failed: Access restricted."); }
+            try { const tx = await ballContract.withdraw({ gasLimit: 200000 }); await tx.wait(); hardSync(); } catch(e) { alert("Failed."); }
         };
 
         document.getElementById('connectBtn').onclick = connectWallet;

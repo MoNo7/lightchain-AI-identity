@@ -26,14 +26,14 @@
 </head>
 <body>
     <div id="topNav">
-        <div class="nav-title"><h1>Lightchain Identity</h1><span style="font-size:0.7rem; color:#999;">v5.0</span></div>
+        <div class="nav-title"><h1>Lightchain Identity</h1><span style="font-size:0.7rem; color:#999;">v5.2</span></div>
         <div class="token-display"><span id="tokenBalance">0.00</span> LCAI</div>
     </div>
     <div class="content-wrapper">
         <div id="leftSidebar">
             <div id="userStatusHeader" style="display:none; text-align:center; margin-bottom:15px;"><div id="userNameDisplay" style="font-weight:bold;"></div></div>
             <div class="card">
-                <div id="walletStatus" style="font-size: 0.75rem; margin-bottom:10px; color:#666;">Waiting for Wallet...</div>
+                <div id="walletStatus" style="font-size: 0.75rem; margin-bottom:10px; color:#666;">Synchronizing...</div>
                 <button id="connectBtn" class="primary-btn">Connect Wallet</button>
                 <button id="disconnectBtn" class="primary-btn" style="display:none; background:#6c757d;">Disconnect</button>
             </div>
@@ -113,7 +113,7 @@
                 }
                 const isAdmin = await identityContract.isAdmin(accounts[0]);
                 if(isAdmin) document.getElementById('adminConsole').style.display = 'block';
-            }, 500);
+            }, 800);
         }
 
         document.getElementById('oracleQuestion').oninput = (e) => {
@@ -126,7 +126,11 @@
             const cost = (0.001 * (Math.floor(question.length / 10) + 1)).toFixed(3);
             document.getElementById('resultText').innerText = "Processing AIVM...";
             try {
-                const tx = await ballContract.getPrediction(question, { value: ethers.parseEther(cost), gasLimit: 400000 });
+                // FORCE VALUE PASSING TO FIX 0 WEI ERROR
+                const tx = await ballContract.getPrediction(question, { 
+                    value: ethers.parseEther(cost), 
+                    gasLimit: 500000 
+                });
                 await tx.wait();
             } catch (e) { document.getElementById('resultText').innerText = "Error: Unverified or Fee Mismatch."; }
         };
@@ -141,4 +145,3 @@
     </script>
 </body>
 </html>
-

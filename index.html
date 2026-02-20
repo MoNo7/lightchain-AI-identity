@@ -5,66 +5,102 @@
     <title>Lightchain AI Identity Portal</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f0f2f5; color: #1c1e21; display: flex; height: 100vh; overflow: hidden; }
-        #leftSidebar { width: 320px; background: #fff; border-right: 1px solid #e1e4e8; display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; overflow-y: auto; }
+        :root { --primary: #007bff; --admin: #dc3545; --bg: #f0f2f5; --text: #1c1e21; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); color: var(--text); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        
+        /* TOP NAV BAR */
+        #topNav { height: 60px; background: #fff; border-bottom: 1px solid #e1e4e8; display: flex; align-items: center; justify-content: space-between; padding: 0 25px; box-sizing: border-box; }
+        .token-display { background: #f8f9fa; padding: 8px 15px; border-radius: 20px; border: 1px solid #e1e4e8; font-weight: 700; font-size: 0.9rem; color: #28a745; display: flex; align-items: center; gap: 8px; }
+
+        /* MAIN CONTENT WRAPPER */
+        .content-wrapper { display: flex; flex: 1; overflow: hidden; }
+
+        #leftSidebar { width: 320px; background: #fff; border-right: 1px solid #e1e4e8; padding: 20px; overflow-y: auto; box-sizing: border-box; }
+        #rightSidebar { width: 280px; background: #fff; border-left: 1px solid #e1e4e8; padding: 20px; overflow-y: auto; box-sizing: border-box; }
         .main-utility-area { flex: 1; padding: 40px; overflow-y: auto; display: flex; flex-direction: column; align-items: center; }
+
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid #e1e4e8; width: 100%; box-sizing: border-box; }
-        .header-brand { text-align: center; margin-bottom: 10px; }
-        .header-brand h1 { font-size: 1.4rem; color: #0056b3; margin: 0; }
-        #userStatusHeader { text-align: center; padding: 10px 0; border-bottom: 1px solid #eee; margin-bottom: 15px; display: none; }
-        .identity-name { font-size: 1.1rem; font-weight: bold; color: #1c1e21; display: flex; align-items: center; justify-content: center; }
-        .stats-badge { background: #e7f3ff; color: #0056b3; padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; margin-top: 10px; display: inline-block; }
-        #adminConsole { display: none; margin-top: 10px; border-top: 3px solid #dc3545; padding-top: 15px; }
-        .admin-section { border-top: 1px solid #eee; margin-top: 15px; padding-top: 15px; }
-        input { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 0.9rem; }
-        .btn-group { display: flex; gap: 4px; margin-top: 5px; }
+        .header-brand h1 { font-size: 1.3rem; color: #0056b3; margin: 0; }
+        #userStatusHeader { text-align: center; border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 15px; display: none; }
+        .identity-name { font-size: 1.1rem; font-weight: bold; display: flex; align-items: center; justify-content: center; }
+        
+        /* ADMIN & BUTTONS */
+        #adminConsole { display: none; border-top: 3px solid var(--admin); padding-top: 15px; }
+        input { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        .primary-btn { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: 600; margin-top: 10px; }
         .small-btn { padding: 6px; font-size: 0.75rem; flex: 1; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        .member-item { padding: 10px; border-bottom: 1px solid #eee; font-size: 0.8rem; }
-        .eight-ball-container { text-align: center; margin-top: 30px; }
-        .eight-ball { width: 220px; height: 220px; background: #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; margin: 0 auto; position: relative; cursor: pointer; transition: transform 0.1s; box-shadow: inset -15px -15px 40px rgba(255,255,255,0.1), 0 10px 20px rgba(0,0,0,0.3); }
-        .eight-ball:active { transform: scale(0.95) rotate(5deg); }
-        .inner-circle { width: 110px; height: 110px; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #000; font-size: 13px; padding: 15px; text-align: center; font-weight: bold; line-height: 1.2; border: 4px solid #111; }
+        .member-item { padding: 10px; border-bottom: 1px solid #eee; font-size: 0.8rem; cursor: pointer; }
+        .member-item:hover { background: #f9f9f9; }
+
+        /* 8-BALL */
+        .eight-ball { width: 220px; height: 220px; background: #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; margin: 20px auto; position: relative; box-shadow: inset -15px -15px 40px rgba(255,255,255,0.1), 0 10px 20px rgba(0,0,0,0.3); }
+        .inner-circle { width: 110px; height: 110px; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #000; font-size: 13px; padding: 15px; text-align: center; font-weight: bold; border: 4px solid #111; }
         .shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
         @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
-        button.primary-btn { background: #007bff; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: 600; transition: 0.2s; margin-top: 10px; }
-        .verified-badge-inline { background: #1877F2; color: white; border-radius: 50%; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; margin-left: 8px; vertical-align: middle; }
+        .verified-badge-inline { background: #1877F2; color: white; border-radius: 50%; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; margin-left: 8px; }
     </style>
 </head>
 <body>
-    <div id="leftSidebar">
-        <div class="header-brand"><h1>Lightchain ID</h1><small>Portal v3.2</small></div>
-        <div id="userStatusHeader"><div class="identity-name" id="userNameDisplay"></div></div>
-        <div class="card" style="padding: 15px; margin-top: 10px;">
-            <div id="walletStatus">Disconnected</div>
-            <button id="connectBtn" class="primary-btn">Connect Wallet</button>
-            <button id="disconnectBtn" class="primary-btn" style="display:none; background:#6c757d;">Disconnect</button>
+
+    <div id="topNav">
+        <div class="header-brand"><h1>Lightchain Identity</h1></div>
+        <div class="token-display">
+            <img src="https://light-testnet-rpc.lightchain.ai/favicon.ico" width="18" onerror="this.style.display='none'">
+            <span id="tokenBalance">0.00</span> LCAI
         </div>
-        <div id="adminConsole" class="card">
-            <h4 style="color:#dc3545; margin: 0 0 15px 0;">Admin Console</h4>
-            <div style="margin-bottom: 20px;">
-                <label style="font-size: 0.7rem; font-weight: bold; color: #999;">GLOBAL LOOKUP</label>
-                <div style="display:flex; gap: 5px;"><input type="text" id="searchAddr" placeholder="0x..."><button id="searchBtn" style="width: 45px; background:#6c757d; border:none; color:white; border-radius:8px;">🔍</button></div>
-                <div id="searchResult" style="display:none; margin-top:10px; font-size:0.8rem; background: #f9f9f9; padding: 10px; border-radius: 8px; border: 1px solid #eee;">
-                    <p><strong>User:</strong> <span id="resName"></span></p><p><strong>Status:</strong> <span id="resStatus"></span></p>
-                    <button id="adminQuickSelect" class="small-btn" style="background: #007bff; width:100%;">Select</button>
+    </div>
+
+    <div class="content-wrapper">
+        <div id="leftSidebar">
+            <div id="userStatusHeader"><div class="identity-name" id="userNameDisplay"></div></div>
+            
+            <div class="card" style="padding: 15px;">
+                <div id="walletStatus" style="font-size: 0.85rem; color: #666; margin-bottom: 10px;">Disconnected</div>
+                <button id="connectBtn" class="primary-btn">Connect Wallet</button>
+                <button id="disconnectBtn" class="primary-btn" style="display:none; background:#6c757d;">Disconnect</button>
+            </div>
+
+            <div id="adminConsole" class="card">
+                <h4 style="color:var(--admin); margin: 0 0 15px 0;">Admin Console</h4>
+                <div class="admin-section">
+                    <label style="font-size: 0.7rem; font-weight: bold; color: #999;">GLOBAL LOOKUP</label>
+                    <div style="display:flex; gap: 5px;"><input type="text" id="searchAddr" placeholder="0x..."><button id="searchBtn" style="width: 45px; background:#6c757d; border:none; color:white; border-radius:8px;">🔍</button></div>
+                    <div id="searchResult" style="display:none; margin-top:10px; font-size:0.8rem; background: #f9f9f9; padding: 10px; border-radius: 8px;">
+                        <p><strong>User:</strong> <span id="resName"></span></p>
+                        <button id="adminQuickSelect" class="small-btn" style="background: var(--primary); width:100%;">Select</button>
+                    </div>
+                </div>
+                <div class="admin-section">
+                    <label style="font-size: 0.7rem; font-weight: bold; color: #999;">ACTIONS</label>
+                    <input type="text" id="verifyAddr" placeholder="Target 0x...">
+                    <div style="display:flex; gap: 4px;"><button id="verifyBtn" class="small-btn" style="background:var(--admin);">Verify</button><button id="revokeBtn" class="small-btn">Revoke</button></div>
+                </div>
+                <div class="admin-section"><label style="font-size: 0.7rem; font-weight: bold; color: #999;">RECENT USERS</label><div id="memberList"></div></div>
+            </div>
+        </div>
+
+        <div class="main-utility-area">
+            <div class="card" style="max-width: 600px; text-align: center;">
+                <h2 style="margin:0;">🎱 Magic 8-Ball</h2>
+                <p id="lockMessage" style="color: var(--admin); font-weight: bold; margin-top: 20px;">[ Verification Required ]</p>
+                <div class="eight-ball-container">
+                    <div class="eight-ball" id="ball"><div class="inner-circle" id="response">?</div></div>
+                    <button id="shakeBtn" class="primary-btn" style="display:none; max-width: 250px; margin: 20px auto; background: #28a745;">Consult Oracle</button>
                 </div>
             </div>
-            <div class="admin-section">
-                <label style="font-size: 0.7rem; font-weight: bold; color: #999;">ACTIONS</label>
-                <input type="text" id="verifyAddr" placeholder="Target 0x...">
-                <div class="btn-group"><button id="verifyBtn" class="small-btn" style="background:#dc3545;">Verify</button><button id="revokeBtn" class="small-btn">Revoke</button></div>
+        </div>
+
+        <div id="rightSidebar">
+            <div class="card">
+                <h4 style="margin: 0 0 10px 0; color: #0056b3;">Oracle Stats</h4>
+                <div style="font-size: 0.9rem; margin-bottom: 5px;">Global Predictions:</div>
+                <div style="font-size: 1.8rem; font-weight: 800; color: var(--primary);" id="globalCount">0</div>
+                <hr style="border:0; border-top:1px solid #eee; margin: 15px 0;">
+                <small style="color: #666; font-style: italic;">Consultations are recorded on the Lightchain AIVM.</small>
             </div>
-            <div class="admin-section"><label style="font-size: 0.7rem; font-weight: bold; color: #999;">RECENT USERS</label><div id="memberList" style="margin-top: 10px;"></div></div>
         </div>
     </div>
-    <div class="main-utility-area">
-        <div class="card" style="max-width: 600px; text-align: center; min-height: 480px;">
-            <h2 style="margin:0;">On-Chain Magic 8-Ball</h2>
-            <div class="stats-badge">Global Predictions: <span id="globalCount">0</span></div>
-            <p id="lockMessage" style="color: #dc3545; font-weight: bold; margin-top: 20px;">[ Verification Required ]</p>
-            <div class="eight-ball-container"><div class="eight-ball" id="ball"><div class="inner-circle" id="response">?</div></div><button id="shakeBtn" class="primary-btn" style="display:none; max-width: 250px; margin: 30px auto; background: #28a745;">Consult Oracle</button></div>
-        </div>
-    </div>
+
     <script>
         const IDENTITY_CONTRACT = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34";
         const BALL_CONTRACT_ADDR = "0x7748755cE54f87C33bA4c243F072ef62bAb4717F";
@@ -72,20 +108,26 @@
         const BALL_ABI = [{"inputs":[],"name":"getPrediction","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"totalPredictions","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}];
         let signer, identityContract, ballContract;
 
-        async function updateGlobalCount() { const count = await ballContract.totalPredictions(); document.getElementById('globalCount').innerText = count.toString(); }
+        async function updateStats() {
+            const count = await ballContract.totalPredictions();
+            document.getElementById('globalCount').innerText = count.toString();
+            
+            const balance = await signer.provider.getBalance(await signer.getAddress());
+            document.getElementById('tokenBalance').innerText = parseFloat(ethers.formatEther(balance)).toFixed(2);
+        }
 
         async function loadMemberList() {
             const listDiv = document.getElementById('memberList');
             try {
                 const events = await identityContract.queryFilter("IdentityCreated", -5000);
-                listDiv.innerHTML = events.length ? "" : "No recent registrations.";
+                listDiv.innerHTML = "";
                 events.slice(-5).forEach(e => {
                     const div = document.createElement('div'); div.className = 'member-item';
-                    div.innerHTML = `<strong>${e.args[1]}</strong><br><small>${e.args[0].substring(0,14)}...</small>`;
+                    div.innerHTML = `<strong>${e.args[1]}</strong><br><small>${e.args[0].substring(0,18)}...</small>`;
                     div.onclick = () => document.getElementById('verifyAddr').value = e.args[0];
                     listDiv.prepend(div);
                 });
-            } catch (e) { listDiv.innerHTML = "Scanner offline."; }
+            } catch (e) { listDiv.innerHTML = "<small>Scanner Error</small>"; }
         }
 
         async function connectWallet() {
@@ -95,11 +137,13 @@
             signer = await provider.getSigner();
             identityContract = new ethers.Contract(IDENTITY_CONTRACT, IDENTITY_ABI, signer);
             ballContract = new ethers.Contract(BALL_CONTRACT_ADDR, BALL_ABI, signer);
+            
             localStorage.setItem('isWalletConnected', 'true');
             document.getElementById('connectBtn').style.display = 'none';
             document.getElementById('disconnectBtn').style.display = 'block';
-            document.getElementById('walletStatus').innerText = "Connected: " + accounts[0].substring(0,8);
-            updateGlobalCount();
+            document.getElementById('walletStatus').innerText = "Connected: " + accounts[0].substring(0,10) + "...";
+
+            updateStats();
             const profile = await identityContract.getIdentity(accounts[0]).catch(() => null);
             if(profile && profile[0]) {
                 document.getElementById('userStatusHeader').style.display = 'block';
@@ -111,7 +155,7 @@
 
         document.getElementById('shakeBtn').onclick = async () => {
             const res = document.getElementById('response'); document.getElementById('ball').classList.add('shake'); res.innerText = "Consulting...";
-            try { const tx = await ballContract.getPrediction(); await tx.wait(); updateGlobalCount(); res.innerText = "Wisdom Recorded!"; }
+            try { const tx = await ballContract.getPrediction(); await tx.wait(); updateStats(); res.innerText = "Wisdom Recorded!"; }
             catch (e) { res.innerText = "Oracle Error"; }
             finally { document.getElementById('ball').classList.remove('shake'); }
         };
@@ -119,9 +163,8 @@
         document.getElementById('searchBtn').onclick = async () => {
             const p = await identityContract.getIdentity(document.getElementById('searchAddr').value);
             document.getElementById('searchResult').style.display = 'block';
-            document.getElementById('resName').innerText = p[0]; document.getElementById('resStatus').innerText = p[2] ? "Verified ✓" : "Pending";
+            document.getElementById('resName').innerText = p[0];
         };
-
         document.getElementById('adminQuickSelect').onclick = () => document.getElementById('verifyAddr').value = document.getElementById('searchAddr').value;
         document.getElementById('verifyBtn').onclick = async () => { await (await identityContract.verifyIdentity(document.getElementById('verifyAddr').value)).wait(); location.reload(); };
         document.getElementById('revokeBtn').onclick = async () => { await (await identityContract.revokeVerification(document.getElementById('verifyAddr').value)).wait(); location.reload(); };

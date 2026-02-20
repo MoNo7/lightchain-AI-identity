@@ -100,4 +100,52 @@
             document.getElementById('walletStatus').innerText = "Addr: " + accounts[0].substring(0,10) + "...";
 
             updateData();
-            const profile = await identityContract.getIdentity(accounts[0]).catch(() => null
+            const profile = await identityContract.getIdentity(accounts[0]).catch(() => null);
+            if(profile && profile[0]) {
+                document.getElementById('userStatusHeader').style.display = 'block';
+                document.getElementById('userNameDisplay').innerHTML = `${profile[0]} ${profile[2] ? '<span class="verified-badge-inline">✓</span>' : ''}`;
+                if(profile[2]) document.getElementById('oracleUI').style.display = 'block';
+            }
+            if(await identityContract.isAdmin(accounts[0])) {
+                document.getElementById('adminConsole').style.display = 'block';
+                document.getElementById('withdrawBtn').style.display = 'block';
+            }
+        }
+
+        document.getElementById('oracleQuestion').oninput = (e) => {
+            const val = e.target.value.toLowerCase();
+            const isBad = BAD_WORDS.some(word => val.includes(word));
+            document.getElementById('profanityWarning').style.display = isBad ? 'block' : 'none';
+            document.getElementById('shakeBtn').disabled = isBad;
+        };
+
+        document.getElementById('shakeBtn').onclick = async () => {
+            const question = document.getElementById('oracleQuestion').value;
+            if(!question) return alert("Ask a question.");
+            const multiplier = Math.floor(question.length / 10) + 1;
+            const cost = (0.01 * multiplier).toFixed(2);
+            
+            const ball = document.getElementById('ball');
+            ball.classList.add('shake');
+            try {
+                const tx = await ballContract.getPrediction(question, { value: ethers.parseEther(cost), gasLimit: 400000 });
+                await tx.wait();
+                updateData();
+                const feed = document.getElementById('txFeed');
+                const item = document.createElement('div');
+                item.className = 'feed-item';
+                item.innerHTML = `<strong>Oracle consulted:</strong> "${question.substring(0,30)}..."`;
+                feed.prepend(item);
+            } catch (e) { alert("Consultation Failed."); }
+            finally { ball.classList.remove('shake'); }
+        };
+
+        document.getElementById('withdrawBtn').onclick = async () => { await (await ballContract.withdraw()).wait(); alert("Fees Claimed!"); updateData(); };
+        document.getElementById('verifyBtn').onclick = async () => { await (await identityContract.verifyIdentity(document.getElementById('verifyAddr').value)).wait(); location.reload(); };
+        document.getElementById('revokeBtn').onclick = async () => { await (await identityContract.revokeVerification(document.getElementById('verifyAddr').value)).wait(); location.reload(); };
+        document.getElementById('connectBtn').onclick = connectWallet;
+        document.getElementById('disconnectBtn').onclick = () => location.reload();
+        window.addEventListener('DOMContentLoaded', () => { if (localStorage.getItem('isWalletConnected') === 'true') setTimeout(connectWallet, 500); });
+    </script>
+</body>
+</html>

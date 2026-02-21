@@ -22,13 +22,15 @@
         .admin-status-msg { font-size: 0.7rem; margin-top: 10px; padding: 8px; border-radius: 4px; text-align: center; font-weight: bold; min-height: 15px; }
         .result-window { margin-top: 20px; padding: 20px; background: #f8f9fa; border: 2px dashed #cbd5e0; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 1rem; color: #2d3748; text-align: center; line-height: 1.5; }
         .tx-item { font-size: 0.75rem; color: #555; border-bottom: 1px solid #eee; padding: 8px 0; animation: fadeIn 0.5s ease; }
+        .pending-item { font-size: 0.7rem; padding: 5px; cursor: pointer; border-bottom: 1px solid #eee; color: var(--primary); }
+        .pending-item:hover { background: #f0f7ff; text-decoration: underline; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
         input[type="text"] { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 10px; box-sizing: border-box; }
     </style>
 </head>
 <body>
     <div id="topNav">
-        <div class="nav-title"><h1>Lightchain Identity</h1><span style="font-size:0.7rem; color:#999;">v8.2</span></div>
+        <div class="nav-title"><h1>Lightchain Identity</h1><span style="font-size:0.7rem; color:#999;">v8.3</span></div>
         <div class="token-display"><span id="tokenBalance">0.0000</span> LCAI</div>
     </div>
     <div class="content-wrapper">
@@ -42,17 +44,27 @@
 
             <div id="adminConsole" class="card" style="display:none;">
                 <h4 style="color:var(--admin); margin: 0 0 10px 0; font-size: 0.85rem;">Admin Management</h4>
+                
                 <div style="background: #f8f9fa; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #eee;">
                     <h5 style="margin: 0 0 8px 0; font-size: 0.75rem;">Global Registry Search</h5>
                     <input type="text" id="lookupAddr" placeholder="Search 0x...">
                     <button id="lookupBtn" class="small-btn" style="width:100%; background: var(--primary);">Query Database</button>
                     <div id="lookupResults" class="lookup-results" style="display:none; padding-top:10px; font-size:0.7rem;"></div>
                 </div>
+
+                <div style="background: #fff9db; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #ffec99;">
+                    <h5 style="margin: 0 0 5px 0; font-size: 0.7rem; color: #f08c00;">Pending Verifications</h5>
+                    <div id="pendingList" style="max-height: 100px; overflow-y: auto;">
+                        <div style="font-size: 0.65rem; color: #868e96;">Monitoring Network Events...</div>
+                    </div>
+                </div>
+
                 <div class="treasury-box" style="background:#fff5f5; border:1px solid #feb2b2; padding:12px; border-radius:8px; margin-bottom:15px; text-align:center;">
                     <div style="font-size: 0.65rem; color:#c53030; margin-bottom:5px;">OWNER CLAIM STATUS: <span id="adminCheck">PENDING</span></div>
                     <div style="font-size: 1.4rem; font-weight: 800; color: #c53030;"><span id="treasuryBalance">0.0000</span> LCAI</div>
                     <button id="withdrawBtn" class="small-btn" style="width:100%; margin-top:10px; background:#c53030;">Claim Fees</button>
                 </div>
+
                 <input type="text" id="verifyAddr" placeholder="Verify 0x...">
                 <div style="display:flex; gap: 4px;"><button id="verifyBtn" class="small-btn" style="background:var(--success);">Verify User</button><button id="revokeBtn" class="small-btn">Revoke User</button></div>
                 <div id="adminFeedback" class="admin-status-msg" style="display:none;"></div>
@@ -95,7 +107,7 @@
         const BALL_CONTRACT_ADDR = "0x6C921cbC1C12Af06fE22df549cA89053928afe64"; 
 
         const BALL_ABI = [{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"string","name":"question","type":"string"},{"indexed":false,"internalType":"string","name":"answer","type":"string"}],"name":"OracleAnswer","type":"event"},{"inputs":[{"internalType":"string","name":"_question","type":"string"}],"name":"getPrediction","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"totalPredictions","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"withdraw","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"admin","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"}];
-        const IDENTITY_ABI = [{"inputs":[{"internalType":"string","name":"_username","type":"string"},{"internalType":"string","name":"_did","type":"string"}],"name":"createIdentity","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"getIdentity","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"isAdmin","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"verifyIdentity","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"revokeVerification","outputs":[],"stateMutability":"nonpayable","type":"function"}];
+        const IDENTITY_ABI = [{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"userAddress","type":"address"},{"indexed":false,"internalType":"string","name":"username","type":"string"},{"indexed":false,"internalType":"string","name":"did","type":"string"}],"name":"IdentityCreated","type":"event"},{"inputs":[{"internalType":"string","name":"_username","type":"string"},{"internalType":"string","name":"_did","type":"string"}],"name":"createIdentity","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"getIdentity","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"isAdmin","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"verifyIdentity","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"revokeVerification","outputs":[],"stateMutability":"nonpayable","type":"function"}];
 
         let signer, ballContract, identityContract;
 
@@ -112,6 +124,17 @@
             div.className = 'tx-item';
             div.innerHTML = `<strong>Query: ${q.substring(0, 30)}...</strong> User: Anonymous User`;
             feed.prepend(div);
+        }
+
+        // NEW: HELPER TO UPDATE PENDING LIST
+        function addToPending(addr) {
+            const list = document.getElementById('pendingList');
+            if(list.innerText.includes("Monitoring")) list.innerHTML = "";
+            const div = document.createElement('div');
+            div.className = 'pending-item';
+            div.innerText = addr;
+            div.onclick = () => { document.getElementById('verifyAddr').value = addr; };
+            list.prepend(div);
         }
 
         async function hardSync() {
@@ -144,6 +167,9 @@
                 document.getElementById('walletStatus').innerText = "Wallet: " + accounts[0].substring(0, 10);
                 localStorage.setItem('isWalletConnected', 'true');
                 await hardSync();
+
+                // MONITOR PENDING REGISTRATIONS
+                identityContract.on("IdentityCreated", (userAddress) => { addToPending(userAddress); });
 
                 ballContract.on("OracleAnswer", (user, question) => {
                     logToFeed(question);
@@ -181,17 +207,12 @@
             document.getElementById('shakeBtn').innerText = `Query AIVM for ${(0.001 * multiplier).toFixed(3)} LCAI`;
         };
 
-        // NEW: SELF-REGISTRATION LOGIC
         document.getElementById('registerBtn').onclick = async () => {
             const name = document.getElementById('regUsername').value;
             const fb = document.getElementById('regFeedback');
             if(!name) return;
             fb.style.display = 'block'; fb.innerText = "Broadcasting Identity...";
-            try {
-                const tx = await identityContract.createIdentity(name, "AIVM-NODE-ID", { gasLimit: 300000 });
-                await tx.wait();
-                fb.innerText = "Registration Success! Await Admin Verification.";
-            } catch (e) { fb.innerText = "Error: Already Registered or Failed."; }
+            try { await (await identityContract.createIdentity(name, "AIVM-NODE-ID", { gasLimit: 300000 })).wait(); fb.innerText = "Registration Success! Await Admin Verification."; } catch (e) { fb.innerText = "Error: Already Registered or Failed."; }
         };
 
         document.getElementById('verifyBtn').onclick = async () => {

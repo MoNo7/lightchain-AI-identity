@@ -92,7 +92,7 @@
     <script>
         const IDENTITY_CONTRACT = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34";
         // REMEMBER TO UPDATE THIS WITH NEW DEPLOYED ADDR IF YOU REDEPLOY
-        const BALL_CONTRACT_ADDR = "0x773aB9b2FA33a6135a9d855da7559DBD20a53569"; 
+        const BALL_CONTRACT_ADDR = "0x007Cc9EDC5BBcD3e235a170eC6E02818c76b8268"; 
         const SYSTEM_PROMPT = "As a forward-thinking innovator and futurist, provide a prediction for: ";
 
         const BALL_ABI = [{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"string","name":"question","type":"string"},{"indexed":false,"internalType":"string","name":"answer","type":"string"}],"name":"OracleAnswer","type":"event"},{"inputs":[{"internalType":"string","name":"_question","type":"string"}],"name":"getPrediction","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"totalPredictions","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"admin","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"bool","name":"_enabled","type":"bool"}],"name":"toggleFees","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"feesEnabled","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"withdraw","outputs":[],"stateMutability":"nonpayable","type":"function"}];
@@ -176,14 +176,14 @@ document.getElementById('shakeBtn').onclick = async () => {
         let val = 0n;
         if (feesOn) {
             const bytes = getByteLength(fullPrompt);
-            // Reverted to match contract base of 0.010
-            const cost = ((Math.floor(bytes / 10) + 1) * 0.010).toFixed(3); 
+            // MATCHING: Set to 0.001 to sync with the contract above
+            const cost = ((Math.floor(bytes / 10) + 1) * 0.001).toFixed(3); 
             val = ethers.parseEther(cost);
         }
 
-        document.getElementById('resultText').innerText = "Processing visionary inference...";
+        document.getElementById('resultText').innerText = "Consulting AIVM...";
         
-        // FIXED GAS: 3M limit ensures the AIVM call completes
+        // Use a safe gas limit for the AIVM bridge
         const tx = await ballContract.getPrediction(fullPrompt, { 
             value: val, 
             gasLimit: 3000000 
@@ -193,7 +193,7 @@ document.getElementById('shakeBtn').onclick = async () => {
         await hardSync();
     } catch (e) { 
         console.error("Consult Error:", e);
-        document.getElementById('resultText').innerText = "Inference Error: Clear MetaMask Activity/Nonce.";
+        document.getElementById('resultText').innerText = "Inference Error: Check Balance or Reset Nonce.";
     }
 };
 
@@ -272,6 +272,7 @@ document.getElementById('shakeBtn').onclick = async () => {
     </script>
 </body>
 </html>
+
 
 
 

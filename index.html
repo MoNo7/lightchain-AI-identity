@@ -52,13 +52,6 @@
                     <div id="lookupResults" class="lookup-results" style="display:none; padding-top:10px; font-size:0.7rem;"></div>
                 </div>
 
-                <div style="background: #fff9db; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #ffec99;">
-                    <h5 style="margin: 0 0 5px 0; font-size: 0.7rem; color: #f08c00;">Pending Verifications</h5>
-                    <div id="pendingList" style="max-height: 100px; overflow-y: auto;">
-                        <div style="font-size: 0.65rem; color: #868e96;">Monitoring Network Events...</div>
-                    </div>
-                </div>
-
                 <div class="treasury-box" style="background:#fff5f5; border:1px solid #feb2b2; padding:12px; border-radius:8px; margin-bottom:15px; text-align:center;">
                     <div style="font-size: 0.65rem; color:#c53030; margin-bottom:5px;">OWNER CLAIM STATUS: <span id="adminCheck">PENDING</span></div>
                     <div style="font-size: 1.4rem; font-weight: 800; color: #c53030;"><span id="treasuryBalance">0.0000</span> LCAI</div>
@@ -68,6 +61,13 @@
                 <input type="text" id="verifyAddr" placeholder="Verify 0x...">
                 <div style="display:flex; gap: 4px;"><button id="verifyBtn" class="small-btn" style="background:var(--success);">Verify User</button><button id="revokeBtn" class="small-btn">Revoke User</button></div>
                 <div id="adminFeedback" class="admin-status-msg" style="display:none;"></div>
+                
+                <div style="background: #fff9db; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #ffec99;">
+                    <h5 style="margin: 0 0 5px 0; font-size: 0.7rem; color: #f08c00;">Pending Verifications</h5>
+                    <div id="pendingList" style="max-height: 100px; overflow-y: auto;">
+                        <div style="font-size: 0.65rem; color: #868e96;">Monitoring Network Events...</div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -250,3 +250,4 @@
     </script>
 </body>
 </html>
+

@@ -26,7 +26,7 @@
 </head>
 <body>
     <div id="topNav">
-        <div class="nav-title"><h1>Lightchain Identity (Testnet)</h1><span style="font-size:0.7rem; color:#999;">v11.8</span></div>
+        <div class="nav-title"><h1>Lightchain Identity (Testnet)</h1><span style="font-size:0.7rem; color:#999;">v11.9</span></div>
         <div class="token-display"><span id="tokenBalance">0.0000</span> LCAI</div>
     </div>
     <div class="content-wrapper">
@@ -92,190 +92,15 @@
 
     <script>
         const IDENTITY_CONTRACT = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34";
-        // REPLACE THIS WITH YOUR NEW REDEPLOYED MAGIC8BALL ADDRESS
-        const BALL_CONTRACT_ADDR = "0x8897342ea477782956D8a34d851538E54e61f4e4"; 
+        // REMEMBER TO REPLACE THIS WITH YOUR NEW DEPLOYED ADDRESS
+        const BALL_CONTRACT_ADDR = "0x898cB53426994962433D8391149718Db138b2B29"; 
         
         const SYSTEM_PROMPT = "As a forward-thinking innovator and futurist, provide a prediction for: ";
 
-        // Updated ABI to include setIdentityContract just in case
         const BALL_ABI = [{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"string","name":"question","type":"string"},{"indexed":false,"internalType":"string","name":"answer","type":"string"}],"name":"OracleAnswer","type":"event"},{"inputs":[{"internalType":"string","name":"_question","type":"string"}],"name":"getPrediction","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"totalPredictions","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"admin","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"bool","name":"_enabled","type":"bool"}],"name":"toggleFees","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"feesEnabled","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"withdraw","outputs":[],"stateMutability":"nonpayable","type":"function"}];
         const IDENTITY_ABI = [{"inputs":[{"internalType":"string","name":"_username","type":"string"},{"internalType":"string","name":"_did","type":"string"}],"name":"createIdentity","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"getIdentity","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"isAdmin","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"verifyIdentity","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"revokeVerification","outputs":[],"stateMutability":"nonpayable","type":"function"}];
 
         let signer, ballContract, identityContract;
         const BASE_GAS = { maxFeePerGas: ethers.parseUnits('10', 'gwei'), maxPriorityFeePerGas: ethers.parseUnits('10', 'gwei') };
         const ADMIN_GAS = { ...BASE_GAS, gasLimit: 200000 };
-        // MASSIVELY increased gas limit to prevent cross-contract verification out-of-gas errors
-        const QUERY_GAS = { ...BASE_GAS, gasLimit: 3000000 }; 
-
-        async function hardSync() {
-            try {
-                const address = await signer.getAddress();
-                const [total, owner, isAdmin, profile, feesOn, contractBalance] = await Promise.all([
-                    ballContract.totalPredictions(),
-                    ballContract.admin(),
-                    identityContract.isAdmin(address),
-                    identityContract.getIdentity(address),
-                    ballContract.feesEnabled(),
-                    signer.provider.getBalance(BALL_CONTRACT_ADDR)
-                ]);
-
-                document.getElementById('globalCount').innerText = total.toString();
-                document.getElementById('totalRevenueDisplay').innerText = parseFloat(ethers.formatEther(contractBalance)).toFixed(3) + " LCAI";
-                const walletBalance = await signer.provider.getBalance(address);
-                document.getElementById('tokenBalance').innerText = parseFloat(ethers.formatEther(walletBalance)).toFixed(4);
-
-                document.getElementById('adminConsole').style.display = isAdmin ? 'block' : 'none';
-                
-                // Show Oracle Owner console ONLY if they are the admin of the BALL contract
-                const isOwner = (address.toLowerCase() === owner.toLowerCase());
-                document.getElementById('ownerConsole').style.display = isOwner ? 'block' : 'none';
-                
-                if(profile[2] === true) {
-                    document.getElementById('oracleUI').style.display = 'block';
-                    document.getElementById('userStatusHeader').style.display = 'block';
-                    document.getElementById('userNameDisplay').innerHTML = `${profile[0] || 'Member'} <span class="mimo-badge">✓</span>`;
-                } else {
-                    document.getElementById('oracleUI').style.display = 'none';
-                }
-
-                const feeBtn = document.getElementById('toggleFeesBtn');
-                feeBtn.innerText = `Toggle Fees: ${feesOn ? 'ON' : 'OFF'}`;
-                feeBtn.style.background = feesOn ? 'var(--owner)' : '#6c757d';
-
-                updateConsultButton();
-                await syncEventLogs();
-            } catch(e) { console.error("Sync Failure:", e); }
-        }
-
-        async function syncEventLogs() {
-            try {
-                const filter = ballContract.filters.OracleAnswer();
-                const events = await ballContract.queryFilter(filter, -5000);
-                const logContainer = document.getElementById('txFeed');
-                const revenueLog = document.getElementById('revenueLog');
-                logContainer.innerHTML = ''; revenueLog.innerHTML = '';
-                events.reverse().slice(0, 20).forEach(ev => {
-                    const item = `<div class="tx-item"><strong>${ev.args.user.substring(0,8)}:</strong> ${ev.args.question.substring(0,40)}...</div>`;
-                    logContainer.innerHTML += item; revenueLog.innerHTML += item;
-                });
-            } catch (e) { console.log("Log Sync Error:", e); }
-        }
-
-        function updateConsultButton() {
-            const q = document.getElementById('oracleQuestion').value;
-            const btn = document.getElementById('shakeBtn');
-            const fullPrompt = SYSTEM_PROMPT + q;
-            
-            ballContract.feesEnabled().then(feesOn => {
-                if(feesOn) {
-                    // FIX: Use Blob size to get exact byte length to perfectly match Solidity's bytes(_question).length
-                    const byteLength = new Blob([fullPrompt]).size;
-                    const cost = (0.001 * (Math.floor(byteLength / 10) + 1)).toFixed(3);
-                    btn.innerText = `Consult AIVM (${cost} LCAI)`;
-                } else {
-                    btn.innerText = "Consult AIVM (Free)";
-                }
-            });
-        }
-
-        document.getElementById('oracleQuestion').oninput = updateConsultButton;
-
-        document.getElementById('shakeBtn').onclick = async () => {
-            const q = document.getElementById('oracleQuestion').value;
-            if (!q) return;
-            const fullPrompt = SYSTEM_PROMPT + q;
-            try {
-                const feesOn = await ballContract.feesEnabled();
-                let feeValue = 0n;
-                if (feesOn) {
-                    // FIX: Guaranteed byte alignment with Smart Contract
-                    const byteLength = new Blob([fullPrompt]).size;
-                    const costString = (0.001 * (Math.floor(byteLength / 10) + 1)).toFixed(3);
-                    feeValue = ethers.parseEther(costString);
-                }
-                
-                document.getElementById('resultText').innerText = "Broadcasting to Visionary AIVM...";
-                const tx = await ballContract.getPrediction(fullPrompt, { value: feeValue, ...QUERY_GAS });
-                await tx.wait();
-                await hardSync();
-            } catch (e) { 
-                console.error(e);
-                if (e.message && e.message.includes("MiMo")) {
-                    document.getElementById('resultText').innerText = "Reverted: MiMo Verification Required.";
-                } else {
-                    document.getElementById('resultText').innerText = "Inference Failed: Check wallet balance, network gas, or verification status.";
-                }
-            }
-        };
-
-        // Admin functionality
-        document.getElementById('lookupBtn').onclick = async () => {
-            const addr = document.getElementById('lookupAddr').value;
-            if(!addr || !ethers.isAddress(addr)) return;
-            try {
-                const data = await identityContract.getIdentity(addr);
-                const res = document.getElementById('lookupResults');
-                res.style.display = 'block';
-                res.innerHTML = `<strong>User:</strong> ${data[0] || 'Unnamed'}<br><strong>Verified:</strong> ${data[2] ? '✅ YES' : '❌ NO'}`;
-            } catch(e) { alert("Lookup Failed."); }
-        };
-
-        document.getElementById('verifyBtn').onclick = async () => {
-            const addr = document.getElementById('verifyAddr').value;
-            if(!addr) return;
-            try {
-                const tx = await identityContract.verifyIdentity(addr, ADMIN_GAS);
-                document.getElementById('adminFeedback').innerText = "Processing...";
-                await tx.wait();
-                document.getElementById('adminFeedback').innerText = "Verified!";
-                await hardSync();
-            } catch(e) { document.getElementById('adminFeedback').innerText = "Error: Admin only."; }
-        }
-
-        document.getElementById('toggleFeesBtn').onclick = async () => {
-            try {
-                const current = await ballContract.feesEnabled();
-                const tx = await ballContract.toggleFees(!current, ADMIN_GAS);
-                await tx.wait();
-                await hardSync();
-            } catch (e) { console.error("Toggle Failed:", e); alert("Only the Oracle deployer can toggle fees."); }
-        };
-        
-        document.getElementById('withdrawBtn').onclick = async () => {
-            try {
-                const tx = await ballContract.withdraw(ADMIN_GAS);
-                await tx.wait();
-                alert("Revenue withdrawn.");
-                await hardSync();
-            } catch (e) { alert("Withdrawal failed or no funds available."); }
-        };
-
-        async function connectWallet(auto = false) {
-            if (!window.ethereum) return;
-            try {
-                const provider = new ethers.BrowserProvider(window.ethereum);
-                const accounts = await window.ethereum.request({ method: auto ? 'eth_accounts' : 'eth_requestAccounts' });
-                if (accounts.length === 0) return;
-                signer = await provider.getSigner();
-                ballContract = new ethers.Contract(BALL_CONTRACT_ADDR, BALL_ABI, signer);
-                identityContract = new ethers.Contract(IDENTITY_CONTRACT, IDENTITY_ABI, signer);
-                document.getElementById('connectBtn').style.display = 'none';
-                document.getElementById('disconnectBtn').style.display = 'block';
-                document.getElementById('walletStatus').innerText = "Active: " + accounts[0];
-                localStorage.setItem('isWalletConnected', 'true');
-                await hardSync();
-                ballContract.on("OracleAnswer", (user, question, answer) => {
-                    if (user.toLowerCase() === accounts[0].toLowerCase()) {
-                        document.getElementById('resultText').innerHTML = `<strong>VISIONARY PREDICTION:</strong>\n${answer}`;
-                    }
-                });
-            } catch(e) { console.error(e); }
-        }
-
-        document.getElementById('connectBtn').onclick = () => connectWallet(false);
-        document.getElementById('disconnectBtn').onclick = () => { localStorage.clear(); location.reload(); };
-        document.getElementById('refreshLogBtn').onclick = () => hardSync();
-        window.addEventListener('load', () => { if(localStorage.getItem('isWalletConnected') === 'true') connectWallet(true); });
-    </script>
-</body>
-</html>
+        const QUERY_GAS = { ...BASE_GAS, gasLimit: 3000000

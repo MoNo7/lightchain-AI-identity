@@ -26,7 +26,7 @@
 </head>
 <body>
     <div id="topNav">
-        <div class="nav-title"><h1>Lightchain Identity (Testnet)</h1><span style="font-size:0.7rem; color:#999;">v12.1</span></div>
+        <div class="nav-title"><h1>Lightchain Identity (Testnet)</h1><span style="font-size:0.7rem; color:#999;">v12.2</span></div>
         <div class="token-display"><span id="tokenBalance">0.0000</span> LCAI</div>
     </div>
     <div class="content-wrapper">
@@ -43,6 +43,7 @@
                 <input type="text" id="lookupAddr" placeholder="Lookup 0x...">
                 <button id="lookupBtn" class="small-btn" style="width:100%; background: var(--primary); margin-bottom:12px;">Query Identity Status</button>
                 <div id="lookupResults" style="display:none; padding-bottom:10px; font-size:0.7rem; background:#f0f7ff; border-radius:4px; padding:5px; margin-bottom:10px;"></div>
+                
                 <input type="text" id="verifyAddr" placeholder="Target Address 0x...">
                 <div style="display:flex; gap: 5px;">
                     <button id="verifyBtn" class="small-btn" style="background:var(--success);">Verify User</button>
@@ -180,7 +181,8 @@
                     val = ethers.parseEther(cost);
                 }
                 document.getElementById('resultText').innerText = "Broadcasting visionary query...";
-                const tx = await ballContract.getPrediction(fullPrompt, { value: val, gasLimit: 2500000 });
+                // DYNAMIC GAS LIMIT
+                const tx = await ballContract.getPrediction(fullPrompt, { value: val, gasLimit: 3000000 });
                 await tx.wait();
                 hardSync();
             } catch (e) { 
@@ -195,11 +197,16 @@
             document.getElementById('lookupResults').innerHTML = `User: ${res[0]}<br>Verified: ${res[2] ? '✅' : '❌'}`;
         };
 
+        // FIXED ADMIN BUTTON FEEDBACK
         document.getElementById('verifyBtn').onclick = async () => {
+            const feedback = document.getElementById('adminFeedback');
             try {
+                feedback.innerText = "Processing Verification...";
                 const tx = await identityContract.verifyIdentity(document.getElementById('verifyAddr').value);
-                await tx.wait(); hardSync();
-            } catch(e) { document.getElementById('adminFeedback').innerText = "Admin only action."; }
+                await tx.wait(); 
+                feedback.innerText = "Verification Successful!";
+                hardSync();
+            } catch(e) { feedback.innerText = "Error: Admin only action."; }
         };
 
         document.getElementById('toggleFeesBtn').onclick = async () => {

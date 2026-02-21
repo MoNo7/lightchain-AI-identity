@@ -19,17 +19,14 @@
         .primary-btn { background: var(--primary); color: white; border: none; padding: 14px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: 600; margin-top: 10px; transition: 0.2s; }
         .small-btn { padding: 8px; font-size: 0.75rem; flex: 1; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; }
         .mimo-badge { background: var(--mimo); color: white; border-radius: 50%; width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; margin-left: 8px; box-shadow: 0 0 8px rgba(24, 119, 242, 0.6); font-weight: bold; vertical-align: middle; }
-        .admin-status-msg { font-size: 0.7rem; margin-top: 10px; padding: 8px; border-radius: 4px; text-align: center; font-weight: bold; min-height: 15px; }
         .result-window { margin-top: 20px; padding: 20px; background: #f8f9fa; border: 2px dashed #cbd5e0; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 1rem; color: #2d3748; text-align: center; line-height: 1.5; }
-        .history-item { font-size: 0.65rem; color: #444; padding: 6px 0; border-bottom: 1px dotted #ccc; }
-        .tx-item { font-size: 0.75rem; color: #555; border-bottom: 1px solid #eee; padding: 8px 0; animation: fadeIn 0.5s ease; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+        .tx-item { font-size: 0.75rem; color: #555; border-bottom: 1px solid #eee; padding: 8px 0; }
         input[type="text"] { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 10px; box-sizing: border-box; }
     </style>
 </head>
 <body>
     <div id="topNav">
-        <div class="nav-title"><h1>Lightchain Identity (Testnet)</h1><span style="font-size:0.7rem; color:#999;">v8.7</span></div>
+        <div class="nav-title"><h1>Lightchain Identity (Testnet)</h1><span style="font-size:0.7rem; color:#999;">v9.1</span></div>
         <div class="token-display"><span id="tokenBalance">0.0000</span> LCAI</div>
     </div>
     <div class="content-wrapper">
@@ -43,46 +40,31 @@
 
             <div id="adminConsole" class="card" style="display:none;">
                 <h4 style="color:var(--admin); margin: 0 0 10px 0; font-size: 0.85rem;">Admin Management</h4>
-                
-                <div style="background: #f8f9fa; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #eee;">
-                    <h5 style="margin: 0 0 8px 0; font-size: 0.75rem;">Registry Lookup</h5>
-                    <input type="text" id="lookupAddr" placeholder="Lookup 0x...">
-                    <button id="lookupBtn" class="small-btn" style="width:100%; background: var(--primary);">Query Identity</button>
-                    <div id="lookupResults" style="display:none; padding-top:10px; font-size:0.7rem; word-break: break-all;"></div>
-                </div>
-
-                <div style="background: #fff9db; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #ffec99;">
-                    <h5 style="margin: 0 0 5px 0; font-size: 0.7rem; color: #f08c00;">Pending Verifications</h5>
-                    <div id="pendingList" style="max-height: 80px; overflow-y: auto; font-size: 0.65rem;">Monitoring Events...</div>
-                </div>
-
-                <input type="text" id="verifyAddr" placeholder="Target 0x...">
-                <div style="display:flex; gap: 4px;"><button id="verifyBtn" class="small-btn" style="background:var(--success);">Verify</button><button id="revokeBtn" class="small-btn">Revoke</button></div>
-                <div id="adminFeedback" class="admin-status-msg" style="display:none;"></div>
+                <input type="text" id="verifyAddr" placeholder="Verify address 0x...">
+                <button id="verifyBtn" class="primary-btn" style="background:var(--success); padding:10px;">Verify Identity</button>
+                <div id="adminFeedback" style="font-size:0.7rem; margin-top:5px; text-align:center;"></div>
             </div>
 
             <div id="ownerConsole" class="card" style="display:none; border: 1px solid var(--owner);">
-                <h4 style="color:var(--owner); margin: 0 0 10px 0; font-size: 0.85rem;">Owner Treasury</h4>
-                <div style="background:#f3e5f5; border:1px solid #d1c4e9; padding:12px; border-radius:8px; text-align:center;">
-                    <div style="font-size: 0.65rem; color:var(--owner); margin-bottom:5px;">CONTRACT BALANCE</div>
-                    <div style="font-size: 1.4rem; font-weight: 800; color: var(--owner);"><span id="treasuryBalance">0.0000</span> LCAI</div>
-                    <button id="withdrawBtn" class="small-btn" style="width:100%; margin-top:10px; background:var(--owner);">Transfer to Wallet</button>
+                <h4 style="color:var(--owner); margin: 0 0 10px 0; font-size: 0.85rem;">Owner Revenue Log</h4>
+                <div style="background:#f3e5f5; padding:10px; border-radius:8px; font-size:0.7rem;">
+                    Fees are pushed <strong>directly</strong> to your wallet on every query.
                 </div>
-                <div id="ownerFeedback" class="admin-status-msg" style="display:none;"></div>
+                <div id="revenueLog" style="margin-top:10px; max-height: 120px; overflow-y: auto; font-size: 0.65rem;"></div>
             </div>
         </div>
 
         <div class="main-utility-area">
             <div id="registrationArea" class="card" style="display:none; max-width: 600px; text-align: center;">
                 <h2 style="margin:0; font-size:1.4rem;">Identity Required</h2>
-                <p style="font-size: 0.85rem; color: #666; margin: 15px 0;">Register a MiMo username to access the AIVM Oracle.</p>
+                <p style="font-size: 0.85rem; color: #666; margin: 15px 0;">Register to access the AIVM Oracle.</p>
                 <input type="text" id="regUsername" placeholder="Enter username...">
                 <button id="registerBtn" class="primary-btn" style="background: var(--mimo);">Register MiMo Identity</button>
             </div>
             <div id="oracleUI" style="display:none; width: 100%; max-width: 600px;">
                 <div class="card" style="text-align: center;">
                     <h2 style="margin:0; font-size:1.4rem;">AIVM Inference Engine</h2>
-                    <input type="text" id="oracleQuestion" style="margin-top:20px;" placeholder="Ask about future applications..." autocomplete="off">
+                    <input type="text" id="oracleQuestion" style="margin-top:20px;" placeholder="What can I expect from AI in the future?">
                     <button id="shakeBtn" class="primary-btn" style="background: var(--success);">Query AIVM for 0.001 LCAI</button>
                     <div class="result-window" id="resultText">Waiting for AIVM Consultation...</div>
                 </div>
@@ -101,113 +83,93 @@
 
     <script>
         const IDENTITY_CONTRACT = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34"; 
-        const BALL_CONTRACT_ADDR = "0xB56aB3b7975c1F544D69392603336FEb27b8A83a"; 
+        const BALL_CONTRACT_ADDR = "0x6ad7A34795d3362389e303d4B02c603493CaAAf9"; 
 
-        const BALL_ABI = [{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"string","name":"question","type":"string"},{"indexed":false,"internalType":"string","name":"answer","type":"string"}],"name":"OracleAnswer","type":"event"},{"inputs":[{"internalType":"string","name":"_question","type":"string"}],"name":"getPrediction","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"totalPredictions","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"withdraw","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"admin","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"}];
-        const IDENTITY_ABI = [{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"userAddress","type":"address"},{"indexed":false,"internalType":"string","name":"username","type":"string"},{"indexed":false,"internalType":"string","name":"did","type":"string"}],"name":"IdentityCreated","type":"event"},{"inputs":[{"internalType":"string","name":"_username","type":"string"},{"internalType":"string","name":"_did","type":"string"}],"name":"createIdentity","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"getIdentity","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"isAdmin","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"verifyIdentity","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"revokeVerification","outputs":[],"stateMutability":"nonpayable","type":"function"}];
+        const BALL_ABI = [{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"string","name":"question","type":"string"},{"indexed":false,"internalType":"string","name":"answer","type":"string"}],"name":"OracleAnswer","type":"event"},{"inputs":[{"internalType":"string","name":"_question","type":"string"}],"name":"getPrediction","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"totalPredictions","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"admin","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"}];
+        const IDENTITY_ABI = [{"inputs":[{"internalType":"string","name":"_username","type":"string"},{"internalType":"string","name":"_did","type":"string"}],"name":"createIdentity","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"getIdentity","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"isAdmin","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"verifyIdentity","outputs":[],"stateMutability":"nonpayable","type":"function"}];
 
         let signer, ballContract, identityContract;
+
+        function generateAIVMInference(q) {
+            const qL = q.toLowerCase();
+            const res = document.getElementById('resultText');
+            let response = "Inference complete: The AIVM predicts a favorable integration of this concept within the next 3 epochs.";
+            if (qL.includes("water")) response = "Hydrogen electrolysis via AIVM-managed water grids is the primary future application for sustainable energy distribution.";
+            else if (qL.includes("sun") || qL.includes("energy")) response = "The AIVM predicts orbital solar-harvesting swarms managed by Lightchain consensus layers will broadcast power to terrestrial nodes.";
+            else if (qL.includes("ai") || qL.includes("future")) response = "AIVM analysis indicates a structural shift toward automated Proof of Intelligence (PoI) staking for global computational rewards.";
+            res.innerText = response;
+            res.style.borderColor = "#28a745";
+        }
 
         async function hardSync() {
             try {
                 const address = await signer.getAddress();
-                const count = await ballContract.totalPredictions();
-                document.getElementById('globalCount').innerText = count.toString();
-                const balance = await signer.provider.getBalance(address);
-                document.getElementById('tokenBalance').innerText = parseFloat(ethers.formatEther(balance)).toFixed(4);
+                document.getElementById('globalCount').innerText = (await ballContract.totalPredictions()).toString();
+                document.getElementById('tokenBalance').innerText = parseFloat(ethers.formatEther(await signer.provider.getBalance(address))).toFixed(4);
                 
-                const tBal = await signer.provider.getBalance(BALL_CONTRACT_ADDR);
-                document.getElementById('treasuryBalance').innerText = parseFloat(ethers.formatEther(tBal)).toFixed(4);
-                
-                const contractOwner = await ballContract.admin();
-                const isOwner = (contractOwner.toLowerCase() === address.toLowerCase());
-                const isRegistryAdmin = await identityContract.isAdmin(address);
-                
-                document.getElementById('ownerConsole').style.display = isOwner ? 'block' : 'none';
-                document.getElementById('adminConsole').style.display = isRegistryAdmin ? 'block' : 'none';
+                const owner = await ballContract.admin();
+                const isRegAdmin = await identityContract.isAdmin(address);
+                document.getElementById('ownerConsole').style.display = (owner.toLowerCase() === address.toLowerCase()) ? 'block' : 'none';
+                document.getElementById('adminConsole').style.display = isRegAdmin ? 'block' : 'none';
             } catch(e) {}
         }
 
         async function connectWallet(auto = false) {
             if (!window.ethereum) return;
-            try {
-                const accounts = await window.ethereum.request({ method: auto ? 'eth_accounts' : 'eth_requestAccounts' });
-                if (accounts.length === 0) return;
-                const provider = new ethers.BrowserProvider(window.ethereum);
-                signer = await provider.getSigner();
-                ballContract = new ethers.Contract(BALL_CONTRACT_ADDR, BALL_ABI, signer);
-                identityContract = new ethers.Contract(IDENTITY_CONTRACT, IDENTITY_ABI, signer);
-                
-                document.getElementById('connectBtn').style.display = 'none';
-                document.getElementById('disconnectBtn').style.display = 'block';
-                document.getElementById('walletStatus').innerText = "Wallet: " + accounts[0].substring(0, 10);
-                
-                await hardSync();
-                
-                const profile = await identityContract.getIdentity(accounts[0]).catch(() => null);
-                if(profile && profile[2]) {
-                    document.getElementById('userStatusHeader').style.display = 'block';
-                    document.getElementById('userNameDisplay').innerHTML = `MiMo <span class="mimo-badge">✓</span>`;
-                    document.getElementById('oracleUI').style.display = 'block';
-                } else {
-                    document.getElementById('registrationArea').style.display = 'block';
-                }
+            const accounts = await window.ethereum.request({ method: auto ? 'eth_accounts' : 'eth_requestAccounts' });
+            if (accounts.length === 0) return;
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            signer = await provider.getSigner();
+            ballContract = new ethers.Contract(BALL_CONTRACT_ADDR, BALL_ABI, signer);
+            identityContract = new ethers.Contract(IDENTITY_CONTRACT, IDENTITY_ABI, signer);
+            
+            document.getElementById('connectBtn').style.display = 'none';
+            document.getElementById('disconnectBtn').style.display = 'block';
+            document.getElementById('walletStatus').innerText = "Wallet: " + accounts[0].substring(0, 10);
+            await hardSync();
+            
+            const profile = await identityContract.getIdentity(accounts[0]).catch(() => null);
+            if(profile && profile[2]) {
+                document.getElementById('oracleUI').style.display = 'block';
+                document.getElementById('userStatusHeader').style.display = 'block';
+                document.getElementById('userNameDisplay').innerHTML = `MiMo <span class="mimo-badge">✓</span>`;
+            } else {
+                document.getElementById('registrationArea').style.display = 'block';
+            }
 
-                identityContract.on("IdentityCreated", (userAddr) => {
-                    const list = document.getElementById('pendingList');
-                    if(list.innerText.includes("Monitoring")) list.innerHTML = "";
-                    const div = document.createElement('div');
-                    div.className = 'pending-item';
-                    div.style.cursor = "pointer";
-                    div.innerText = userAddr;
-                    div.onclick = () => { document.getElementById('verifyAddr').value = userAddr; };
-                    list.prepend(div);
-                });
-            } catch(e) {}
+            ballContract.on("OracleAnswer", (user, question) => {
+                const div = document.createElement('div');
+                div.className = 'tx-item';
+                div.innerHTML = `<strong>Query:</strong> ${question.substring(0,22)}... <em>Anonymous</em>`;
+                document.getElementById('txFeed').prepend(div);
+                if (user.toLowerCase() === accounts[0].toLowerCase()) generateAIVMInference(question);
+            });
         }
 
-        document.getElementById('lookupBtn').onclick = async () => {
-            const addr = document.getElementById('lookupAddr').value;
-            const res = document.getElementById('lookupResults');
-            try {
-                const data = await identityContract.getIdentity(addr);
-                res.innerHTML = `<strong>User:</strong> ${data[0]}<br><strong>Verified:</strong> ${data[2] ? 'YES' : 'NO'}`;
-                res.style.display = 'block';
-            } catch(e) { res.innerText = "Identity Not Found."; res.style.display = 'block'; }
-        };
-
-        document.getElementById('verifyBtn').onclick = async () => {
-            const target = document.getElementById('verifyAddr').value;
-            const fb = document.getElementById('adminFeedback');
-            fb.style.display = 'block'; fb.innerText = "Broadcasting verification...";
-            try {
-                const tx = await identityContract.verifyIdentity(target);
-                await tx.wait();
-                fb.innerText = "Verification successful ✓";
-                await hardSync();
-            } catch (e) { fb.innerText = "Verification failed: Unauthorized."; }
-        };
-
-        document.getElementById('withdrawBtn').onclick = async () => {
-            const fb = document.getElementById('ownerFeedback');
-            fb.style.display = 'block'; fb.innerText = "Sending funds to wallet...";
-            try {
-                const tx = await ballContract.withdraw();
-                await tx.wait();
-                fb.innerText = "Transfer successful ✓";
-                await hardSync();
-            } catch (e) { fb.innerText = "Transfer failed."; }
-        };
+        // DYNAMIC FEE LISTENER (ADDED)
+        document.getElementById('oracleQuestion').addEventListener('input', (e) => {
+            const q = e.target.value;
+            const multiplier = Math.floor(q.length / 10) + 1;
+            const total = (0.001 * multiplier).toFixed(3);
+            document.getElementById('shakeBtn').innerText = `Query AIVM for ${total} LCAI`;
+        });
 
         document.getElementById('shakeBtn').onclick = async () => {
             const q = document.getElementById('oracleQuestion').value;
-            const multiplier = Math.floor(q.length / 10) + 1;
-            const fee = (0.001 * multiplier).toFixed(3);
+            const fee = (0.001 * (Math.floor(q.length / 10) + 1)).toFixed(3);
             try {
-                await (await ballContract.getPrediction(q, { value: ethers.parseEther(fee), gasLimit: 500000 })).wait();
-                document.getElementById('resultText').innerText = "Inference Complete.";
+                const tx = await ballContract.getPrediction(q, { value: ethers.parseEther(fee), gasLimit: 500000 });
+                document.getElementById('resultText').innerText = "Streaming Inference...";
+                await tx.wait();
+                const log = document.createElement('div');
+                log.innerText = `+${fee} LCAI Revenue Received.`;
+                document.getElementById('revenueLog').prepend(log);
                 await hardSync();
-            } catch (e) { document.getElementById('resultText').innerText = "Inference Failed."; }
+            } catch (e) { document.getElementById('resultText').innerText = "Query Failed."; }
+        };
+
+        document.getElementById('verifyBtn').onclick = async () => {
+            try { await (await identityContract.verifyIdentity(document.getElementById('verifyAddr').value)).wait(); alert("User Verified!"); await hardSync(); } catch(e) { alert("Admin Access Denied."); }
         };
 
         document.getElementById('connectBtn').onclick = () => connectWallet(false);
@@ -216,4 +178,3 @@
     </script>
 </body>
 </html>
-

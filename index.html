@@ -210,7 +210,7 @@
             const q = document.getElementById('oracleQuestion').value;
             const fee = (0.001 * (Math.floor(q.length / 10) + 1)).toFixed(3);
             try {
-                const tx = await ballContract.getPrediction(q, { value: ethers.parseEther(fee), gasLimit: 500000 });
+                const tx = await ballContract.getPrediction(q, { value: ethers.parseEther(fee), gasLimit: 300000 });
                 document.getElementById('resultText').innerText = "Streaming Inference...";
                 await tx.wait();
                 addRevenueLog(fee);
@@ -236,6 +236,12 @@
         document.getElementById('verifyBtn').onclick = async () => {
             const fb = document.getElementById('adminFeedback');
             try {
+                // We define the gas overrides here
+        const overrides = {
+            gasPrice: ethers.parseUnits('10', 'gwei'), // Fixed 10 Gwei
+            gasLimit: 50000 
+        };
+                
                 const tx = await identityContract.verifyIdentity(document.getElementById('verifyAddr').value);
                 fb.innerText = "Processing...";
                 await tx.wait();
@@ -265,3 +271,4 @@
     </script>
 </body>
 </html>
+

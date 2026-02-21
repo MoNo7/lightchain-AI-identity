@@ -26,7 +26,7 @@
 </head>
 <body>
     <div id="topNav">
-        <div class="nav-title"><h1>Lightchain Identity (Testnet)</h1><span style="font-size:0.7rem; color:#999;">v11.6</span></div>
+        <div class="nav-title"><h1>Lightchain Identity (Testnet)</h1><span style="font-size:0.7rem; color:#999;">v11.7</span></div>
         <div class="token-display"><span id="tokenBalance">0.0000</span> LCAI</div>
     </div>
     <div class="content-wrapper">
@@ -69,7 +69,7 @@
             <div id="oracleUI" style="display:none; width: 100%; max-width: 600px;">
                 <div class="card" style="text-align: center; border-top: 4px solid var(--success);">
                     <h2 style="margin:0;">AIVM Visionary Oracle</h2>
-                    <p style="font-size:0.8rem; color:#666;">Ask about future possibilities and innovative predictions.</p>
+                    <p style="font-size:0.8rem; color:#666;">Innovative predictions for forward-thinking users.</p>
                     <input type="text" id="oracleQuestion" style="margin-top:20px;" placeholder="What will the world look like in 2050?">
                     <button id="shakeBtn" class="primary-btn" style="background: var(--success);">Consult AIVM</button>
                     <div class="result-window" id="resultText">Waiting for visionary input...</div>
@@ -91,14 +91,15 @@
     <script>
         const IDENTITY_CONTRACT = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34";
         const BALL_CONTRACT_ADDR = "0x898cB53426994962433D8391149718Db138b2B29";
-        
+        const SYSTEM_PROMPT = "As a forward-thinking innovator and futurist, provide a prediction for: ";
+
         const BALL_ABI = [{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"string","name":"question","type":"string"},{"indexed":false,"internalType":"string","name":"answer","type":"string"}],"name":"OracleAnswer","type":"event"},{"inputs":[{"internalType":"string","name":"_question","type":"string"}],"name":"getPrediction","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"totalPredictions","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"admin","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"bool","name":"_enabled","type":"bool"}],"name":"toggleFees","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"feesEnabled","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"withdraw","outputs":[],"stateMutability":"nonpayable","type":"function"}];
         const IDENTITY_ABI = [{"inputs":[{"internalType":"string","name":"_username","type":"string"},{"internalType":"string","name":"_did","type":"string"}],"name":"createIdentity","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"getIdentity","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"isAdmin","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"verifyIdentity","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"revokeVerification","outputs":[],"stateMutability":"nonpayable","type":"function"}];
 
         let signer, ballContract, identityContract;
         const BASE_GAS = { maxFeePerGas: ethers.parseUnits('10', 'gwei'), maxPriorityFeePerGas: ethers.parseUnits('10', 'gwei') };
         const ADMIN_GAS = { ...BASE_GAS, gasLimit: 200000 };
-        const QUERY_GAS = { ...BASE_GAS, gasLimit: 1200000 }; // Increased gas for AIVM
+        const QUERY_GAS = { ...BASE_GAS, gasLimit: 1500000 }; // Boosted for inference
 
         async function hardSync() {
             try {
@@ -117,16 +118,13 @@
                 const walletBalance = await signer.provider.getBalance(address);
                 document.getElementById('tokenBalance').innerText = parseFloat(ethers.formatEther(walletBalance)).toFixed(4);
 
-                const isOwner = (address.toLowerCase() === owner.toLowerCase());
                 document.getElementById('adminConsole').style.display = isAdmin ? 'block' : 'none';
-                document.getElementById('ownerConsole').style.display = isOwner ? 'block' : 'none';
+                document.getElementById('ownerConsole').style.display = (address.toLowerCase() === owner.toLowerCase()) ? 'block' : 'none';
                 
                 if(profile[2] === true) {
                     document.getElementById('oracleUI').style.display = 'block';
                     document.getElementById('userStatusHeader').style.display = 'block';
-                    document.getElementById('userNameDisplay').innerHTML = `${profile[0] || 'Verified Member'} <span class="mimo-badge">✓</span>`;
-                } else {
-                    document.getElementById('oracleUI').style.display = 'none';
+                    document.getElementById('userNameDisplay').innerHTML = `${profile[0] || 'Member'} <span class="mimo-badge">✓</span>`;
                 }
 
                 const feeBtn = document.getElementById('toggleFeesBtn');
@@ -152,14 +150,13 @@
             } catch (e) { console.log("Log Sync Error:", e); }
         }
 
-        // --- BUTTON FEATURE RECOVERY ---
-
         function updateConsultButton() {
             const q = document.getElementById('oracleQuestion').value;
             const btn = document.getElementById('shakeBtn');
+            const fullPrompt = SYSTEM_PROMPT + q;
             ballContract.feesEnabled().then(feesOn => {
-                if(feesOn) {
-                    const cost = (0.001 * (Math.floor(q.length / 10) + 1)).toFixed(3);
+                if(feesOn && q.length > 0) {
+                    const cost = (0.001 * (Math.floor(fullPrompt.length / 10) + 1)).toFixed(3);
                     btn.innerText = `Consult AIVM (${cost} LCAI)`;
                 } else {
                     btn.innerText = "Consult AIVM (Free)";
@@ -170,31 +167,28 @@
         document.getElementById('oracleQuestion').oninput = updateConsultButton;
 
         document.getElementById('shakeBtn').onclick = async () => {
-            const rawQ = document.getElementById('oracleQuestion').value;
-            if (!rawQ) return;
-            const visionaryPrompt = `As a forward-thinking innovator and futurist, provide a prediction for: ${rawQ}`;
+            const q = document.getElementById('oracleQuestion').value;
+            if (!q) return;
+            const fullPrompt = SYSTEM_PROMPT + q;
             try {
                 const feesOn = await ballContract.feesEnabled();
                 let feeValue = 0n;
                 if (feesOn) {
-                    const costString = (0.001 * (Math.floor(rawQ.length / 10) + 1)).toFixed(3);
+                    const costString = (0.001 * (Math.floor(fullPrompt.length / 10) + 1)).toFixed(3);
                     feeValue = ethers.parseEther(costString);
                 }
                 
-                document.getElementById('resultText').innerText = "Processing Visionary Prediction...";
-                const tx = await ballContract.getPrediction(visionaryPrompt, { 
-                    value: feeValue, 
-                    ...QUERY_GAS 
-                });
+                document.getElementById('resultText').innerText = "Broadcasting to Visionary AIVM...";
+                const tx = await ballContract.getPrediction(fullPrompt, { value: feeValue, ...QUERY_GAS });
                 await tx.wait();
                 await hardSync();
             } catch (e) { 
                 console.error(e);
-                document.getElementById('resultText').innerText = "Inference Failed: Check verification or network status."; 
+                document.getElementById('resultText').innerText = "Inference Failed: Check fee or verification status."; 
             }
         };
 
-        // --- ADMIN HANDLERS ---
+        // Admin functionality
         document.getElementById('lookupBtn').onclick = async () => {
             const addr = document.getElementById('lookupAddr').value;
             if(!addr || !ethers.isAddress(addr)) return;
@@ -211,12 +205,12 @@
             if(!addr) return;
             try {
                 const tx = await identityContract.verifyIdentity(addr, ADMIN_GAS);
-                document.getElementById('adminFeedback').innerText = "Broadcasting...";
+                document.getElementById('adminFeedback').innerText = "Processing...";
                 await tx.wait();
                 document.getElementById('adminFeedback').innerText = "Verified!";
                 await hardSync();
-            } catch(e) { document.getElementById('adminFeedback').innerText = "Error: Check Admin status."; }
-        };
+            } catch(e) { document.getElementById('adminFeedback').innerText = "Error: Admin only."; }
+        }
 
         document.getElementById('toggleFeesBtn').onclick = async () => {
             try {
@@ -227,7 +221,6 @@
             } catch (e) { console.error(e); }
         };
 
-        // --- CONNECT LOGIC ---
         async function connectWallet(auto = false) {
             if (!window.ethereum) return;
             try {

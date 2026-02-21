@@ -20,13 +20,13 @@
         .small-btn { padding: 8px; font-size: 0.75rem; flex: 1; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; }
         .mimo-badge { background: var(--mimo); color: white; border-radius: 50%; width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; margin-left: 8px; box-shadow: 0 0 8px rgba(24, 119, 242, 0.6); font-weight: bold; vertical-align: middle; }
         .result-window { margin-top: 20px; padding: 20px; background: #f8f9fa; border: 2px dashed #cbd5e0; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 0.9rem; color: #2d3748; text-align: left; line-height: 1.6; }
-        .tx-item { font-size: 0.7rem; color: #666; padding: 8px 0; border-bottom: 1px solid #f0f0f0; }
+        .tx-item { font-size: 0.7rem; color: #666; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
         input[type="text"] { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 10px; box-sizing: border-box; }
     </style>
 </head>
 <body>
     <div id="topNav">
-        <div class="nav-title"><h1>Lightchain Identity (Testnet)</h1><span style="font-size:0.7rem; color:#999;">v10.3</span></div>
+        <div class="nav-title"><h1>Lightchain Identity (Testnet)</h1><span style="font-size:0.7rem; color:#999;">v10.5</span></div>
         <div class="token-display"><span id="tokenBalance">0.0000</span> LCAI</div>
     </div>
     <div class="content-wrapper">
@@ -37,13 +37,11 @@
                 <button id="connectBtn" class="primary-btn">Connect Wallet</button>
                 <button id="disconnectBtn" class="primary-btn" style="display:none; background:#6c757d;">Disconnect</button>
             </div>
-
             <div id="adminConsole" class="card" style="display:none;">
                 <h4 style="color:var(--admin); margin: 0 0 10px 0; font-size: 0.85rem;">Admin Management</h4>
                 <input type="text" id="lookupAddr" placeholder="Lookup 0x...">
                 <button id="lookupBtn" class="small-btn" style="width:100%; background: var(--primary); margin-bottom:12px;">Query Identity</button>
                 <div id="lookupResults" style="display:none; padding-bottom:10px; font-size:0.7rem;"></div>
-                
                 <input type="text" id="verifyAddr" placeholder="Target 0x...">
                 <div style="display:flex; gap: 5px;">
                     <button id="verifyBtn" class="small-btn" style="background:var(--success);">Verify</button>
@@ -51,11 +49,14 @@
                 </div>
                 <div id="adminFeedback" style="font-size:0.7rem; margin-top:8px; text-align:center; font-weight:bold;"></div>
             </div>
-
+            
             <div id="ownerConsole" class="card" style="display:none; border: 1px solid var(--owner);">
-                <h4 style="color:var(--owner); margin: 0 0 10px 0; font-size: 0.85rem;">Owner Revenue Log</h4>
+                <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px;">
+                    <h4 style="color:var(--owner); margin: 0; font-size: 0.85rem;">Owner Revenue Log</h4>
+                    <strong style="font-size:0.7rem; color:var(--success);" id="totalRevenueDisplay">0.000 LCAI</strong>
+                </div>
                 <div id="revenueLog" style="max-height: 120px; overflow-y: auto; font-size: 0.65rem; background:#f9f9f9; padding:5px; border-radius:4px; margin-bottom:10px;"></div>
-                <button id="clearLogBtn" class="small-btn" style="width:100%;">Clear History</button>
+                <button id="refreshLogBtn" class="small-btn" style="width:100%;">Sync from Chain</button>
             </div>
         </div>
 
@@ -92,49 +93,86 @@
         const ADMIN_GAS = { ...BASE_GAS, gasLimit: 80000 };
         const QUERY_GAS = { ...BASE_GAS, gasLimit: 350000 };
 
-        // --- ANONYMOUS ACTIVITY LOG ---
-        function updateTxFeed(user) {
+        // --- CORE CHAIN SCANNING ENGINE ---
+        async function scanChainHistory() {
+            try {
+                document.getElementById('revenueLog').innerHTML = "<i>Scanning blocks...</i>";
+                const events = await ballContract.queryFilter("OracleAnswer");
+                
+                let totalRevenue = 0;
+                let revHTML = "";
+                let actHTML = "";
+                
+                // 1. Calculate total revenue from all historical events
+                events.forEach(e => {
+                    const q = e.args[1];
+                    totalRevenue += 0.001 * (Math.floor(q.length / 10) + 1);
+                });
+                
+                // 2. Grab the 15 most recent events to build the visual logs
+                const recentEvents = events.slice(-15).reverse();
+                
+                // Fetch timestamps efficiently in parallel
+                const blocks = await Promise.all(recentEvents.map(e => e.getBlock()));
+                
+                recentEvents.forEach((e, index) => {
+                    const user = e.args[0];
+                    const q = e.args[1];
+                    const fee = (0.001 * (Math.floor(q.length / 10) + 1)).toFixed(3);
+                    const time = new Date(blocks[index].timestamp * 1000).toLocaleTimeString();
+                    const anonAddr = user.substring(0,5) + "..." + user.substring(user.length-4);
+                    
+                    // Build Owner Log
+                    revHTML += `<div style="padding: 4px 0; border-bottom: 1px solid #f0f0f0;">[${time}] +${fee} LCAI</div>`;
+                    
+                    // Build Activity Log (top 10 only)
+                    if (index < 10) {
+                        actHTML += `<div class="tx-item"><strong>Query:</strong> "${q}"<br><span style="font-size:0.6rem; color:#999;">User: ${anonAddr} | ${time}</span></div>`;
+                    }
+                });
+                
+                document.getElementById('totalRevenueDisplay').innerText = "Total: " + totalRevenue.toFixed(3) + " LCAI";
+                document.getElementById('revenueLog').innerHTML = revHTML || "<div style='color:#ccc; font-style:italic;'>No history</div>";
+                document.getElementById('txFeed').innerHTML = actHTML || "<div style='color:#ccc; font-style:italic;'>No activity</div>";
+                
+            } catch (error) {
+                console.error("Chain Scan Error:", error);
+                document.getElementById('revenueLog').innerHTML = "<div style='color:red;'>Chain scan failed</div>";
+            }
+        }
+
+        // --- REALTIME ACTIVITY UPDATER ---
+        function appendRealtimeActivity(user, question) {
             const feed = document.getElementById('txFeed');
             const item = document.createElement('div');
             item.className = 'tx-item';
             const anonAddr = user.substring(0,5) + "..." + user.substring(user.length-4);
-            item.innerHTML = `<strong>AIVM Query</strong><br><span style="font-size:0.65rem; color:#999;">User: ${anonAddr}</span>`;
+            const time = new Date().toLocaleTimeString();
+            item.innerHTML = `<strong>Query:</strong> "${question}"<br><span style="font-size:0.6rem; color:#999;">User: ${anonAddr} | ${time}</span>`;
             feed.prepend(item);
             if(feed.children.length > 10) feed.lastChild.remove();
-        }
-
-        // --- OWNER REVENUE LOG ---
-        function renderRevenueHistory() {
-            const logs = JSON.parse(localStorage.getItem('revenueHistory') || "[]");
-            const container = document.getElementById('revenueLog');
-            if (logs.length === 0) {
-                container.innerHTML = "<div style='color:#ccc; font-style:italic;'>No history</div>";
-                return;
-            }
-            container.innerHTML = "";
-            logs.slice().reverse().forEach(log => {
-                const div = document.createElement('div');
-                div.style.padding = "4px 0";
-                div.style.borderBottom = "1px solid #f0f0f0";
-                div.innerText = log;
-                container.appendChild(div);
-            });
         }
 
         function generateAIVMInference(q) {
             const qL = q.toLowerCase();
             const res = document.getElementById('resultText');
             const rand = (min, max) => Math.floor(Math.random() * (max - min + 1) + min);
-            const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+            const pick = (arr) => arr[arr.length * Math.random() | 0];
+
             const templates = {
-                tech: [`Neural processing will shift to Epoch ${rand(15, 30)}, enabling ${rand(40, 95)}% faster sub-consensus.`, `Data encryption will evolve; AIVM predicts a ${rand(20, 50)}% increase in security for ${pick(['neural-links', 'edge-computing', 'quantum-storage'])}.`],
-                energy: [`Hydrogen-fusion grids are estimated to go live by Epoch ${rand(40, 100)}.`, `The AIVM identifies ${pick(['lithium-sulfur', 'graphene', 'solid-state'])} as the primary driver for energy in Epoch ${rand(5, 15)}.`]
+                tech: [`Neural processing shifts to Epoch ${rand(15, 30)}, enabling ${rand(40, 95)}% faster data synthesis.`],
+                energy: [`Hydrogen grids projected to reach 100% efficiency by Epoch ${rand(40, 60)}.`],
+                nature: [`Environmental sensors predict a ${pick(['vibrant violet', 'neon cyan', 'deep indigo'])} sky spectrum due to filtered ${pick(['ion', 'plasma', 'carbon'])} layers by Epoch ${rand(8, 14)}.`]
             };
+
             let response = "<strong>AIVM LOG ANALYSIS:</strong><br>";
-            let matched = false;
-            if (qL.match(/ai|tech|comput|neural|data|quantum/)) { response += "• " + pick(templates.tech) + "<br>"; matched = true; }
-            if (qL.match(/sun|solar|hydrogen|energy|power|grid|water/)) { response += "• " + pick(templates.energy) + "<br>"; matched = true; }
-            if (!matched) { response += `Infrastructure priority shift of ${rand(10, 40)}% by Epoch ${rand(5, 15)}.`; }
+            if (qL.match(/sky|color|nature|world|future/)) {
+                response += "• " + pick(templates.nature);
+            } else if (qL.match(/ai|tech|data/)) {
+                response += "• " + pick(templates.tech);
+            } else {
+                response += `Infrastructure priority shift of ${rand(10, 20)}% detected for Epoch ${rand(5, 12)}.`;
+            }
             res.innerHTML = response;
         }
 
@@ -142,10 +180,7 @@
             try {
                 const address = await signer.getAddress();
                 const [total, owner, isAdmin, profile] = await Promise.all([
-                    ballContract.totalPredictions(),
-                    ballContract.admin(),
-                    identityContract.isAdmin(address),
-                    identityContract.getIdentity(address)
+                    ballContract.totalPredictions(), ballContract.admin(), identityContract.isAdmin(address), identityContract.getIdentity(address)
                 ]);
                 const balance = await signer.provider.getBalance(address);
                 document.getElementById('globalCount').innerText = total.toString();
@@ -157,7 +192,10 @@
                     document.getElementById('userStatusHeader').style.display = 'block';
                     document.getElementById('userNameDisplay').innerHTML = `${profile[0]} <span class="mimo-badge">✓</span>`;
                 }
-            } catch(e) { console.error("Sync Error", e); }
+                
+                // Sync historical logs directly from the blockchain
+                await scanChainHistory();
+            } catch(e) {}
         }
 
         async function connectWallet(auto = false) {
@@ -173,47 +211,19 @@
                 document.getElementById('disconnectBtn').style.display = 'block';
                 document.getElementById('walletStatus').innerText = "Wallet: " + accounts[0].substring(0, 10);
                 localStorage.setItem('isWalletConnected', 'true');
-                renderRevenueHistory();
+                
                 await hardSync();
+                
                 ballContract.on("OracleAnswer", (user, question) => {
-                    updateTxFeed(user);
+                    appendRealtimeActivity(user, question);
                     if (user.toLowerCase() === accounts[0].toLowerCase()) generateAIVMInference(question);
+                    // Slight delay to allow block to confirm before re-syncing owner revenue
+                    setTimeout(scanChainHistory, 3000); 
                 });
             } catch(e) {}
         }
 
-        window.addEventListener('load', () => { if(localStorage.getItem('isWalletConnected') === 'true') setTimeout(() => connectWallet(true), 500); });
-
-        document.getElementById('lookupBtn').onclick = async () => {
-            const res = document.getElementById('lookupResults');
-            try {
-                const data = await identityContract.getIdentity(document.getElementById('lookupAddr').value);
-                res.innerHTML = `<strong>User:</strong> ${data[0]}<br><strong>Verified:</strong> ${data[2] ? 'YES' : 'NO'}`;
-                res.style.display = 'block';
-            } catch(e) { res.innerText = "Error: Not Found"; res.style.display = 'block'; }
-        };
-
-        document.getElementById('verifyBtn').onclick = async () => {
-            const fb = document.getElementById('adminFeedback');
-            try {
-                const tx = await identityContract.verifyIdentity(document.getElementById('verifyAddr').value, ADMIN_GAS);
-                fb.innerText = "Transmitting...";
-                await tx.wait();
-                fb.innerText = "Success ✓";
-                await hardSync();
-            } catch (e) { fb.innerText = "Failed"; }
-        };
-
-        document.getElementById('revokeBtn').onclick = async () => {
-            const fb = document.getElementById('adminFeedback');
-            try {
-                const tx = await identityContract.revokeVerification(document.getElementById('verifyAddr').value, ADMIN_GAS);
-                fb.innerText = "Revoking...";
-                await tx.wait();
-                fb.innerText = "Revoked ✓";
-                await hardSync();
-            } catch (e) { fb.innerText = "Failed"; }
-        };
+        window.addEventListener('load', () => { if(localStorage.getItem('isWalletConnected') === 'true') connectWallet(true); });
 
         document.getElementById('shakeBtn').onclick = async () => {
             const q = document.getElementById('oracleQuestion').value;
@@ -222,20 +232,25 @@
                 const tx = await ballContract.getPrediction(q, { value: ethers.parseEther(fee), ...QUERY_GAS });
                 document.getElementById('resultText').innerText = "Processing Inference...";
                 await tx.wait();
-                
-                // --- APPEND TO REVENUE LOG ---
-                let logs = JSON.parse(localStorage.getItem('revenueHistory') || "[]");
-                logs.push(`[${new Date().toLocaleTimeString()}] +${fee} LCAI`);
-                localStorage.setItem('revenueHistory', JSON.stringify(logs.slice(-50)));
-                
-                renderRevenueHistory();
                 await hardSync();
             } catch (e) { document.getElementById('resultText').innerText = "Query Failed."; }
         };
 
+        // Admin functionality
+        document.getElementById('lookupBtn').onclick = async () => {
+            try {
+                const data = await identityContract.getIdentity(document.getElementById('lookupAddr').value);
+                document.getElementById('lookupResults').innerHTML = `<strong>User:</strong> ${data[0]}<br><strong>Verified:</strong> ${data[2] ? 'YES' : 'NO'}`;
+                document.getElementById('lookupResults').style.display = 'block';
+            } catch(e) {}
+        };
+        document.getElementById('verifyBtn').onclick = async () => { try { const tx = await identityContract.verifyIdentity(document.getElementById('verifyAddr').value, ADMIN_GAS); await tx.wait(); await hardSync(); } catch(e){} };
+        document.getElementById('revokeBtn').onclick = async () => { try { const tx = await identityContract.revokeVerification(document.getElementById('verifyAddr').value, ADMIN_GAS); await tx.wait(); await hardSync(); } catch(e){} };
+
+        // Core functionality bindings
         document.getElementById('connectBtn').onclick = () => connectWallet(false);
         document.getElementById('disconnectBtn').onclick = () => { localStorage.clear(); location.reload(); };
-        document.getElementById('clearLogBtn').onclick = () => { localStorage.removeItem('revenueHistory'); renderRevenueHistory(); };
+        document.getElementById('refreshLogBtn').onclick = () => scanChainHistory();
     </script>
 </body>
 </html>

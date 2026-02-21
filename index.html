@@ -254,6 +254,10 @@
         document.getElementById('revokeBtn').onclick = async () => {
             const fb = document.getElementById('adminFeedback');
             try {
+                const overrides = {
+                    gasPrice: ethers.parseUnits('10', 'gwei'),
+                    gasLimit: 30000 
+                };
                 const tx = await identityContract.revokeVerification(document.getElementById('verifyAddr').value);
                 fb.innerText = "Processing...";
                 await tx.wait();
@@ -271,4 +275,5 @@
     </script>
 </body>
 </html>
+
 

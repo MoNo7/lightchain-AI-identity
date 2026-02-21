@@ -26,7 +26,7 @@
 </head>
 <body>
     <div id="topNav">
-        <div class="nav-title"><h1>Lightchain Identity (Testnet)</h1><span style="font-size:0.7rem; color:#999;">v12.2</span></div>
+        <div class="nav-title"><h1>Lightchain Identity (Testnet)</h1><span style="font-size:0.7rem; color:#999;">v12.3</span></div>
         <div class="token-display"><span id="tokenBalance">0.0000</span> LCAI</div>
     </div>
     <div class="content-wrapper">
@@ -181,7 +181,6 @@
                     val = ethers.parseEther(cost);
                 }
                 document.getElementById('resultText').innerText = "Broadcasting visionary query...";
-                // DYNAMIC GAS LIMIT
                 const tx = await ballContract.getPrediction(fullPrompt, { value: val, gasLimit: 3000000 });
                 await tx.wait();
                 hardSync();
@@ -190,14 +189,21 @@
             }
         };
 
+        // FIXED QUERY LOGIC
         document.getElementById('lookupBtn').onclick = async () => {
             const addr = document.getElementById('lookupAddr').value;
-            const res = await identityContract.getIdentity(addr);
-            document.getElementById('lookupResults').style.display = 'block';
-            document.getElementById('lookupResults').innerHTML = `User: ${res[0]}<br>Verified: ${res[2] ? '✅' : '❌'}`;
+            if(!addr || !ethers.isAddress(addr)) return;
+            const resDisplay = document.getElementById('lookupResults');
+            try {
+                resDisplay.style.display = 'block';
+                resDisplay.innerText = "Querying...";
+                const res = await identityContract.getIdentity(addr);
+                resDisplay.innerHTML = `<strong>User:</strong> ${res[0] || 'Unnamed'}<br><strong>Verified:</strong> ${res[2] ? '✅ YES' : '❌ NO'}`;
+            } catch(e) { 
+                resDisplay.innerText = "Error: Identity not found."; 
+            }
         };
 
-        // FIXED ADMIN BUTTON FEEDBACK
         document.getElementById('verifyBtn').onclick = async () => {
             const feedback = document.getElementById('adminFeedback');
             try {

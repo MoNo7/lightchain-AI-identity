@@ -29,7 +29,7 @@
 </head>
 <body>
     <div id="topNav">
-        <div class="nav-title"><h1>Lightchain Identity (Testnet)</h1><span style="font-size:0.7rem; color:#999;">v8.6</span></div>
+        <div class="nav-title"><h1>Lightchain Identity (Testnet)</h1><span style="font-size:0.7rem; color:#999;">v8.7</span></div>
         <div class="token-display"><span id="tokenBalance">0.0000</span> LCAI</div>
     </div>
     <div class="content-wrapper">
@@ -43,11 +43,20 @@
 
             <div id="adminConsole" class="card" style="display:none;">
                 <h4 style="color:var(--admin); margin: 0 0 10px 0; font-size: 0.85rem;">Admin Management</h4>
+                
+                <div style="background: #f8f9fa; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #eee;">
+                    <h5 style="margin: 0 0 8px 0; font-size: 0.75rem;">Registry Lookup</h5>
+                    <input type="text" id="lookupAddr" placeholder="Lookup 0x...">
+                    <button id="lookupBtn" class="small-btn" style="width:100%; background: var(--primary);">Query Identity</button>
+                    <div id="lookupResults" style="display:none; padding-top:10px; font-size:0.7rem; word-break: break-all;"></div>
+                </div>
+
                 <div style="background: #fff9db; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #ffec99;">
                     <h5 style="margin: 0 0 5px 0; font-size: 0.7rem; color: #f08c00;">Pending Verifications</h5>
                     <div id="pendingList" style="max-height: 80px; overflow-y: auto; font-size: 0.65rem;">Monitoring Events...</div>
                 </div>
-                <input type="text" id="verifyAddr" placeholder="Verify 0x...">
+
+                <input type="text" id="verifyAddr" placeholder="Target 0x...">
                 <div style="display:flex; gap: 4px;"><button id="verifyBtn" class="small-btn" style="background:var(--success);">Verify</button><button id="revokeBtn" class="small-btn">Revoke</button></div>
                 <div id="adminFeedback" class="admin-status-msg" style="display:none;"></div>
             </div>
@@ -55,13 +64,9 @@
             <div id="ownerConsole" class="card" style="display:none; border: 1px solid var(--owner);">
                 <h4 style="color:var(--owner); margin: 0 0 10px 0; font-size: 0.85rem;">Owner Treasury</h4>
                 <div style="background:#f3e5f5; border:1px solid #d1c4e9; padding:12px; border-radius:8px; text-align:center;">
-                    <div style="font-size: 0.65rem; color:var(--owner); margin-bottom:5px;">COLLECTED FEES</div>
+                    <div style="font-size: 0.65rem; color:var(--owner); margin-bottom:5px;">CONTRACT BALANCE</div>
                     <div style="font-size: 1.4rem; font-weight: 800; color: var(--owner);"><span id="treasuryBalance">0.0000</span> LCAI</div>
-                    <button id="withdrawBtn" class="small-btn" style="width:100%; margin-top:10px; background:var(--owner);">Transfer to Owner Wallet</button>
-                </div>
-                <div style="margin-top:15px;">
-                    <h5 style="font-size: 0.7rem; color: var(--owner); margin: 0 0 5px 0;">Withdrawal History</h5>
-                    <div id="withdrawHistory" style="max-height: 100px; overflow-y: auto; background:#fff; border: 1px solid #eee; padding:5px; border-radius:4px;"></div>
+                    <button id="withdrawBtn" class="small-btn" style="width:100%; margin-top:10px; background:var(--owner);">Transfer to Wallet</button>
                 </div>
                 <div id="ownerFeedback" class="admin-status-msg" style="display:none;"></div>
             </div>
@@ -71,7 +76,7 @@
             <div id="registrationArea" class="card" style="display:none; max-width: 600px; text-align: center;">
                 <h2 style="margin:0; font-size:1.4rem;">Identity Required</h2>
                 <p style="font-size: 0.85rem; color: #666; margin: 15px 0;">Register a MiMo username to access the AIVM Oracle.</p>
-                <input type="text" id="regUsername" placeholder="Enter desired username...">
+                <input type="text" id="regUsername" placeholder="Enter username...">
                 <button id="registerBtn" class="primary-btn" style="background: var(--mimo);">Register MiMo Identity</button>
             </div>
             <div id="oracleUI" style="display:none; width: 100%; max-width: 600px;">
@@ -96,25 +101,12 @@
 
     <script>
         const IDENTITY_CONTRACT = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34"; 
-        const BALL_CONTRACT_ADDR = "0x6ad7A34795d3362389e303d4B02c603493CaAAf9"; // REPLACE WITH NEW ADDR IF REDEPLOYED
+        const BALL_CONTRACT_ADDR = "0x6ad7A34795d3362389e303d4B02c603493CaAAf9"; 
 
         const BALL_ABI = [{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"string","name":"question","type":"string"},{"indexed":false,"internalType":"string","name":"answer","type":"string"}],"name":"OracleAnswer","type":"event"},{"inputs":[{"internalType":"string","name":"_question","type":"string"}],"name":"getPrediction","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"totalPredictions","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"withdraw","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"admin","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"}];
         const IDENTITY_ABI = [{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"userAddress","type":"address"},{"indexed":false,"internalType":"string","name":"username","type":"string"},{"indexed":false,"internalType":"string","name":"did","type":"string"}],"name":"IdentityCreated","type":"event"},{"inputs":[{"internalType":"string","name":"_username","type":"string"},{"internalType":"string","name":"_did","type":"string"}],"name":"createIdentity","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"getIdentity","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"isAdmin","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"verifyIdentity","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"revokeVerification","outputs":[],"stateMutability":"nonpayable","type":"function"}];
 
         let signer, ballContract, identityContract;
-
-        function updateWithdrawHistory(amount, txHash) {
-            const history = document.getElementById('withdrawHistory');
-            const date = new Date().toLocaleString();
-            const div = document.createElement('div');
-            div.className = 'history-item';
-            div.innerHTML = `<strong>${amount} LCAI</strong> sent @ ${date} <br><a href="https://testnet-explorer.lightchain.ai/tx/${txHash}" target="_blank" style="color:var(--owner); font-size:10px;">View Transaction</a>`;
-            history.prepend(div);
-            
-            let log = JSON.parse(localStorage.getItem('owner_withdraw_log') || '[]');
-            log.unshift({amount, time: date, hash: txHash});
-            localStorage.setItem('owner_withdraw_log', JSON.stringify(log.slice(0,10)));
-        }
 
         async function hardSync() {
             try {
@@ -150,11 +142,6 @@
                 document.getElementById('disconnectBtn').style.display = 'block';
                 document.getElementById('walletStatus').innerText = "Wallet: " + accounts[0].substring(0, 10);
                 
-                // Load Local History
-                const saved = JSON.parse(localStorage.getItem('owner_withdraw_log') || '[]');
-                const historyDiv = document.getElementById('withdrawHistory');
-                historyDiv.innerHTML = saved.map(h => `<div class="history-item"><strong>${h.amount} LCAI</strong> sent @ ${h.time} <br><a href="https://testnet-explorer.lightchain.ai/tx/${h.hash}" target="_blank" style="color:var(--owner); font-size:10px;">View Transaction</a></div>`).join('');
-
                 await hardSync();
                 
                 const profile = await identityContract.getIdentity(accounts[0]).catch(() => null);
@@ -165,33 +152,61 @@
                 } else {
                     document.getElementById('registrationArea').style.display = 'block';
                 }
+
+                identityContract.on("IdentityCreated", (userAddr) => {
+                    const list = document.getElementById('pendingList');
+                    if(list.innerText.includes("Monitoring")) list.innerHTML = "";
+                    const div = document.createElement('div');
+                    div.className = 'pending-item';
+                    div.style.cursor = "pointer";
+                    div.innerText = userAddr;
+                    div.onclick = () => { document.getElementById('verifyAddr').value = userAddr; };
+                    list.prepend(div);
+                });
             } catch(e) {}
         }
 
-        document.getElementById('withdrawBtn').onclick = async () => {
-            const amount = document.getElementById('treasuryBalance').innerText;
-            const feedback = document.getElementById('ownerFeedback');
-            feedback.style.display = 'block'; feedback.innerText = "Initiating direct transfer...";
+        document.getElementById('lookupBtn').onclick = async () => {
+            const addr = document.getElementById('lookupAddr').value;
+            const res = document.getElementById('lookupResults');
             try {
-                const tx = await ballContract.withdraw({ gasLimit: 300000 });
-                const receipt = await tx.wait();
-                feedback.innerText = "SUCCESS: Funds moved to wallet.";
-                updateWithdrawHistory(amount, receipt.hash);
-                await hardSync();
-            } catch (e) { feedback.innerText = "Error: Claim failed."; }
+                const data = await identityContract.getIdentity(addr);
+                res.innerHTML = `<strong>User:</strong> ${data[0]}<br><strong>Verified:</strong> ${data[2] ? 'YES' : 'NO'}`;
+                res.style.display = 'block';
+            } catch(e) { res.innerText = "Identity Not Found."; res.style.display = 'block'; }
         };
 
-        document.getElementById('oracleQuestion').oninput = (e) => {
-            const multiplier = Math.floor(e.target.value.length / 10) + 1;
-            document.getElementById('shakeBtn').innerText = `Query AIVM for ${(0.001 * multiplier).toFixed(3)} LCAI`;
+        document.getElementById('verifyBtn').onclick = async () => {
+            const target = document.getElementById('verifyAddr').value;
+            const fb = document.getElementById('adminFeedback');
+            fb.style.display = 'block'; fb.innerText = "Broadcasting verification...";
+            try {
+                const tx = await identityContract.verifyIdentity(target);
+                await tx.wait();
+                fb.innerText = "Verification successful ✓";
+                await hardSync();
+            } catch (e) { fb.innerText = "Verification failed: Unauthorized."; }
+        };
+
+        document.getElementById('withdrawBtn').onclick = async () => {
+            const fb = document.getElementById('ownerFeedback');
+            fb.style.display = 'block'; fb.innerText = "Sending funds to wallet...";
+            try {
+                const tx = await ballContract.withdraw();
+                await tx.wait();
+                fb.innerText = "Transfer successful ✓";
+                await hardSync();
+            } catch (e) { fb.innerText = "Transfer failed."; }
         };
 
         document.getElementById('shakeBtn').onclick = async () => {
             const q = document.getElementById('oracleQuestion').value;
-            const fee = (0.001 * (Math.floor(q.length / 10) + 1)).toFixed(3);
+            const multiplier = Math.floor(q.length / 10) + 1;
+            const fee = (0.001 * multiplier).toFixed(3);
             try {
                 await (await ballContract.getPrediction(q, { value: ethers.parseEther(fee), gasLimit: 500000 })).wait();
-                document.getElementById('resultText').innerText = "Inference Triggered.";
+                document.getElementById('resultText').innerText = "Inference Complete.";
+                await hardSync();
             } catch (e) { document.getElementById('resultText').innerText = "Inference Failed."; }
         };
 

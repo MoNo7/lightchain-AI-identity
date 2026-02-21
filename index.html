@@ -229,23 +229,43 @@
             } catch(e) { console.error(e); }
         }
 
-        document.getElementById('shakeBtn').onclick = async () => {
-            const rawQ = document.getElementById('oracleQuestion').value;
-            if (!rawQ) return;
-            const visionaryPrompt = `As a forward-thinking innovator and futurist, provide a prediction for: ${rawQ}`;
-            try {
-                const isEnabled = await ballContract.feesEnabled();
-                let val = 0;
-                if (isEnabled) { val = ethers.parseEther((0.001 * (Math.floor(rawQ.length / 10) + 1)).toFixed(3)); }
-                const tx = await ballContract.getPrediction(visionaryPrompt, { value: val, ...QUERY_GAS });
-                document.getElementById('resultText').innerText = "The Oracle is calculating innovative futures...";
-                await tx.wait();
-                await hardSync();
-            } catch (e) { 
-                console.error(e);
-                document.getElementById('resultText').innerText = "Error: Ensure you are verified in the MiMo Identity system."; 
-            }
-        };
+document.getElementById('shakeBtn').onclick = async () => {
+    const rawQ = document.getElementById('oracleQuestion').value;
+    if (!rawQ) return;
+    const visionaryPrompt = `As a forward-thinking innovator and futurist, provide a prediction for: ${rawQ}`;
+    
+    try {
+        const isEnabled = await ballContract.feesEnabled();
+        let val = 0n; // Use BigInt for safety
+        
+        if (isEnabled) { 
+            val = ethers.parseEther((0.001 * (Math.floor(rawQ.length / 10) + 1)).toFixed(3)); 
+        }
+        
+        document.getElementById('resultText').innerText = "Consulting AIVM...";
+        
+        // Explicitly check identity before sending to avoid wasting gas
+        const profile = await identityContract.getIdentity(await signer.getAddress());
+        if (!profile[2]) {
+            throw new Error("IDENTITY_NOT_VERIFIED");
+        }
+
+        const tx = await ballContract.getPrediction(visionaryPrompt, { 
+            value: val, 
+            ...QUERY_GAS 
+        });
+        
+        await tx.wait();
+        await hardSync();
+    } catch (e) { 
+        console.error(e);
+        if (e.message === "IDENTITY_NOT_VERIFIED") {
+            document.getElementById('resultText').innerText = "Error: Your identity is not verified in the contract.";
+        } else {
+            document.getElementById('resultText').innerText = "Transaction Failed: Likely a Fee or Gas mismatch. Check if Fees are ON.";
+        }
+    }
+};
 
         document.getElementById('connectBtn').onclick = () => connectWallet(false);
         document.getElementById('disconnectBtn').onclick = () => { localStorage.clear(); location.reload(); };
@@ -254,3 +274,4 @@
     </script>
 </body>
 </html>
+

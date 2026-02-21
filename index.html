@@ -95,30 +95,54 @@
 
         async function scanChainHistory() {
             try {
-                document.getElementById('revenueLog').innerHTML = "<i>Scanning blocks...</i>";
                 const events = await ballContract.queryFilter("OracleAnswer");
                 let totalRevenue = 0;
                 let revHTML = "";
                 let actHTML = "";
+                
+                const now = Date.now();
+                const twelveHoursAgo = now - (12 * 60 * 60 * 1000);
+                const seenQuestions = new Set(); // For duplicate tracking
+
+                // 1. Calculate total revenue (always from all historical events)
                 events.forEach(e => {
                     const q = e.args[1];
-                    totalRevenue += 0.001 * (Math.floor(q.length / 10) + 1);
+                    if (q) totalRevenue += 0.001 * (Math.floor(q.length / 10) + 1);
                 });
-                const recentEvents = events.slice(-15).reverse();
-                const blocks = await Promise.all(recentEvents.map(e => e.getBlock()));
-                recentEvents.forEach((e, index) => {
+
+                // 2. Filter events for Activity Log: Must have text, be < 12h old, and be unique
+                const rawRecent = events.filter(e => e.args[1]).reverse();
+                const blocks = await Promise.all(rawRecent.slice(0, 30).map(e => e.getBlock()));
+                
+                let logCount = 0;
+                rawRecent.forEach((e, index) => {
                     const q = e.args[1];
                     const fee = (0.001 * (Math.floor(q.length / 10) + 1)).toFixed(3);
-                    const time = new Date(blocks[index].timestamp * 1000).toLocaleTimeString();
-                    revHTML += `<div style="padding: 4px 0; border-bottom: 1px solid #f0f0f0;">[${time}] +${fee} LCAI</div>`;
-                    if (index < 10) {
-                        actHTML += `<div class="tx-item"><strong>Query:</strong> "${q}"<br><span style="font-size:0.6rem; color:#999;">User: Anonymous | ${time}</span></div>`;
+                    
+                    // Owner Log logic (shows all recent transactions for accounting)
+                    if (index < 15 && blocks[index]) {
+                        const time = new Date(blocks[index].timestamp * 1000).toLocaleTimeString();
+                        revHTML += `<div style="padding: 4px 0; border-bottom: 1px solid #f0f0f0;">[${time}] +${fee} LCAI</div>`;
+                    }
+
+                    // Activity Log logic (Strict Filters)
+                    if (blocks[index] && logCount < 10) {
+                        const blockTime = blocks[index].timestamp * 1000;
+                        const timeStr = new Date(blockTime).toLocaleTimeString();
+                        
+                        // Check if within 12 hours AND not a duplicate
+                        if (blockTime > twelveHoursAgo && !seenQuestions.has(q)) {
+                            seenQuestions.add(q);
+                            actHTML += `<div class="tx-item"><strong>Query:</strong> "${q}"<br><span style="font-size:0.6rem; color:#999;">User: Anonymous | ${timeStr}</span></div>`;
+                            logCount++;
+                        }
                     }
                 });
+
                 document.getElementById('totalRevenueDisplay').innerText = "Total: " + totalRevenue.toFixed(3) + " LCAI";
-                document.getElementById('revenueLog').innerHTML = revHTML || "<div style='color:#ccc; font-style:italic;'>No history</div>";
-                document.getElementById('txFeed').innerHTML = actHTML || "<div style='color:#ccc; font-style:italic;'>No activity</div>";
-            } catch (error) { console.error("Chain Scan Error:", error); }
+                document.getElementById('revenueLog').innerHTML = revHTML || "<div style='color:#ccc; font-style:italic;'>No recent fees</div>";
+                document.getElementById('txFeed').innerHTML = actHTML || "<div style='color:#ccc; font-style:italic;'>No unique activity (last 12h)</div>";
+            } catch (error) { console.error("Filter Scan Error:", error); }
         }
 
         function appendRealtimeActivity(user, question) {
@@ -216,3 +240,4 @@
     </script>
 </body>
 </html>
+

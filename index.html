@@ -176,24 +176,24 @@ document.getElementById('shakeBtn').onclick = async () => {
         let val = 0n;
         if (feesOn) {
             const bytes = getByteLength(fullPrompt);
-            // MATCHING: Set to 0.001 to sync with the contract above
-            const cost = ((Math.floor(bytes / 10) + 1) * 0.001).toFixed(3); 
-            val = ethers.parseEther(cost);
+            // SOLIDITY SYNC: 0.001 per 10 bytes
+            const costString = ((Math.floor(bytes / 10) + 1) * 0.001).toFixed(3); 
+            val = ethers.parseEther(costString);
         }
 
         document.getElementById('resultText').innerText = "Consulting AIVM...";
         
-        // Use a safe gas limit for the AIVM bridge
+        // Use a 2M gas limit to reduce network fee while ensuring success
         const tx = await ballContract.getPrediction(fullPrompt, { 
             value: val, 
-            gasLimit: 3000000 
+            gasLimit: 2000000 
         });
 
         await tx.wait();
         await hardSync();
     } catch (e) { 
         console.error("Consult Error:", e);
-        document.getElementById('resultText').innerText = "Inference Error: Check Balance or Reset Nonce.";
+        document.getElementById('resultText').innerText = "Error: Check Balance or Reset Nonce in MetaMask.";
     }
 };
 
@@ -272,6 +272,7 @@ document.getElementById('shakeBtn').onclick = async () => {
     </script>
 </body>
 </html>
+
 
 
 

@@ -73,7 +73,7 @@
                     <p style="font-size:0.8rem; color:#666;">Innovative predictions for forward-thinking users.</p>
                     <input type="text" id="oracleQuestion" style="margin-top:20px;" placeholder="What will the world look like in 2050?">
                     <button id="shakeBtn" class="primary-btn" style="background: var(--success);">Consult AIVM</button>
-                    <div class="result-window" id="resultText">Waiting for visionary input...</div>
+                    <div class="result-window" id="resultText">Waiting for input...</div>
                 </div>
             </div>
         </div>
@@ -139,7 +139,7 @@
             ballContract.feesEnabled().then(on => {
                 if (on && q) {
                     const bytes = getByteLength(fullPrompt);
-                    const cost = ((Math.floor(bytes / 10) + 1) * 0.001).toFixed(3);
+                    const cost = (((Math.floor(bytes / 10) + 1)+100) * 0.001).toFixed(3);
                     btn.innerText = `Consult AIVM (${cost} LCAI)`;
                 } else {
                     btn.innerText = "Consult AIVM (Free)";
@@ -177,7 +177,7 @@ document.getElementById('shakeBtn').onclick = async () => {
         if (feesOn) {
             const bytes = getByteLength(fullPrompt);
             // SOLIDITY SYNC: 0.001 per 10 bytes
-            const costString = ((Math.floor(bytes / 10) + 1) * 0.001).toFixed(3); 
+            const costString = (((Math.floor(bytes / 10) + 1)+100)* 0.001).toFixed(3); 
             val = ethers.parseEther(costString);
         }
 
@@ -272,6 +272,7 @@ document.getElementById('shakeBtn').onclick = async () => {
     </script>
 </body>
 </html>
+
 
 
 

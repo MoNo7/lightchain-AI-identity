@@ -26,7 +26,7 @@
 </head>
 <body>
     <div id="topNav">
-        <div class="nav-title"><h1>Lightchain Identity (Testnet)</h1><span style="font-size:0.7rem; color:#999;">v12.3</span></div>
+        <div class="nav-title"><h1>Lightchain Identity (Testnet)</h1><span style="font-size:0.7rem; color:#999;">v12.4</span></div>
         <div class="token-display"><span id="tokenBalance">0.0000</span> LCAI</div>
     </div>
     <div class="content-wrapper">
@@ -49,7 +49,7 @@
                     <button id="verifyBtn" class="small-btn" style="background:var(--success);">Verify User</button>
                     <button id="revokeBtn" class="small-btn" style="background:var(--admin);">Revoke User</button>
                 </div>
-                <div id="adminFeedback" style="font-size:0.7rem; margin-top:8px; text-align:center; font-weight:bold; color:var(--primary);"></div>
+                <div id="adminFeedback" style="font-size:0.7rem; margin-top:8px; text-align:center; font-weight:bold; color:var(--primary); height: 14px;"></div>
             </div>
 
             <div id="ownerConsole" class="card" style="display:none; border: 1px solid var(--owner);">
@@ -91,7 +91,8 @@
 
     <script>
         const IDENTITY_CONTRACT = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34";
-        const BALL_CONTRACT_ADDR = "0x051622e51Eca74c34FD26c43c3032fDf65bDFE2c"; 
+        // Update this after successful redeploy
+        const BALL_CONTRACT_ADDR = "0x2E5ab1a3cC91586854F1E98e3E9Ad7ebf1a31821"; 
         const SYSTEM_PROMPT = "As a forward-thinking innovator and futurist, provide a prediction for: ";
 
         const BALL_ABI = [{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"string","name":"question","type":"string"},{"indexed":false,"internalType":"string","name":"answer","type":"string"}],"name":"OracleAnswer","type":"event"},{"inputs":[{"internalType":"string","name":"_question","type":"string"}],"name":"getPrediction","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"totalPredictions","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"admin","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"bool","name":"_enabled","type":"bool"}],"name":"toggleFees","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"feesEnabled","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"withdraw","outputs":[],"stateMutability":"nonpayable","type":"function"}];
@@ -125,7 +126,6 @@
                     document.getElementById('userStatusHeader').style.display = 'block';
                     document.getElementById('userNameDisplay').innerHTML = `${profile[0] || 'MiMo Member'} <span class="mimo-badge">✓</span>`;
                 }
-
                 document.getElementById('toggleFeesBtn').innerText = `Fees: ${feesOn ? 'ON' : 'OFF'}`;
                 updateFeeDisplay();
                 syncLogs();
@@ -144,7 +144,7 @@
                 } else {
                     btn.innerText = "Consult AIVM (Free)";
                 }
-            });
+            }).catch(() => {});
         }
 
         async function syncLogs() {
@@ -154,16 +154,14 @@
                 const feed = document.getElementById('txFeed');
                 const revenue = document.getElementById('revenueLog');
                 feed.innerHTML = ''; revenue.innerHTML = '';
-
                 events.reverse().forEach(ev => {
                     const displayQ = ev.args.question.startsWith(SYSTEM_PROMPT) ? ev.args.question.replace(SYSTEM_PROMPT, '') : ev.args.question;
                     feed.innerHTML += `<div class="tx-item"><strong>Anon:</strong> ${displayQ.substring(0,30)}...</div>`;
-                    
                     const b = getByteLength(ev.args.question);
                     const fee = ((Math.floor(b / 10) + 1) * 0.001).toFixed(3);
                     revenue.innerHTML += `<div class="tx-item" style="color:var(--success)">+${fee} LCAI Received</div>`;
                 });
-            } catch (e) { console.error(e); }
+            } catch (e) {}
         }
 
         document.getElementById('oracleQuestion').oninput = updateFeeDisplay;
@@ -184,12 +182,9 @@
                 const tx = await ballContract.getPrediction(fullPrompt, { value: val, gasLimit: 3000000 });
                 await tx.wait();
                 hardSync();
-            } catch (e) { 
-                document.getElementById('resultText').innerText = "Error: Check verification or LCAI balance.";
-            }
+            } catch (e) { document.getElementById('resultText').innerText = "Error: Check verification or LCAI balance."; }
         };
 
-        // FIXED QUERY LOGIC
         document.getElementById('lookupBtn').onclick = async () => {
             const addr = document.getElementById('lookupAddr').value;
             if(!addr || !ethers.isAddress(addr)) return;
@@ -199,31 +194,35 @@
                 resDisplay.innerText = "Querying...";
                 const res = await identityContract.getIdentity(addr);
                 resDisplay.innerHTML = `<strong>User:</strong> ${res[0] || 'Unnamed'}<br><strong>Verified:</strong> ${res[2] ? '✅ YES' : '❌ NO'}`;
-            } catch(e) { 
-                resDisplay.innerText = "Error: Identity not found."; 
-            }
+            } catch(e) { resDisplay.innerText = "Error: Identity not found."; }
         };
 
         document.getElementById('verifyBtn').onclick = async () => {
             const feedback = document.getElementById('adminFeedback');
+            const target = document.getElementById('verifyAddr').value;
+            if(!ethers.isAddress(target)) return;
             try {
                 feedback.innerText = "Processing Verification...";
-                const tx = await identityContract.verifyIdentity(document.getElementById('verifyAddr').value);
+                const tx = await identityContract.verifyIdentity(target);
                 await tx.wait(); 
                 feedback.innerText = "Verification Successful!";
                 hardSync();
-            } catch(e) { feedback.innerText = "Error: Admin only action."; }
+            } catch(e) { feedback.innerText = "Error: Transaction failed."; }
         };
 
         document.getElementById('toggleFeesBtn').onclick = async () => {
-            const current = await ballContract.feesEnabled();
-            const tx = await ballContract.toggleFees(!current);
-            await tx.wait(); hardSync();
+            try {
+                const current = await ballContract.feesEnabled();
+                const tx = await ballContract.toggleFees(!current);
+                await tx.wait(); hardSync();
+            } catch (e) {}
         };
 
         document.getElementById('withdrawBtn').onclick = async () => {
-            const tx = await ballContract.withdraw();
-            await tx.wait(); hardSync();
+            try {
+                const tx = await ballContract.withdraw();
+                await tx.wait(); hardSync();
+            } catch (e) {}
         };
 
         async function connectWallet(auto = false) {

@@ -26,7 +26,7 @@
 </head>
 <body>
     <div id="topNav">
-        <div class="nav-title"><h1>Lightchain Identity (Testnet)</h1><span style="font-size:0.7rem; color:#999;">v11.3</span></div>
+        <div class="nav-title"><h1>Lightchain Identity (Testnet)</h1><span style="font-size:0.7rem; color:#999;">v11.4</span></div>
         <div class="token-display"><span id="tokenBalance">0.0000</span> LCAI</div>
     </div>
     <div class="content-wrapper">
@@ -41,16 +41,16 @@
             <div id="adminConsole" class="card" style="display:none;">
                 <h4 style="color:var(--admin); margin: 0 0 10px 0; font-size: 0.85rem;">Admin Management</h4>
                 <input type="text" id="lookupAddr" placeholder="Lookup 0x...">
-                <button id="lookupBtn" class="small-btn" style="width:100%; background: var(--primary); margin-bottom:12px;">Query Identity</button>
+                <button id="lookupBtn" class="small-btn" style="width:100%; background: var(--primary); margin-bottom:12px;">Query Identity Status</button>
                 <div id="lookupResults" style="display:none; padding-bottom:10px; font-size:0.7rem; background:#f0f7ff; border-radius:4px; padding:5px; margin-bottom:10px;"></div>
                 
-                <input type="text" id="verifyAddr" placeholder="Target 0x...">
+                <input type="text" id="verifyAddr" placeholder="Target Address 0x...">
                 <div style="display:flex; gap: 5px;">
-                    <button id="verifyBtn" class="small-btn" style="background:var(--success);">Verify</button>
-                    <button id="revokeBtn" class="small-btn" style="background:var(--admin);">Revoke</button>
+                    <button id="verifyBtn" class="small-btn" style="background:var(--success);">Verify User</button>
+                    <button id="revokeBtn" class="small-btn" style="background:var(--admin);">Revoke User</button>
                 </div>
-                <button id="toggleFeesBtn" class="small-btn" style="width:100%; margin-top:10px; background:var(--owner);">Toggle Fees: Loading...</button>
-                <div id="adminFeedback" style="font-size:0.7rem; margin-top:8px; text-align:center; font-weight:bold;"></div>
+                <button id="toggleFeesBtn" class="small-btn" style="width:100%; margin-top:10px; background:var(--owner);">Toggle Fees: ...</button>
+                <div id="adminFeedback" style="font-size:0.7rem; margin-top:8px; text-align:center; font-weight:bold; color:var(--primary);"></div>
             </div>
 
             <div id="ownerConsole" class="card" style="display:none; border: 1px solid var(--owner);">
@@ -58,18 +58,22 @@
                     <h4 style="color:var(--owner); margin: 0; font-size: 0.85rem;">Owner Revenue Log</h4>
                     <strong style="font-size:0.7rem; color:var(--success);" id="totalRevenueDisplay">0.000 LCAI</strong>
                 </div>
-                <div id="revenueLog" style="max-height: 120px; overflow-y: auto; font-size: 0.65rem; background:#f9f9f9; padding:5px; border-radius:4px; margin-bottom:10px;"></div>
-                <button id="refreshLogBtn" class="small-btn" style="width:100%;">Sync from Chain</button>
+                <div id="revenueLog" style="max-height: 150px; overflow-y: auto; font-size: 0.65rem; background:#f9f9f9; padding:5px; border-radius:4px; margin-bottom:10px;"></div>
+                <div style="display:flex; gap:5px;">
+                    <button id="refreshLogBtn" class="small-btn">Sync Chain Log</button>
+                    <button id="withdrawBtn" class="small-btn" style="background:var(--success);">Withdraw Fees</button>
+                </div>
             </div>
         </div>
 
         <div class="main-utility-area">
             <div id="oracleUI" style="display:none; width: 100%; max-width: 600px;">
-                <div class="card" style="text-align: center;">
-                    <h2 style="margin:0;">AIVM Inference Oracle</h2>
-                    <input type="text" id="oracleQuestion" style="margin-top:20px;" placeholder="What is the future of...">
-                    <button id="shakeBtn" class="primary-btn" style="background: var(--success);">Query AIVM</button>
-                    <div class="result-window" id="resultText">Waiting for AIVM Consultation...</div>
+                <div class="card" style="text-align: center; border-top: 4px solid var(--success);">
+                    <h2 style="margin:0;">AIVM Visionary Oracle</h2>
+                    <p style="font-size:0.8rem; color:#666;">Ask about future possibilities and innovative predictions.</p>
+                    <input type="text" id="oracleQuestion" style="margin-top:20px;" placeholder="What will the world look like in 2050?">
+                    <button id="shakeBtn" class="primary-btn" style="background: var(--success);">Consult AIVM</button>
+                    <div class="result-window" id="resultText">Waiting for visionary input...</div>
                 </div>
             </div>
         </div>
@@ -77,9 +81,9 @@
         <div id="rightSidebar">
             <div class="card">
                 <h4 style="margin:0; color: #0056b3; font-size:0.9rem;">Network Metrics</h4>
-                <div style="font-size: 0.8rem; margin-top:10px;">Total Queries: <strong id="globalCount">0</strong></div>
+                <div style="font-size: 0.8rem; margin-top:10px;">Total Predictions: <strong id="globalCount">0</strong></div>
                 <hr style="border:0; border-top:1px solid #eee; margin:15px 0;">
-                <h4 style="margin:0 0 10px 0; font-size:0.75rem; color:#999;">Activity Log (Last 12h):</h4>
+                <h4 style="margin:0 0 10px 0; font-size:0.75rem; color:#999;">Global Activity (24h):</h4>
                 <div id="txFeed" style="max-height: 400px; overflow-y: auto;"></div>
             </div>
         </div>
@@ -89,75 +93,92 @@
         const IDENTITY_CONTRACT = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34";
         const BALL_CONTRACT_ADDR = "0x898cB53426994962433D8391149718Db138b2B29";
         
-        const BALL_ABI = [{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"string","name":"question","type":"string"},{"indexed":false,"internalType":"string","name":"answer","type":"string"}],"name":"OracleAnswer","type":"event"},{"inputs":[{"internalType":"string","name":"_question","type":"string"}],"name":"getPrediction","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"totalPredictions","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"admin","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"bool","name":"_enabled","type":"bool"}],"name":"toggleFees","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"feesEnabled","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"}];
-        const IDENTITY_ABI = [{"inputs":[{"internalType":"string","name":"_username","type":"string"},{"internalType":"string","name":"_did","type":"string"}],"name":"createIdentity","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"getIdentity","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"isAdmin","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"verifyIdentity","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"revokeVerification","outputs":[],"stateMutability":"nonpayable","type":"function"}];
+        const BALL_ABI = [
+            {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"string","name":"question","type":"string"},{"indexed":false,"internalType":"string","name":"answer","type":"string"}],"name":"OracleAnswer","type":"event"},
+            {"inputs":[{"internalType":"string","name":"_question","type":"string"}],"name":"getPrediction","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"payable","type":"function"},
+            {"inputs":[],"name":"totalPredictions","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+            {"inputs":[],"name":"admin","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
+            {"inputs":[{"internalType":"bool","name":"_enabled","type":"bool"}],"name":"toggleFees","outputs":[],"stateMutability":"nonpayable","type":"function"},
+            {"inputs":[],"name":"feesEnabled","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},
+            {"inputs":[],"name":"withdraw","outputs":[],"stateMutability":"nonpayable","type":"function"}
+        ];
+
+        const IDENTITY_ABI = [
+            {"inputs":[{"internalType":"string","name":"_username","type":"string"},{"internalType":"string","name":"_did","type":"string"}],"name":"createIdentity","outputs":[],"stateMutability":"nonpayable","type":"function"},
+            {"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"getIdentity","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},
+            {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"isAdmin","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},
+            {"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"verifyIdentity","outputs":[],"stateMutability":"nonpayable","type":"function"},
+            {"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"revokeVerification","outputs":[],"stateMutability":"nonpayable","type":"function"}
+        ];
 
         let signer, ballContract, identityContract;
         const BASE_GAS = { maxFeePerGas: ethers.parseUnits('10', 'gwei'), maxPriorityFeePerGas: ethers.parseUnits('10', 'gwei') };
-        const ADMIN_GAS = { ...BASE_GAS, gasLimit: 150000 };
-        const QUERY_GAS = { ...BASE_GAS, gasLimit: 800000 };
+        const ADMIN_GAS = { ...BASE_GAS, gasLimit: 200000 };
+        const QUERY_GAS = { ...BASE_GAS, gasLimit: 900000 };
 
         async function hardSync() {
             try {
                 const address = await signer.getAddress();
-                const [total, owner, isAdmin, profile, feesOn] = await Promise.all([
+                // 1. Fetch Parallel Contract Data
+                const [total, owner, isAdmin, profile, feesOn, contractBalance] = await Promise.all([
                     ballContract.totalPredictions(),
                     ballContract.admin(),
                     identityContract.isAdmin(address),
                     identityContract.getIdentity(address),
-                    ballContract.feesEnabled()
+                    ballContract.feesEnabled(),
+                    signer.provider.getBalance(BALL_CONTRACT_ADDR)
                 ]);
 
-                const balance = await signer.provider.getBalance(address);
-                const contractBalance = await signer.provider.getBalance(BALL_CONTRACT_ADDR);
-                
-                // Update UI Metrics
+                // 2. Update Global Metrics
                 document.getElementById('globalCount').innerText = total.toString();
-                document.getElementById('tokenBalance').innerText = parseFloat(ethers.formatEther(balance)).toFixed(4);
                 document.getElementById('totalRevenueDisplay').innerText = parseFloat(ethers.formatEther(contractBalance)).toFixed(3) + " LCAI";
+                
+                const walletBalance = await signer.provider.getBalance(address);
+                document.getElementById('tokenBalance').innerText = parseFloat(ethers.formatEther(walletBalance)).toFixed(4);
 
-                // Role Visibility
+                // 3. UI Permissions Logic
                 const isOwner = (address.toLowerCase() === owner.toLowerCase());
                 document.getElementById('adminConsole').style.display = isAdmin ? 'block' : 'none';
                 document.getElementById('ownerConsole').style.display = isOwner ? 'block' : 'none';
                 
-                // Toggle Button State
+                // 4. Verification Check for Oracle UI
+                if(profile[2]) {
+                    document.getElementById('oracleUI').style.display = 'block';
+                    document.getElementById('userStatusHeader').style.display = 'block';
+                    document.getElementById('userNameDisplay').innerHTML = `${profile[0] || 'Verified Member'} <span class="mimo-badge">✓</span>`;
+                } else {
+                    document.getElementById('oracleUI').style.display = 'none';
+                }
+
+                // 5. Toggle Button Appearance
                 const feeBtn = document.getElementById('toggleFeesBtn');
                 feeBtn.innerText = `Toggle Fees: ${feesOn ? 'ON' : 'OFF'}`;
                 feeBtn.style.background = feesOn ? 'var(--owner)' : '#6c757d';
 
-                // Identity/Oracle Logic
-                if(profile[2]) {
-                    document.getElementById('oracleUI').style.display = 'block';
-                    document.getElementById('userStatusHeader').style.display = 'block';
-                    document.getElementById('userNameDisplay').innerHTML = `${profile[0] || 'Member'} <span class="mimo-badge">✓</span>`;
-                } else {
-                    document.getElementById('oracleUI').style.display = 'none';
-                }
-                
                 await syncEventLogs();
-            } catch(e) { console.log("Sync Error", e); }
+            } catch(e) { console.error("Sync Failure:", e); }
         }
 
         async function syncEventLogs() {
             try {
                 const filter = ballContract.filters.OracleAnswer();
-                const events = await ballContract.queryFilter(filter, -2000);
+                // Querying last 5000 blocks to ensure we catch recent data
+                const events = await ballContract.queryFilter(filter, -5000);
                 const logContainer = document.getElementById('txFeed');
                 const revenueLog = document.getElementById('revenueLog');
                 
                 logContainer.innerHTML = '';
                 revenueLog.innerHTML = '';
                 
-                events.reverse().slice(0, 15).forEach(ev => {
-                    const snippet = `<div class="tx-item"><strong>${ev.args.user.substring(0,6)}:</strong> ${ev.args.question.substring(0,30)}...</div>`;
-                    logContainer.innerHTML += snippet;
-                    revenueLog.innerHTML += snippet;
+                events.reverse().slice(0, 20).forEach(ev => {
+                    const item = `<div class="tx-item"><strong>${ev.args.user.substring(0,8)}:</strong> ${ev.args.question.substring(0,40)}...</div>`;
+                    logContainer.innerHTML += item;
+                    revenueLog.innerHTML += item;
                 });
-            } catch (e) { console.log("Event Fetch Error", e); }
+            } catch (e) { console.log("Log Sync Error:", e); }
         }
 
-        // --- RESTORED BUTTON HANDLERS ---
+        // --- BUTTON HANDLERS ---
 
         document.getElementById('lookupBtn').onclick = async () => {
             const addr = document.getElementById('lookupAddr').value;
@@ -166,8 +187,8 @@
             try {
                 const data = await identityContract.getIdentity(addr);
                 res.style.display = 'block';
-                res.innerHTML = `<strong>User:</strong> ${data[0] || 'N/A'}<br><strong>Verified:</strong> ${data[2] ? '✅ YES' : '❌ NO'}`;
-            } catch(e) { res.innerText = "Query Error"; }
+                res.innerHTML = `<strong>User:</strong> ${data[0] || 'Unnamed'}<br><strong>Verified:</strong> ${data[2] ? '✅' : '❌'}`;
+            } catch(e) { res.innerText = "Lookup Failed."; }
         };
 
         document.getElementById('verifyBtn').onclick = async () => {
@@ -175,12 +196,12 @@
             const fb = document.getElementById('adminFeedback');
             if(!addr) return;
             try {
-                fb.innerText = "Processing Verification...";
+                fb.innerText = "Broadcasting verification...";
                 const tx = await identityContract.verifyIdentity(addr, ADMIN_GAS);
                 await tx.wait();
-                fb.innerText = "User Verified!";
+                fb.innerText = "User Verified Successfully!";
                 await hardSync();
-            } catch(e) { fb.innerText = "Verify Failed"; }
+            } catch(e) { fb.innerText = "Transaction Rejected."; }
         };
 
         document.getElementById('revokeBtn').onclick = async () => {
@@ -188,27 +209,36 @@
             const fb = document.getElementById('adminFeedback');
             if(!addr) return;
             try {
-                fb.innerText = "Revoking...";
+                fb.innerText = "Revoking access...";
                 const tx = await identityContract.revokeVerification(addr, ADMIN_GAS);
                 await tx.wait();
-                fb.innerText = "Verification Revoked.";
+                fb.innerText = "Access Revoked.";
                 await hardSync();
-            } catch(e) { fb.innerText = "Revoke Failed"; }
+            } catch(e) { fb.innerText = "Revoke Failed."; }
         };
 
         document.getElementById('toggleFeesBtn').onclick = async () => {
             try {
-                const currentState = await ballContract.feesEnabled();
-                const tx = await ballContract.toggleFees(!currentState, ADMIN_GAS);
+                const current = await ballContract.feesEnabled();
+                const tx = await ballContract.toggleFees(!current, ADMIN_GAS);
                 document.getElementById('toggleFeesBtn').innerText = "Updating...";
                 await tx.wait();
                 await hardSync();
             } catch (e) { console.error(e); }
         };
 
+        document.getElementById('withdrawBtn').onclick = async () => {
+            try {
+                const tx = await ballContract.withdraw(ADMIN_GAS);
+                await tx.wait();
+                alert("Revenue successfully withdrawn to admin wallet.");
+                await hardSync();
+            } catch (e) { alert("Withdrawal failed."); }
+        };
+
         document.getElementById('refreshLogBtn').onclick = () => hardSync();
 
-        // --- CORE LOGIC ---
+        // --- CORE INFERENCE LOGIC ---
 
         async function connectWallet(auto = false) {
             if (!window.ethereum) return;
@@ -216,37 +246,49 @@
                 const provider = new ethers.BrowserProvider(window.ethereum);
                 const accounts = await window.ethereum.request({ method: auto ? 'eth_accounts' : 'eth_requestAccounts' });
                 if (accounts.length === 0) return;
+                
                 signer = await provider.getSigner();
                 ballContract = new ethers.Contract(BALL_CONTRACT_ADDR, BALL_ABI, signer);
                 identityContract = new ethers.Contract(IDENTITY_CONTRACT, IDENTITY_ABI, signer);
                 
                 document.getElementById('connectBtn').style.display = 'none';
                 document.getElementById('disconnectBtn').style.display = 'block';
-                document.getElementById('walletStatus').innerText = "Wallet: " + accounts[0].substring(0, 10);
+                document.getElementById('walletStatus').innerText = "Active: " + accounts[0].substring(0, 10);
                 localStorage.setItem('isWalletConnected', 'true');
                 
                 await hardSync();
 
+                // Listen for real-time AIVM responses
                 ballContract.on("OracleAnswer", (user, question, answer) => {
                     if (user.toLowerCase() === accounts[0].toLowerCase()) {
-                        document.getElementById('resultText').innerHTML = `<strong>AIVM RESPONSE:</strong><br>${answer}`;
+                        document.getElementById('resultText').innerHTML = `<strong>VISIONARY PREDICTION:</strong><br>${answer}`;
                     }
                 });
-            } catch(e) { console.error(e); }
+            } catch(e) { console.error("Wallet Connection Error:", e); }
         }
 
         document.getElementById('shakeBtn').onclick = async () => {
-            const q = document.getElementById('oracleQuestion').value;
-            if (!q) return;
+            const rawQ = document.getElementById('oracleQuestion').value;
+            if (!rawQ) return;
+            
+            // Visionary Directive Injection
+            const visionaryPrompt = `As a forward-thinking innovator and futurist, analyze and predict possibilities for: ${rawQ}`;
+            
             try {
                 const isEnabled = await ballContract.feesEnabled();
                 let val = 0;
-                if (isEnabled) { val = ethers.parseEther((0.001 * (Math.floor(q.length / 10) + 1)).toFixed(3)); }
-                const tx = await ballContract.getPrediction(q, { value: val, ...QUERY_GAS });
-                document.getElementById('resultText').innerText = "Querying AIVM...";
+                if (isEnabled) { 
+                    // 0.001 LCAI per 10 characters of the original question
+                    val = ethers.parseEther((0.001 * (Math.floor(rawQ.length / 10) + 1)).toFixed(3)); 
+                }
+                
+                const tx = await ballContract.getPrediction(visionaryPrompt, { value: val, ...QUERY_GAS });
+                document.getElementById('resultText').innerText = "The Oracle is calculating innovative futures...";
                 await tx.wait();
                 await hardSync();
-            } catch (e) { document.getElementById('resultText').innerText = "Consultation Failed."; }
+            } catch (e) { 
+                document.getElementById('resultText').innerText = "AIVM Consultation Failed. Ensure you are verified."; 
+            }
         };
 
         document.getElementById('connectBtn').onclick = () => connectWallet(false);

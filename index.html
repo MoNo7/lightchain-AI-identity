@@ -26,7 +26,7 @@
 </head>
 <body>
     <div id="topNav">
-        <div class="nav-title"><h1>Lightchain Identity (Testnet)</h1><span style="font-size:0.7rem; color:#999;">v9.6</span></div>
+        <div class="nav-title"><h1>Lightchain Identity (Testnet)</h1><span style="font-size:0.7rem; color:#999;">v9.7</span></div>
         <div class="token-display"><span id="tokenBalance">0.0000</span> LCAI</div>
     </div>
     <div class="content-wrapper">
@@ -98,12 +98,13 @@
 
         let signer, ballContract, identityContract;
 
-        // --- GLOBAL OVERRIDES ---
-        const GAS_SETTINGS = {
+        // --- CUSTOM GAS SETTINGS ---
+        const BASE_GAS = {
             maxFeePerGas: ethers.parseUnits('10', 'gwei'),
-            maxPriorityFeePerGas: ethers.parseUnits('10', 'gwei'),
-            gasLimit: 30000 
+            maxPriorityFeePerGas: ethers.parseUnits('10', 'gwei')
         };
+        const ADMIN_GAS = { ...BASE_GAS, gasLimit: 60000 };
+        const QUERY_GAS = { ...BASE_GAS, gasLimit: 300000 }; // HIGHER LIMIT FOR AIVM
 
         function addRevenueLog(amount) {
             const time = new Date().toLocaleTimeString();
@@ -118,7 +119,7 @@
         function renderRevenueHistory() {
             const logs = JSON.parse(localStorage.getItem('revenueHistory') || "[]");
             const container = document.getElementById('revenueLog');
-            container.innerHTML = logs.length ? "" : "<div style='color:#999;font-style:italic;'>No transaction history</div>";
+            container.innerHTML = logs.length ? "" : "<div style='color:#999;font-style:italic;'>No history</div>";
             logs.forEach(log => {
                 const div = document.createElement('div');
                 div.style.padding = "4px 0";
@@ -212,7 +213,7 @@
             try {
                 const tx = await ballContract.getPrediction(q, { 
                     value: ethers.parseEther(fee), 
-                    ...GAS_SETTINGS 
+                    ...QUERY_GAS 
                 });
                 document.getElementById('resultText').innerText = "Streaming Inference...";
                 await tx.wait();
@@ -241,7 +242,7 @@
             try {
                 const tx = await identityContract.verifyIdentity(
                     document.getElementById('verifyAddr').value,
-                    GAS_SETTINGS
+                    ADMIN_GAS
                 );
                 fb.innerText = "Processing (Low Fee)...";
                 await tx.wait();
@@ -256,7 +257,7 @@
             try {
                 const tx = await identityContract.revokeVerification(
                     document.getElementById('verifyAddr').value,
-                    GAS_SETTINGS
+                    ADMIN_GAS
                 );
                 fb.innerText = "Revoking (Low Fee)...";
                 await tx.wait();
@@ -274,4 +275,3 @@
     </script>
 </body>
 </html>
-

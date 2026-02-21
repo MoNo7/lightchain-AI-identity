@@ -22,11 +22,12 @@
         .result-window { margin-top: 20px; padding: 20px; background: #f8f9fa; border: 2px dashed #cbd5e0; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 0.9rem; color: #2d3748; text-align: left; line-height: 1.6; }
         .tx-item { font-size: 0.7rem; color: #666; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
         input[type="text"] { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 10px; box-sizing: border-box; }
+        #adminFeedback { transition: all 0.3s ease; min-height: 1em; }
     </style>
 </head>
 <body>
     <div id="topNav">
-        <div class="nav-title"><h1>Lightchain Identity (Testnet)</h1><span style="font-size:0.7rem; color:#999;">v10.6</span></div>
+        <div class="nav-title"><h1>Lightchain Identity (Testnet)</h1><span style="font-size:0.7rem; color:#999;">v10.9</span></div>
         <div class="token-display"><span id="tokenBalance">0.0000</span> LCAI</div>
     </div>
     <div class="content-wrapper">
@@ -76,7 +77,7 @@
                 <h4 style="margin:0; color: #0056b3; font-size:0.9rem;">Network Metrics</h4>
                 <div style="font-size: 0.8rem; margin-top:10px;">Total Queries: <strong id="globalCount">0</strong></div>
                 <hr style="border:0; border-top:1px solid #eee; margin:15px 0;">
-                <h4 style="margin:0 0 10px 0; font-size:0.75rem; color:#999;">Activity Log:</h4>
+                <h4 style="margin:0 0 10px 0; font-size:0.75rem; color:#999;">Activity Log (Last 12h):</h4>
                 <div id="txFeed" style="max-height: 400px; overflow-y: auto;"></div>
             </div>
         </div>
@@ -102,15 +103,15 @@
                 
                 const now = Date.now();
                 const twelveHoursAgo = now - (12 * 60 * 60 * 1000);
-                const seenQuestions = new Set(); // For duplicate tracking
+                const seenQuestions = new Set();
 
-                // 1. Calculate total revenue (always from all historical events)
+                // Calculate global revenue
                 events.forEach(e => {
                     const q = e.args[1];
                     if (q) totalRevenue += 0.001 * (Math.floor(q.length / 10) + 1);
                 });
 
-                // 2. Filter events for Activity Log: Must have text, be < 12h old, and be unique
+                // Reverse for latest first
                 const rawRecent = events.filter(e => e.args[1]).reverse();
                 const blocks = await Promise.all(rawRecent.slice(0, 30).map(e => e.getBlock()));
                 
@@ -119,18 +120,17 @@
                     const q = e.args[1];
                     const fee = (0.001 * (Math.floor(q.length / 10) + 1)).toFixed(3);
                     
-                    // Owner Log logic (shows all recent transactions for accounting)
+                    // Owner Log (Latest 15 transactions)
                     if (index < 15 && blocks[index]) {
                         const time = new Date(blocks[index].timestamp * 1000).toLocaleTimeString();
                         revHTML += `<div style="padding: 4px 0; border-bottom: 1px solid #f0f0f0;">[${time}] +${fee} LCAI</div>`;
                     }
 
-                    // Activity Log logic (Strict Filters)
+                    // Activity Log (Filtered: Unique + 12h)
                     if (blocks[index] && logCount < 10) {
                         const blockTime = blocks[index].timestamp * 1000;
                         const timeStr = new Date(blockTime).toLocaleTimeString();
                         
-                        // Check if within 12 hours AND not a duplicate
                         if (blockTime > twelveHoursAgo && !seenQuestions.has(q)) {
                             seenQuestions.add(q);
                             actHTML += `<div class="tx-item"><strong>Query:</strong> "${q}"<br><span style="font-size:0.6rem; color:#999;">User: Anonymous | ${timeStr}</span></div>`;
@@ -140,12 +140,13 @@
                 });
 
                 document.getElementById('totalRevenueDisplay').innerText = "Total: " + totalRevenue.toFixed(3) + " LCAI";
-                document.getElementById('revenueLog').innerHTML = revHTML || "<div style='color:#ccc; font-style:italic;'>No recent fees</div>";
-                document.getElementById('txFeed').innerHTML = actHTML || "<div style='color:#ccc; font-style:italic;'>No unique activity (last 12h)</div>";
-            } catch (error) { console.error("Filter Scan Error:", error); }
+                document.getElementById('revenueLog').innerHTML = revHTML || "<div style='color:#ccc; font-style:italic;'>No history</div>";
+                document.getElementById('txFeed').innerHTML = actHTML || "<div style='color:#ccc; font-style:italic;'>No unique activity (12h)</div>";
+            } catch (error) { console.error("Chain Scan Error:", error); }
         }
 
         function appendRealtimeActivity(user, question) {
+            if (!question) return;
             const feed = document.getElementById('txFeed');
             const item = document.createElement('div');
             item.className = 'tx-item';
@@ -183,13 +184,17 @@
                 document.getElementById('tokenBalance').innerText = parseFloat(ethers.formatEther(balance)).toFixed(4);
                 document.getElementById('ownerConsole').style.display = (owner.toLowerCase() === address.toLowerCase()) ? 'block' : 'none';
                 document.getElementById('adminConsole').style.display = isAdmin ? 'block' : 'none';
+                
                 if(profile[2]) {
                     document.getElementById('oracleUI').style.display = 'block';
                     document.getElementById('userStatusHeader').style.display = 'block';
                     document.getElementById('userNameDisplay').innerHTML = `${profile[0]} <span class="mimo-badge">✓</span>`;
+                } else {
+                    document.getElementById('oracleUI').style.display = 'none';
+                    document.getElementById('userStatusHeader').style.display = 'none';
                 }
                 await scanChainHistory();
-            } catch(e) {}
+            } catch(e) { console.error(e); }
         }
 
         async function connectWallet(auto = false) {
@@ -215,8 +220,10 @@
         }
 
         window.addEventListener('load', () => { if(localStorage.getItem('isWalletConnected') === 'true') connectWallet(true); });
+
         document.getElementById('shakeBtn').onclick = async () => {
             const q = document.getElementById('oracleQuestion').value;
+            if (!q) return;
             const fee = (0.001 * (Math.floor(q.length / 10) + 1)).toFixed(3);
             try {
                 const tx = await ballContract.getPrediction(q, { value: ethers.parseEther(fee), ...QUERY_GAS });
@@ -225,6 +232,7 @@
                 await hardSync();
             } catch (e) { document.getElementById('resultText').innerText = "Query Failed."; }
         };
+
         document.getElementById('lookupBtn').onclick = async () => {
             try {
                 const data = await identityContract.getIdentity(document.getElementById('lookupAddr').value);
@@ -232,12 +240,36 @@
                 document.getElementById('lookupResults').style.display = 'block';
             } catch(e) {}
         };
-        document.getElementById('verifyBtn').onclick = async () => { try { const tx = await identityContract.verifyIdentity(document.getElementById('verifyAddr').value, ADMIN_GAS); await tx.wait(); await hardSync(); } catch(e){} };
-        document.getElementById('revokeBtn').onclick = async () => { try { const tx = await identityContract.revokeVerification(document.getElementById('verifyAddr').value, ADMIN_GAS); await tx.wait(); await hardSync(); } catch(e){} };
+
+        document.getElementById('verifyBtn').onclick = async () => { 
+            const fb = document.getElementById('adminFeedback');
+            try { 
+                const tx = await identityContract.verifyIdentity(document.getElementById('verifyAddr').value, ADMIN_GAS); 
+                fb.innerText = "Verifying...";
+                fb.style.color = "var(--primary)";
+                await tx.wait(); 
+                fb.innerText = "User Verified!";
+                fb.style.color = "var(--success)";
+                await hardSync(); 
+            } catch(e){ fb.innerText = "TX Error"; fb.style.color = "var(--admin)"; } 
+        };
+
+        document.getElementById('revokeBtn').onclick = async () => { 
+            const fb = document.getElementById('adminFeedback');
+            try { 
+                const tx = await identityContract.revokeVerification(document.getElementById('verifyAddr').value, ADMIN_GAS); 
+                fb.innerText = "Revoking...";
+                fb.style.color = "var(--admin)";
+                await tx.wait(); 
+                fb.innerText = "Identity Revoked";
+                fb.style.color = "var(--text)";
+                await hardSync(); 
+            } catch(e){ fb.innerText = "TX Error"; fb.style.color = "var(--admin)"; } 
+        };
+
         document.getElementById('connectBtn').onclick = () => connectWallet(false);
         document.getElementById('disconnectBtn').onclick = () => { localStorage.clear(); location.reload(); };
         document.getElementById('refreshLogBtn').onclick = () => scanChainHistory();
     </script>
 </body>
 </html>
-

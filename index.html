@@ -26,7 +26,7 @@
 </head>
 <body>
     <div id="topNav">
-        <div class="nav-title"><h1>Lightchain Identity (Portal)</h1><span style="font-size:0.7rem; color:#999;">v12.6</span></div>
+        <div class="nav-title"><h1>Lightchain Identity (Portal)</h1><span style="font-size:0.7rem; color:#999;">v12.7</span></div>
         <div class="token-display"><span id="tokenBalance">0.0000</span> LCAI</div>
     </div>
     <div class="content-wrapper">
@@ -37,18 +37,21 @@
                 <button id="connectBtn" class="primary-btn">Connect Wallet</button>
                 <button id="disconnectBtn" class="primary-btn" style="display:none; background:#6c757d;">Disconnect</button>
             </div>
+
             <div id="adminConsole" class="card" style="display:none;">
                 <h4 style="color:var(--admin); margin: 0 0 10px 0; font-size: 0.85rem;">Identity Admin</h4>
                 <input type="text" id="lookupAddr" placeholder="Lookup 0x...">
                 <button id="lookupBtn" class="small-btn" style="width:100%; background: var(--primary); margin-bottom:12px;">Query Status</button>
                 <div id="lookupResults" style="display:none; padding:10px; font-size:0.7rem; background:#f0f7ff; border-radius:4px; margin-bottom:10px;"></div>
+                
                 <input type="text" id="verifyAddr" placeholder="Target 0x...">
                 <div style="display:flex; gap: 5px;">
                     <button id="verifyBtn" class="small-btn" style="background:var(--success);">Verify</button>
                     <button id="revokeBtn" class="small-btn" style="background:var(--admin);">Revoke</button>
                 </div>
-                <div id="adminFeedback" style="font-size:0.7rem; margin-top:8px; text-align:center; font-weight:bold; color:var(--primary);"></div>
+                <div id="adminFeedback" style="font-size:0.7rem; margin-top:8px; text-align:center; font-weight:bold; color:var(--primary); min-height:1em;"></div>
             </div>
+
             <div id="ownerConsole" class="card" style="display:none; border: 1px solid var(--owner);">
                 <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px;">
                     <h4 style="color:var(--owner); margin: 0; font-size: 0.85rem;">Oracle Owner</h4>
@@ -62,6 +65,7 @@
                 </div>
             </div>
         </div>
+
         <div class="main-utility-area">
             <div id="oracleUI" style="display:none; width: 100%; max-width: 600px;">
                 <div class="card" style="text-align: center; border-top: 4px solid var(--success);">
@@ -73,6 +77,7 @@
                 </div>
             </div>
         </div>
+
         <div id="rightSidebar">
             <div class="card">
                 <h4 style="margin:0; color: #0056b3; font-size:0.9rem;">Network Metrics</h4>
@@ -83,9 +88,10 @@
             </div>
         </div>
     </div>
+
     <script>
         const IDENTITY_CONTRACT = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34";
-        // REPLACE WITH NEW CONTRACT ADDR
+        // REMEMBER TO UPDATE THIS WITH NEW DEPLOYED ADDR IF YOU REDEPLOY
         const BALL_CONTRACT_ADDR = "0xd91732DF3A4Ee4DA85674cc6c0f5F5E81e34fF8e"; 
         const SYSTEM_PROMPT = "As a forward-thinking innovator and futurist, provide a prediction for: ";
 
@@ -151,7 +157,8 @@
                 events.reverse().forEach(ev => {
                     const displayQ = ev.args.question.startsWith(SYSTEM_PROMPT) ? ev.args.question.replace(SYSTEM_PROMPT, '') : ev.args.question;
                     feed.innerHTML += `<div class="tx-item"><strong>Anon:</strong> ${displayQ.substring(0,30)}...</div>`;
-                    const fee = ((Math.floor(getByteLength(ev.args.question) / 10) + 1) * 0.001).toFixed(3);
+                    const b = getByteLength(ev.args.question);
+                    const fee = ((Math.floor(b / 10) + 1) * 0.001).toFixed(3);
                     revenue.innerHTML += `<div class="tx-item" style="color:var(--success)">+${fee} LCAI Received</div>`;
                 });
             } catch (e) {}
@@ -171,7 +178,6 @@
                     val = ethers.parseEther(((Math.floor(bytes / 10) + 1) * 0.001).toFixed(3));
                 }
                 document.getElementById('resultText').innerText = "Querying AIVM...";
-                // FIXED GAS: Lowered to 2M to reduce that '0.4' network fee estimate
                 const tx = await ballContract.getPrediction(fullPrompt, { value: val, gasLimit: 2000000 });
                 await tx.wait();
                 hardSync();
@@ -180,20 +186,61 @@
             }
         };
 
+        // FIXED QUERY LOGIC: Restored username display
         document.getElementById('lookupBtn').onclick = async () => {
             const addr = document.getElementById('lookupAddr').value;
-            const res = await identityContract.getIdentity(addr);
-            document.getElementById('lookupResults').style.display = 'block';
-            document.getElementById('lookupResults').innerHTML = `Verified: ${res[2] ? '✅ YES' : '❌ NO'}`;
+            if(!addr || !ethers.isAddress(addr)) return;
+            const resDisplay = document.getElementById('lookupResults');
+            try {
+                resDisplay.style.display = 'block';
+                resDisplay.innerText = "Querying...";
+                const res = await identityContract.getIdentity(addr);
+                // res[0] is the username from your Identity contract
+                resDisplay.innerHTML = `<strong>Username:</strong> ${res[0] || 'N/A'}<br><strong>Verified:</strong> ${res[2] ? '✅ YES' : '❌ NO'}`;
+            } catch(e) { resDisplay.innerText = "Error: Not found."; }
         };
 
+        // FIXED FEEDBACK DISPLAY
         document.getElementById('verifyBtn').onclick = async () => {
-            const tx = await identityContract.verifyIdentity(document.getElementById('verifyAddr').value);
-            await tx.wait(); hardSync();
+            const feedback = document.getElementById('adminFeedback');
+            const target = document.getElementById('verifyAddr').value;
+            if(!ethers.isAddress(target)) return;
+            try {
+                feedback.innerText = "Processing Verification...";
+                const tx = await identityContract.verifyIdentity(target);
+                await tx.wait(); 
+                feedback.innerText = "Success: User Verified!";
+                hardSync();
+            } catch(e) { feedback.innerText = "Error: Admin action failed."; }
         };
 
-        document.getElementById('connectBtn').onclick = () => connectWallet(false);
-        document.getElementById('disconnectBtn').onclick = () => { localStorage.clear(); location.reload(); };
+        document.getElementById('revokeBtn').onclick = async () => {
+            const feedback = document.getElementById('adminFeedback');
+            const target = document.getElementById('verifyAddr').value;
+            if(!ethers.isAddress(target)) return;
+            try {
+                feedback.innerText = "Processing Revocation...";
+                const tx = await identityContract.revokeVerification(target);
+                await tx.wait(); 
+                feedback.innerText = "Success: User Revoked!";
+                hardSync();
+            } catch(e) { feedback.innerText = "Error: Admin action failed."; }
+        };
+
+        document.getElementById('toggleFeesBtn').onclick = async () => {
+            try {
+                const current = await ballContract.feesEnabled();
+                const tx = await ballContract.toggleFees(!current);
+                await tx.wait(); hardSync();
+            } catch (e) {}
+        };
+
+        document.getElementById('withdrawBtn').onclick = async () => {
+            try {
+                const tx = await ballContract.withdraw();
+                await tx.wait(); hardSync();
+            } catch (e) {}
+        };
 
         async function connectWallet(auto = false) {
             if (!window.ethereum) return;

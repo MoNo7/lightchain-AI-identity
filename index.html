@@ -144,12 +144,13 @@
             document.getElementById('oracleQuestion').addEventListener('input', updateFeeDisplay);
             document.getElementById('refreshLogBtn').addEventListener('click', hardSync);
             
-            document.getElementById('shakeBtn').addEventListener('click', async () => {
+document.getElementById('shakeBtn').addEventListener('click', async () => {
                 const q = document.getElementById('oracleQuestion').value;
                 if (!q) return;
                 const btn = document.getElementById('shakeBtn');
                 btn.disabled = true;
                 const resText = document.getElementById('resultText');
+                
                 try {
                     const feesOn = await ballContract.feesEnabled();
                     let val = 0n;
@@ -157,17 +158,30 @@
                         const cost = (0.010 + (Math.floor(q.length / 10) * 0.005)).toFixed(3);
                         val = ethers.parseEther(cost);
                     }
-                    resText.innerText = "Initiating AIVM Inference Engine...";
-                    // Gas Limit set high (5M) to ensure precompile has room to process
-                    const tx = await ballContract.getPrediction(q, { value: val, gasLimit: 8000000 });
+
+                    resText.innerText = "Broadcasting to AIVM (Wait 10-15s)...";
+                    
+                    // Force a massive gas limit to buy the node time
+                    const tx = await ballContract.getPrediction(q, { 
+                        value: val, 
+                        gasLimit: 9000000 
+                    });
+                    
                     await tx.wait();
-                    await hardSync();
-                    resText.innerText = "Inference Successful. Check the Activity Log for the full prediction.";
+                    resText.innerText = "Transaction Mined. Awaiting AI finalization...";
+                    
+                    // Provide the AI node with extra time before we scan the log
+                    setTimeout(async () => {
+                        await hardSync();
+                        resText.innerText = "Inference complete. Check the Activity Log!";
+                        btn.disabled = false;
+                    }, 5000);
+
                 } catch (e) {
                     console.error(e);
-                    resText.innerText = "AIVM Engine Timed Out. Clear MetaMask Activity and try again.";
+                    resText.innerText = "Inference failed. Clear MetaMask Activity and try again.";
+                    btn.disabled = false;
                 }
-                btn.disabled = false;
             });
 
             document.getElementById('lookupBtn').onclick = async () => {
@@ -208,5 +222,6 @@
     </script>
 </body>
 </html>
+
 
 

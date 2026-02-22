@@ -26,7 +26,7 @@
 </head>
 <body>
     <div id="topNav">
-        <div class="nav-title"><h1>Lightchain Identity (Portal)</h1><span style="font-size:0.7rem; color:#999;">v15.0</span></div>
+        <div class="nav-title"><h1>Lightchain Identity (Portal)</h1><span style="font-size:0.7rem; color:#999;">v15.1</span></div>
         <div class="token-display"><span id="tokenBalance">0.0000</span> LCAI</div>
     </div>
     <div class="content-wrapper">
@@ -159,27 +159,29 @@ document.getElementById('shakeBtn').addEventListener('click', async () => {
                         val = ethers.parseEther(cost);
                     }
 
-                    resText.innerText = "Broadcasting to AIVM (Wait 10-15s)...";
+                    resText.innerText = "Requesting Inference (0/2)...";
                     
-                    // Force a massive gas limit to buy the node time
+                    // Lowered gasLimit slightly to avoid RPC block-size rejection
                     const tx = await ballContract.getPrediction(q, { 
                         value: val, 
-                        gasLimit: 9000000 
+                        gasLimit: 6000000 
                     });
                     
-                    await tx.wait();
-                    resText.innerText = "Transaction Mined. Awaiting AI finalization...";
-                    
-                    // Provide the AI node with extra time before we scan the log
-                    setTimeout(async () => {
-                        await hardSync();
-                        resText.innerText = "Inference complete. Check the Activity Log!";
-                        btn.disabled = false;
-                    }, 5000);
+                    const receipt = await tx.wait();
+                    resText.innerText = "Request received by Lightchain. Awaiting AI response...";
+
+                    // Persistence: We listen specifically for the OracleAnswer event from this block onwards
+                    ballContract.once("OracleAnswer", (user, question, answer) => {
+                        if(user.toLowerCase() === signer.address.toLowerCase()) {
+                            resText.innerHTML = `<strong>AIVM RESPONSE:</strong><br>${answer}`;
+                            hardSync();
+                            btn.disabled = false;
+                        }
+                    });
 
                 } catch (e) {
-                    console.error(e);
-                    resText.innerText = "Inference failed. Clear MetaMask Activity and try again.";
+                    console.error("RPC Error:", e);
+                    resText.innerText = "RPC Connection Reset. Check LCAI Balance or try a shorter question.";
                     btn.disabled = false;
                 }
             });
@@ -222,6 +224,7 @@ document.getElementById('shakeBtn').addEventListener('click', async () => {
     </script>
 </body>
 </html>
+
 
 
 

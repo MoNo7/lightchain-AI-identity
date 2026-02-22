@@ -25,7 +25,7 @@
 </head>
 <body>
     <div id="topNav">
-        <div class="nav-title"><h1>Lightchain Identity (Portal)</h1><span style="font-size:0.7rem; color:#999;">v19.0</span></div>
+        <div class="nav-title"><h1>Lightchain Identity (Portal)</h1><span style="font-size:0.7rem; color:#999;">v19.1</span></div>
         <div class="token-display"><span id="tokenBalance">0.0000</span> LCAI</div>
     </div>
     <div class="content-wrapper">
@@ -73,7 +73,7 @@
     <script>
         const IDENTITY_CONTRACT = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34";
         // --- DEPLOY V19.0 AND PASTE NEW ADDRESS HERE ---
-        const BALL_CONTRACT_ADDR = "0xcCB475d6D405801d65019e4951930c057EDdA0Fa"; 
+        const BALL_CONTRACT_ADDR = "0x2302D0a3787b30834B67Fd82D454aE92096A49E3"; 
 
         const BALL_ABI = [{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"string","name":"question","type":"string"},{"indexed":false,"internalType":"string","name":"answer","type":"string"}],"name":"OracleAnswer","type":"event"},{"inputs":[{"internalType":"string","name":"_userQuestion","type":"string"}],"name":"getPrediction","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"totalPredictions","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"admin","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"bool","name":"_enabled","type":"bool"}],"name":"toggleFees","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"feesEnabled","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"withdraw","outputs":[],"stateMutability":"nonpayable","type":"function"}];
         const IDENTITY_ABI = [{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"getIdentity","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"isAdmin","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"verifyIdentity","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"revokeVerification","outputs":[],"stateMutability":"nonpayable","type":"function"}];
@@ -134,7 +134,7 @@
             document.getElementById('disconnectBtn').addEventListener('click', () => { localStorage.clear(); location.reload(); });
             document.getElementById('refreshLogBtn').addEventListener('click', hardSync);
             
-            document.getElementById('shakeBtn').addEventListener('click', async () => {
+        document.getElementById('shakeBtn').addEventListener('click', async () => {
                 const q = document.getElementById('oracleQuestion').value;
                 if (!q) return;
                 const btn = document.getElementById('shakeBtn');
@@ -145,37 +145,38 @@
                     const cost = (0.010 + (Math.floor(q.length / 10) * 0.005)).toFixed(3);
                     const val = (await ballContract.feesEnabled()) ? ethers.parseEther(cost) : 0n;
 
-                    resText.innerHTML = "Opening MetaMask... Setting up background listener.";
+                    resText.innerHTML = "Submitting to AIVM Node Cluster...";
 
-                    // THE V2-RESTORED STRATEGY: 
-                    const userAddr = (await signer.getAddress()).toLowerCase();
-                    const onAnswer = async (user, question, answer) => {
-                        if (user.toLowerCase() === userAddr && question === q) {
+                    const tx = await ballContract.getPrediction(q, { 
+                        value: val, 
+                        gasLimit: 9500000 
+                    });
+
+                    resText.innerHTML = `Transaction Mined! <br>Awaiting AI result from state...`;
+
+                    // V2-STYLE POLLING: Check the 'latestAnswer' mapping until it changes
+                    let pollCount = 0;
+                    const pollInterval = setInterval(async () => {
+                        const answer = await ballContract.latestAnswer(signer.address);
+                        pollCount++;
+
+                        if (answer && !answer.includes("Wait") && !answer.includes("generating")) {
                             resText.innerHTML = `<strong>AIVM RESPONSE:</strong><br>${answer}`;
                             await hardSync();
                             btn.disabled = false;
-                            ballContract.off("OracleAnswer", onAnswer);
+                            clearInterval(pollInterval);
+                        } else if (pollCount > 20) {
+                            resText.innerText = "AIVM Timeout. Please click 'Sync' to manually refresh.";
+                            btn.disabled = false;
+                            clearInterval(pollInterval);
+                        } else {
+                            resText.innerText = `AI is finalising results... (${pollCount * 3}s)`;
                         }
-                    };
-                    ballContract.on("OracleAnswer", onAnswer);
-
-                    // HIGH GAS: 8M gas manually set. 
-                    const tx = await ballContract.getPrediction(q, { 
-                        value: val, 
-                        gasLimit: 8000000 
-                    });
-
-                    const link = `https://testnet-explorer.lightchain.ai/tx/${tx.hash}`;
-                    resText.innerHTML = `Signed! Hash: <a href="${link}" target="_blank" style="color:blue;">${tx.hash.substring(0,12)}...</a><br>Waiting for AI Consensus (30-90s)...`;
-
-                    // Non-blocking wait.
-                    provider.waitForTransaction(tx.hash, 1, 300000).catch(e => {
-                        console.warn("RPC disconnect detected. Background listener still monitoring events.");
-                    });
+                    }, 3000);
 
                 } catch (e) {
                     console.error(e);
-                    resText.innerText = "Error: " + (e.reason || "Check balance and gas settings.");
+                    resText.innerText = "Error: " + (e.reason || "Check balance/gas.");
                     btn.disabled = false;
                 }
             });
@@ -203,3 +204,4 @@
     </script>
 </body>
 </html>
+

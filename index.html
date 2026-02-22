@@ -20,11 +20,12 @@
         .mimo-badge { background: var(--mimo); color: white; border-radius: 50%; width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; margin-left: 8px; font-weight: bold; }
         .result-window { margin-top: 20px; padding: 20px; background: #f8f9fa; border: 2px dashed #cbd5e0; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 0.9rem; white-space: pre-wrap; word-wrap: break-word; }
         .tx-item { font-size: 0.7rem; color: #666; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
+        input[type="text"] { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 10px; box-sizing: border-box; }
     </style>
 </head>
 <body>
     <div id="topNav">
-        <div class="nav-title"><h1>Lightchain Identity (Portal)</h1><span style="font-size:0.7rem; color:#999;">v21.0</span></div>
+        <div class="nav-title"><h1>Lightchain Identity (Portal)</h1><span style="font-size:0.7rem; color:#999;">v22.0</span></div>
         <div class="token-display"><span id="tokenBalance">0.0000</span> LCAI</div>
     </div>
     <div class="content-wrapper">
@@ -38,10 +39,10 @@
             
             <div id="adminConsole" class="card" style="display:none;">
                 <h4 style="color:var(--admin); margin: 0 0 10px 0;">Identity Admin</h4>
-                <input type="text" id="lookupAddr" placeholder="Lookup 0x..." style="width:100%; padding:10px; margin-bottom:10px; border-radius:8px; border:1px solid #ddd;">
+                <input type="text" id="lookupAddr" placeholder="Lookup 0x...">
                 <button id="lookupBtn" class="small-btn" style="width:100%; background: var(--primary); margin-bottom:12px;">Query Status</button>
-                <div id="lookupResults" style="display:none; padding:10px; font-size:0.7rem; background:#f0f7ff; margin-bottom:10px; border-radius:6px;"></div>
-                <input type="text" id="verifyAddr" placeholder="Target 0x..." style="width:100%; padding:10px; margin-bottom:10px; border-radius:8px; border:1px solid #ddd;">
+                <div id="lookupResults" style="display:none; padding:10px; font-size:0.75rem; background:#f0f7ff; margin-bottom:10px; border-radius:6px; border: 1px solid #b8daff;"></div>
+                <input type="text" id="verifyAddr" placeholder="Target 0x...">
                 <div style="display:flex; gap: 5px;"><button id="verifyBtn" class="small-btn" style="background:var(--success);">Verify</button><button id="revokeBtn" class="small-btn" style="background:var(--admin);">Revoke</button></div>
             </div>
 
@@ -57,9 +58,9 @@
             <div id="oracleUI" style="display:none; width: 100%; max-width: 600px;">
                 <div class="card" style="text-align: center; border-top: 4px solid var(--success);">
                     <h2>AIVM Visionary Oracle</h2>
-                    <input type="text" id="oracleQuestion" placeholder="Consult the future..." style="width:100%; padding:15px; border-radius:8px; border:1px solid #ddd; margin-bottom:10px;">
+                    <input type="text" id="oracleQuestion" placeholder="Ask about the future...">
                     <button id="shakeBtn" class="primary-btn" style="background: var(--success);">Consult AIVM</button>
-                    <div class="result-window" id="resultText">Awaiting inference...</div>
+                    <div class="result-window" id="resultText">Waiting for on-chain query...</div>
                 </div>
             </div>
         </div>
@@ -71,26 +72,12 @@
 
     <script>
         const IDENTITY_CONTRACT = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34";
-        const BALL_CONTRACT_ADDR = "0xd80E26c23Cc3e78451eB1983E72e31dcC64316E9"; 
+        const BALL_CONTRACT_ADDR = "0x66632307251FAf6dB6b107bC15D9A571fdF44F4a"; 
 
         const BALL_ABI = [{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"string","name":"question","type":"string"},{"indexed":false,"internalType":"string","name":"answer","type":"string"}],"name":"OracleAnswer","type":"event"},{"inputs":[{"internalType":"string","name":"_userQuestion","type":"string"}],"name":"getPrediction","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"totalPredictions","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"admin","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"bool","name":"_enabled","type":"bool"}],"name":"toggleFees","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"feesEnabled","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"latestAnswer","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"withdraw","outputs":[],"stateMutability":"nonpayable","type":"function"}];
         const IDENTITY_ABI = [{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"getIdentity","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"isAdmin","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"verifyIdentity","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"revokeVerification","outputs":[],"stateMutability":"nonpayable","type":"function"}];
 
         let signer, ballContract, identityContract, provider;
-
-        async function scanChainHistory() {
-            try {
-                const events = await ballContract.queryFilter("OracleAnswer", -1000);
-                const feed = document.getElementById('txFeed');
-                feed.innerHTML = "";
-                events.reverse().forEach(e => {
-                    const item = document.createElement('div');
-                    item.className = 'tx-item';
-                    item.innerHTML = `<strong>Query:</strong> "${e.args[1]}"<br><span style="font-size:0.6rem; color:#999;">AI: ${e.args[2]}</span>`;
-                    feed.appendChild(item);
-                });
-            } catch (e) {}
-        }
 
         async function hardSync() {
             try {
@@ -98,15 +85,12 @@
                 const [total, owner, isAdmin, profile, feesOn, revenue] = await Promise.all([
                     ballContract.totalPredictions(), ballContract.admin(), identityContract.isAdmin(address), identityContract.getIdentity(address), ballContract.feesEnabled(), provider.getBalance(BALL_CONTRACT_ADDR)
                 ]);
-                
                 document.getElementById('walletStatus').innerText = "Active: " + address.substring(0, 10) + "...";
                 document.getElementById('tokenBalance').innerText = parseFloat(ethers.formatEther(await provider.getBalance(address))).toFixed(4);
                 document.getElementById('globalCount').innerText = total.toString();
                 document.getElementById('totalRevenueDisplay').innerText = parseFloat(ethers.formatEther(revenue)).toFixed(3) + " LCAI";
-                
                 document.getElementById('adminConsole').style.display = isAdmin ? 'block' : 'none';
                 document.getElementById('ownerConsole').style.display = (address.toLowerCase() === owner.toLowerCase()) ? 'block' : 'none';
-
                 if (profile[2]) {
                     document.getElementById('oracleUI').style.display = 'block';
                     document.getElementById('userStatusHeader').style.display = 'block';
@@ -130,6 +114,20 @@
             ballContract.on("OracleAnswer", scanChainHistory);
         }
 
+        async function scanChainHistory() {
+            try {
+                const events = await ballContract.queryFilter("OracleAnswer", -1000);
+                const feed = document.getElementById('txFeed');
+                feed.innerHTML = "";
+                events.reverse().forEach(e => {
+                    const item = document.createElement('div');
+                    item.className = 'tx-item';
+                    item.innerHTML = `<strong>Query:</strong> "${e.args[1]}"<br><span style="font-size:0.6rem; color:#999;">AI: ${e.args[2]}</span>`;
+                    feed.appendChild(item);
+                });
+            } catch (e) {}
+        }
+
         window.onload = () => {
             document.getElementById('connectBtn').addEventListener('click', connectWallet);
             document.getElementById('disconnectBtn').addEventListener('click', () => { localStorage.clear(); location.reload(); });
@@ -143,14 +141,13 @@
                 const resText = document.getElementById('resultText');
                 
                 try {
-                    const cost = (0.010 + (Math.floor(q.length / 10) * 0.005)).toFixed(3);
-                    const val = (await ballContract.feesEnabled()) ? ethers.parseEther(cost) : 0n;
+                    const val = (await ballContract.feesEnabled()) ? ethers.parseEther("0.020") : 0n;
+                    resText.innerText = "Transmitting to AIVM Engine (Sign in MetaMask)...";
 
-                    resText.innerText = "Transmitting to AIVM Engine...";
                     const tx = await ballContract.getPrediction(q, { value: val, gasLimit: 9500000 });
                     await tx.wait();
                     
-                    resText.innerText = "Transaction Mined! Finalizing AI report...";
+                    resText.innerText = "Transaction Mined! AI is thinking...";
 
                     let pollCount = 0;
                     const pollInterval = setInterval(async () => {
@@ -161,31 +158,54 @@
                             await hardSync();
                             btn.disabled = false;
                             clearInterval(pollInterval);
-                        } else if (pollCount > 25) {
-                            resText.innerText = "AI Node occupied. Re-click Consult or Sync in 1 min.";
+                        } else if (pollCount > 60) { // Extend to 3 minutes
+                            resText.innerText = "AIVM Busy. Please refresh 'Sync' manually in a moment.";
                             btn.disabled = false;
                             clearInterval(pollInterval);
                         } else {
-                            resText.innerText = `Syncing Result... (${pollCount * 3}s)`;
+                            resText.innerText = `Finalizing AI inference... (${pollCount * 3}s elapsed)`;
                         }
                     }, 3000);
 
                 } catch (e) {
-                    resText.innerText = "Error. Check LCAI Balance.";
+                    resText.innerText = "Error. Check LCAI Balance/Gas.";
                     btn.disabled = false;
                 }
             });
 
             document.getElementById('lookupBtn').onclick = async () => {
-                const res = await identityContract.getIdentity(document.getElementById('lookupAddr').value);
+                const addr = document.getElementById('lookupAddr').value;
+                if(!addr) return;
+                const res = await identityContract.getIdentity(addr);
                 const display = document.getElementById('lookupResults');
                 display.style.display = 'block';
-                display.innerHTML = `<strong>Username:</strong> ${res[0] || 'None'}<br><strong>Verified:</strong> ${res[2] ? '✅ Yes' : '❌ No'}`;
+                display.innerHTML = `<strong>Address:</strong> ${addr.substring(0,8)}...<br><strong>Username:</strong> ${res[0] || 'Unregistered'}<br><strong>Verified:</strong> ${res[2] ? '✅ Yes' : '❌ No'}`;
             };
+
             document.getElementById('verifyBtn').onclick = async () => {
-                await (await identityContract.verifyIdentity(document.getElementById('verifyAddr').value)).wait();
-                await hardSync();
+                const addr = document.getElementById('verifyAddr').value;
+                const display = document.getElementById('lookupResults');
+                display.style.display = 'block';
+                display.innerText = "Sending Verification...";
+                try {
+                    await (await identityContract.verifyIdentity(addr)).wait();
+                    display.innerText = "Verification Success!";
+                    await hardSync();
+                } catch(e) { display.innerText = "Error verifying."; }
             };
+
+            document.getElementById('revokeBtn').onclick = async () => {
+                const addr = document.getElementById('verifyAddr').value;
+                const display = document.getElementById('lookupResults');
+                display.style.display = 'block';
+                display.innerText = "Revoking...";
+                try {
+                    await (await identityContract.revokeVerification(addr)).wait();
+                    display.innerText = "Revoked Successfully.";
+                    await hardSync();
+                } catch(e) { display.innerText = "Error revoking."; }
+            };
+
             document.getElementById('toggleFeesBtn').onclick = async () => {
                 const current = await ballContract.feesEnabled();
                 await (await ballContract.toggleFees(!current)).wait();

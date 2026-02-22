@@ -25,7 +25,7 @@
 </head>
 <body>
     <div id="topNav">
-        <div class="nav-title"><h1>Lightchain Identity (Portal)</h1><span style="font-size:0.7rem; color:#999;">v16.2</span></div>
+        <div class="nav-title"><h1>Lightchain Identity (Portal)</h1><span style="font-size:0.7rem; color:#999;">v17.0</span></div>
         <div class="token-display"><span id="tokenBalance">0.0000</span> LCAI</div>
     </div>
     <div class="content-wrapper">
@@ -72,11 +72,11 @@
 
     <script>
         const IDENTITY_CONTRACT = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34";
-        // --- UPDATE THIS WITH YOUR NEW V16.2 ADDRESS ---
-        const BALL_CONTRACT_ADDR = "0x85e692DF86082BEC73230aA9AD6b0f0Cbc0FDdf8"; 
+        // --- DEPLOY V17.0 AND PASTE NEW ADDRESS HERE ---
+        const BALL_CONTRACT_ADDR = "0xD16bE37579f1DA9AD4de10a0Cf101636Ffd9fe18"; 
 
         const BALL_ABI = [{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"string","name":"question","type":"string"},{"indexed":false,"internalType":"string","name":"answer","type":"string"}],"name":"OracleAnswer","type":"event"},{"inputs":[{"internalType":"string","name":"_userQuestion","type":"string"}],"name":"getPrediction","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"totalPredictions","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"admin","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"bool","name":"_enabled","type":"bool"}],"name":"toggleFees","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"feesEnabled","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"withdraw","outputs":[],"stateMutability":"nonpayable","type":"function"}];
-        const IDENTITY_ABI = [{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"getIdentity","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"isAdmin","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"verifyIdentity","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"revokeVerification","outputs":[],"stateMutability":"nonpayable","type":"function"}];
+        const IDENTITY_ABI = [{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"getIdentity","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"bool","name":"","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"isAdmin","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"verifyIdentity","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"revokeVerification","outputs":[],"stateMutability":"nonpayable","type":"function"}];
 
         let signer, ballContract, identityContract, provider;
 
@@ -145,12 +145,22 @@
                     const cost = (0.010 + (Math.floor(q.length / 10) * 0.005)).toFixed(3);
                     const val = (await ballContract.feesEnabled()) ? ethers.parseEther(cost) : 0n;
 
-                    resText.innerText = "Generating AI Response... (Check MetaMask)";
+                    resText.innerHTML = "Opening MetaMask...<br><span style='font-size:0.7rem;'>Set gas manually if prompted.</span>";
 
-                    // V2 STYLE: Setup background listener before sending. 
-                    // This catches the answer even if the RPC node resets.
+                    // THE V2-RESTORED STRATEGY: 
+                    // 1. Fire and forget the transaction.
+                    // 2. Watch for the event independently of the transaction receipt.
+                    
+                    const tx = await ballContract.getPrediction(q, { 
+                        value: val, 
+                        gasLimit: 4000000 // Safer gas limit for testnet
+                    });
+
+                    resText.innerHTML = `Signed! Hash: <a href='https://testnet-explorer.lightchain.ai/tx/${tx.hash}' target='_blank'>${tx.hash.substring(0,10)}...</a><br>Waiting for AI Consensus (30-90s)...`;
+
+                    // We wait for the specific event matching the user and question
                     const onAnswer = async (user, question, answer) => {
-                        if (user.toLowerCase() === (await signer.getAddress()).toLowerCase()) {
+                        if (user.toLowerCase() === (await signer.getAddress()).toLowerCase() && question === q) {
                             resText.innerHTML = `<strong>AIVM RESPONSE:</strong><br>${answer}`;
                             await hardSync();
                             btn.disabled = false;
@@ -159,26 +169,16 @@
                     };
                     ballContract.on("OracleAnswer", onAnswer);
 
-                    // MANUALLY SET HIGH GAS: 10M gas gives the AI node 
-                    // enough time to finalize without an estimation error.
-                    const tx = await ballContract.getPrediction(q, { 
-                        value: val, 
-                        gasLimit: 10000000 
-                    });
-                    
-                    resText.innerText = "Transaction Broadcasted. Waiting for AI Consensus (30-90s)...";
-                    
-                    // We DO NOT block on tx.wait(). If the connection drops, 
-                    // the onAnswer listener above is still watching!
-                    tx.wait().then(() => {
-                        console.log("Transaction confirmed on-chain.");
-                    }).catch(e => {
-                        console.warn("RPC connection dropped, but transaction is likely still processing.");
+                    // Robust wait: This won't throw an error if the connection drops!
+                    provider.waitForTransaction(tx.hash, 1, 180000).then(() => {
+                        console.log("Inference confirmed on-chain.");
+                    }).catch(() => {
+                        console.warn("RPC dropped, background listener still active.");
                     });
 
                 } catch (e) {
                     console.error(e);
-                    resText.innerText = "MetaMask Error. Ensure you have enough LCAI for gas.";
+                    resText.innerText = "Error: " + (e.reason || "Check Balance/Gas");
                     btn.disabled = false;
                 }
             });
@@ -206,4 +206,3 @@
     </script>
 </body>
 </html>
-

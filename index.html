@@ -25,7 +25,7 @@
 </head>
 <body>
     <div id="topNav">
-        <div class="nav-title"><h1>Lightchain Identity (Portal)</h1><span style="font-size:0.7rem; color:#999;">v18.0</span></div>
+        <div class="nav-title"><h1>Lightchain Identity (Portal)</h1><span style="font-size:0.7rem; color:#999;">v19.0</span></div>
         <div class="token-display"><span id="tokenBalance">0.0000</span> LCAI</div>
     </div>
     <div class="content-wrapper">
@@ -72,8 +72,8 @@
 
     <script>
         const IDENTITY_CONTRACT = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34";
-        // --- DEPLOY V18.0 AND PASTE NEW ADDRESS HERE ---
-        const BALL_CONTRACT_ADDR = "0x7B0276167b032304d820ce45EfC96c710Cb2d7a3"; 
+        // --- DEPLOY V19.0 AND PASTE NEW ADDRESS HERE ---
+        const BALL_CONTRACT_ADDR = "0xcCB475d6D405801d65019e4951930c057EDdA0Fa"; 
 
         const BALL_ABI = [{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"string","name":"question","type":"string"},{"indexed":false,"internalType":"string","name":"answer","type":"string"}],"name":"OracleAnswer","type":"event"},{"inputs":[{"internalType":"string","name":"_userQuestion","type":"string"}],"name":"getPrediction","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"totalPredictions","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"admin","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"bool","name":"_enabled","type":"bool"}],"name":"toggleFees","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"feesEnabled","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"withdraw","outputs":[],"stateMutability":"nonpayable","type":"function"}];
         const IDENTITY_ABI = [{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"getIdentity","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"isAdmin","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"verifyIdentity","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"revokeVerification","outputs":[],"stateMutability":"nonpayable","type":"function"}];
@@ -145,9 +145,9 @@
                     const cost = (0.010 + (Math.floor(q.length / 10) * 0.005)).toFixed(3);
                     const val = (await ballContract.feesEnabled()) ? ethers.parseEther(cost) : 0n;
 
-                    resText.innerHTML = "Opening MetaMask...";
+                    resText.innerHTML = "Opening MetaMask... Setting up background listener.";
 
-                    // PRE-SET LISTENER: This ensures we catch the answer even if the browser drops the tx link.
+                    // THE V2-RESTORED STRATEGY: 
                     const userAddr = (await signer.getAddress()).toLowerCase();
                     const onAnswer = async (user, question, answer) => {
                         if (user.toLowerCase() === userAddr && question === q) {
@@ -159,20 +159,17 @@
                     };
                     ballContract.on("OracleAnswer", onAnswer);
 
-                    // HIGH GAS: 10M gas manually set to bypass estimation errors.
+                    // HIGH GAS: 8M gas manually set. 
                     const tx = await ballContract.getPrediction(q, { 
                         value: val, 
-                        gasLimit: 10000000 
+                        gasLimit: 8000000 
                     });
 
-                    // FIXED EXPLORER LINK: Ensuring valid HTML structure
                     const link = `https://testnet-explorer.lightchain.ai/tx/${tx.hash}`;
-                    resText.innerHTML = `Signed! Hash: <a href="${link}" target="_blank" style="color:blue;">${tx.hash.substring(0,12)}...</a><br>Awaiting AI Finalization (30-90s)...`;
+                    resText.innerHTML = `Signed! Hash: <a href="${link}" target="_blank" style="color:blue;">${tx.hash.substring(0,12)}...</a><br>Waiting for AI Consensus (30-90s)...`;
 
-                    // We watch for the transaction hash directly on the provider.
-                    provider.waitForTransaction(tx.hash, 1, 300000).then(() => {
-                        console.log("Transaction successfully recorded on-chain.");
-                    }).catch(e => {
+                    // Non-blocking wait.
+                    provider.waitForTransaction(tx.hash, 1, 300000).catch(e => {
                         console.warn("RPC disconnect detected. Background listener still monitoring events.");
                     });
 

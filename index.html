@@ -26,7 +26,7 @@
 </head>
 <body>
     <div id="topNav">
-        <div class="nav-title"><h1>Lightchain Identity (Portal)</h1><span style="font-size:0.7rem; color:#999;">v15.1</span></div>
+        <div class="nav-title"><h1>Lightchain Identity (Portal)</h1><span style="font-size:0.7rem; color:#999;">v15.2</span></div>
         <div class="token-display"><span id="tokenBalance">0.0000</span> LCAI</div>
     </div>
     <div class="content-wrapper">
@@ -159,29 +159,31 @@ document.getElementById('shakeBtn').addEventListener('click', async () => {
                         val = ethers.parseEther(cost);
                     }
 
-                    resText.innerText = "Requesting Inference (0/2)...";
+                    resText.innerText = "Confirming in Wallet...";
                     
-                    // Lowered gasLimit slightly to avoid RPC block-size rejection
+                    // Use a lower gas limit to ensure the block accepts it immediately
                     const tx = await ballContract.getPrediction(q, { 
                         value: val, 
-                        gasLimit: 6000000 
+                        gasLimit: 4000000 
                     });
                     
-                    const receipt = await tx.wait();
-                    resText.innerText = "Request received by Lightchain. Awaiting AI response...";
-
-                    // Persistence: We listen specifically for the OracleAnswer event from this block onwards
+                    resText.innerText = "Transaction Sent! Processing AI Inference...";
+                    
+                    // We don't "await" the result here to avoid the RPC Reset.
+                    // Instead, we listen for the event which is more stable.
                     ballContract.once("OracleAnswer", (user, question, answer) => {
                         if(user.toLowerCase() === signer.address.toLowerCase()) {
                             resText.innerHTML = `<strong>AIVM RESPONSE:</strong><br>${answer}`;
-                            hardSync();
+                            hardSync(); // Refresh logs and count
                             btn.disabled = false;
                         }
                     });
 
+                    await tx.wait(); // This mines the transaction
+
                 } catch (e) {
-                    console.error("RPC Error:", e);
-                    resText.innerText = "RPC Connection Reset. Check LCAI Balance or try a shorter question.";
+                    console.error("Portal Error:", e);
+                    resText.innerText = "Connection Busy. Wait 10 seconds and click Sync.";
                     btn.disabled = false;
                 }
             });
@@ -224,6 +226,7 @@ document.getElementById('shakeBtn').addEventListener('click', async () => {
     </script>
 </body>
 </html>
+
 
 
 

@@ -159,7 +159,7 @@
                     }
                     resText.innerText = "Initiating AIVM Inference Engine...";
                     // Gas Limit set high (5M) to ensure precompile has room to process
-                    const tx = await ballContract.getPrediction(q, { value: val, gasLimit: 5000000 });
+                    const tx = await ballContract.getPrediction(q, { value: val, gasLimit: 8000000 });
                     await tx.wait();
                     await hardSync();
                     resText.innerText = "Inference Successful. Check the Activity Log for the full prediction.";
@@ -208,3 +208,4 @@
     </script>
 </body>
 </html>
+

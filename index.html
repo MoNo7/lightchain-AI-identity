@@ -18,14 +18,14 @@
         .primary-btn { background: var(--primary); color: white; border: none; padding: 14px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: 600; margin-top: 10px; transition: 0.2s; }
         .small-btn { padding: 8px; font-size: 0.75rem; flex: 1; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; }
         .mimo-badge { background: var(--mimo); color: white; border-radius: 50%; width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; margin-left: 8px; font-weight: bold; }
-        .result-window { margin-top: 20px; padding: 20px; background: #f8f9fa; border: 2px dashed #cbd5e0; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 0.9rem; white-space: pre-wrap; word-wrap: break-word; }
+        .result-window { margin-top: 20px; padding: 20px; background: #f8f9fa; border: 2px dashed #cbd5e0; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 1rem; color: #333; }
         .tx-item { font-size: 0.7rem; color: #666; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
         input[type="text"] { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 10px; box-sizing: border-box; }
     </style>
 </head>
 <body>
     <div id="topNav">
-        <div class="nav-title"><h1>Lightchain Identity (Portal)</h1><span style="font-size:0.7rem; color:#999;">v23.0</span></div>
+        <div class="nav-title"><h1>Lightchain Identity (Portal)</h1><span style="font-size:0.7rem; color:#999;">v24.0</span></div>
         <div class="token-display"><span id="tokenBalance">0.0000</span> LCAI</div>
     </div>
     <div class="content-wrapper">
@@ -39,13 +39,11 @@
             
             <div id="adminConsole" class="card" style="display:none;">
                 <h4 style="color:var(--admin); margin: 0 0 10px 0;">Identity Admin</h4>
-                
                 <input type="text" id="lookupAddr" placeholder="Lookup 0x...">
                 <button id="lookupBtn" class="small-btn" style="width:100%; background: var(--primary); margin-bottom:12px;">Query Status</button>
                 <div id="lookupResults" style="display:none; padding:10px; font-size:0.75rem; background:#f0f7ff; margin-bottom:10px; border-radius:6px; border: 1px solid #b8daff;"></div>
                 
                 <hr style="border:0; border-top:1px solid #eee; margin:15px 0;">
-
                 <input type="text" id="verifyAddr" placeholder="Target 0x...">
                 <div style="display:flex; gap: 5px; margin-bottom:10px;">
                     <button id="verifyBtn" class="small-btn" style="background:var(--success);">Verify</button>
@@ -66,9 +64,9 @@
             <div id="oracleUI" style="display:none; width: 100%; max-width: 600px;">
                 <div class="card" style="text-align: center; border-top: 4px solid var(--success);">
                     <h2>AIVM Visionary Oracle</h2>
-                    <input type="text" id="oracleQuestion" placeholder="Ask about the future...">
+                    <input type="text" id="oracleQuestion" placeholder="Consult the future...">
                     <button id="shakeBtn" class="primary-btn" style="background: var(--success);">Consult AIVM</button>
-                    <div class="result-window" id="resultText">Waiting for on-chain query...</div>
+                    <div class="result-window" id="resultText">Awaiting inference...</div>
                 </div>
             </div>
         </div>
@@ -80,7 +78,7 @@
 
     <script>
         const IDENTITY_CONTRACT = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34";
-        const BALL_CONTRACT_ADDR = "0xbB38FC7a8ee5ddB713E86e0618961E3A124c5De6"; 
+        const BALL_CONTRACT_ADDR = "0x459b943dcF855B374F0A602f65929639DDAf60A1"; 
 
         const BALL_ABI = [{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"string","name":"question","type":"string"},{"indexed":false,"internalType":"string","name":"answer","type":"string"}],"name":"OracleAnswer","type":"event"},{"inputs":[{"internalType":"string","name":"_userQuestion","type":"string"}],"name":"getPrediction","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"totalPredictions","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"admin","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"bool","name":"_enabled","type":"bool"}],"name":"toggleFees","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"feesEnabled","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"latestAnswer","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"withdraw","outputs":[],"stateMutability":"nonpayable","type":"function"}];
         const IDENTITY_ABI = [{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"getIdentity","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"isAdmin","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"verifyIdentity","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"revokeVerification","outputs":[],"stateMutability":"nonpayable","type":"function"}];
@@ -155,15 +153,15 @@
                     const tx = await ballContract.getPrediction(q, { value: val, gasLimit: 9500000 });
                     await tx.wait();
                     
-                    resText.innerText = "Transaction Mined! Parsing data...";
+                    resText.innerText = "Parsing AI Consensus...";
 
                     let pollCount = 0;
                     const pollInterval = setInterval(async () => {
                         const answer = await ballContract.latestAnswer(signer.address);
                         pollCount++;
-                        // The answer will now populate instantly on the first or second poll
                         if (answer && answer !== "") {
-                            resText.innerHTML = `<strong>Oracle Response:</strong> ${answer}`;
+                            // CLEAN OUTPUT: Directly show the answer
+                            resText.innerHTML = answer;
                             await hardSync();
                             btn.disabled = false;
                             clearInterval(pollInterval);
@@ -175,7 +173,7 @@
                     }, 2000);
 
                 } catch (e) {
-                    resText.innerText = "Error. Check LCAI Balance/Gas.";
+                    resText.innerText = "Error. Check Balance/Gas.";
                     btn.disabled = false;
                 }
             });
@@ -193,32 +191,24 @@
                 const addr = document.getElementById('verifyAddr').value;
                 const display = document.getElementById('actionResults');
                 display.style.display = 'block';
-                display.style.color = '#155724'; display.style.background = '#e8f5e9'; display.style.borderColor = '#c3e6cb';
                 display.innerText = "Sending Verification...";
                 try {
                     await (await identityContract.verifyIdentity(addr)).wait();
                     display.innerText = "Verification Success!";
                     await hardSync();
-                } catch(e) { 
-                    display.style.color = '#721c24'; display.style.background = '#f8d7da'; display.style.borderColor = '#f5c6cb';
-                    display.innerText = "Error verifying transaction."; 
-                }
+                } catch(e) { display.innerText = "Error verifying."; }
             };
 
             document.getElementById('revokeBtn').onclick = async () => {
                 const addr = document.getElementById('verifyAddr').value;
                 const display = document.getElementById('actionResults');
                 display.style.display = 'block';
-                display.style.color = '#155724'; display.style.background = '#e8f5e9'; display.style.borderColor = '#c3e6cb';
-                display.innerText = "Revoking...";
+                display.innerText = "Revoking Identity...";
                 try {
                     await (await identityContract.revokeVerification(addr)).wait();
                     display.innerText = "Revoked Successfully.";
                     await hardSync();
-                } catch(e) { 
-                    display.style.color = '#721c24'; display.style.background = '#f8d7da'; display.style.borderColor = '#f5c6cb';
-                    display.innerText = "Error revoking transaction."; 
-                }
+                } catch(e) { display.innerText = "Error revoking."; }
             };
 
             document.getElementById('toggleFeesBtn').onclick = async () => {

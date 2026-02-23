@@ -25,7 +25,7 @@
 </head>
 <body>
     <div id="topNav">
-        <div class="nav-title"><h1>Lightchain Identity (Testnet)</h1><span style="font-size:0.7rem; color:#999;">v25.0</span></div>
+        <div class="nav-title"><h1>Lightchain Identity (Portal)</h1><span style="font-size:0.7rem; color:#999;">v26.0</span></div>
         <div class="token-display"><span id="tokenBalance">0.0000</span> LCAI</div>
     </div>
     <div class="content-wrapper">
@@ -54,16 +54,15 @@
 
             <div id="ownerConsole" class="card" style="display:none; border: 1px solid var(--owner);">
                 <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px;"><h4 style="color:var(--owner); margin: 0;">Oracle Owner</h4><button id="refreshLogBtn" class="small-btn" style="padding:2px 6px; flex:none;">Sync</button></div>
-                <div style="margin-bottom:10px; font-size:0.8rem;">Revenue: <strong id="totalRevenueDisplay" style="color:var(--success);">0.000 LCAI</strong></div>
-                <button id="toggleFeesBtn" class="small-btn" style="width:100%; margin-bottom:5px; background:var(--owner);">Toggle Fees</button>
-                <button id="withdrawBtn" class="small-btn" style="width:100%; background:var(--success);">Withdraw</button>
+                <div style="margin-bottom:10px; font-size:0.8rem;">Direct Revenue: <strong id="totalRevenueDisplay" style="color:var(--success);">0.000 LCAI</strong></div>
+                <button id="toggleFeesBtn" class="small-btn" style="width:100%; background:var(--owner);">Toggle Fees</button>
             </div>
         </div>
 
         <div class="main-utility-area">
             <div id="oracleUI" style="display:none; width: 100%; max-width: 600px;">
                 <div class="card" style="text-align: center; border-top: 4px solid var(--success);">
-                    <h2>AIVM Oracle</h2>
+                    <h2>AIVM Visionary Oracle</h2>
                     <input type="text" id="oracleQuestion" placeholder="Consult the future...">
                     <button id="shakeBtn" class="primary-btn" style="background: var(--success);">Consult AIVM</button>
                     <div class="result-window" id="resultText">Awaiting inference...</div>
@@ -78,18 +77,24 @@
 
     <script>
         const IDENTITY_CONTRACT = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34";
-        const BALL_CONTRACT_ADDR = "0xBe1d1AcB79C51dB5C0C80387b80bffA6C5122c66"; 
+        const BALL_CONTRACT_ADDR = "0xfb20700794C68462F57d6C5271242b48Ad0cbf5b"; 
 
-        const BALL_ABI = [{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"string","name":"question","type":"string"},{"indexed":false,"internalType":"string","name":"answer","type":"string"}],"name":"OracleAnswer","type":"event"},{"inputs":[{"internalType":"string","name":"_userQuestion","type":"string"}],"name":"getPrediction","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"syncInference","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"totalPredictions","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"admin","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"bool","name":"_enabled","type":"bool"}],"name":"toggleFees","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"feesEnabled","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"latestAnswer","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"withdraw","outputs":[],"stateMutability":"nonpayable","type":"function"}];
+        const BALL_ABI = [{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"string","name":"question","type":"string"},{"indexed":false,"internalType":"string","name":"answer","type":"string"}],"name":"OracleAnswer","type":"event"},{"inputs":[{"internalType":"string","name":"_userQuestion","type":"string"}],"name":"getPrediction","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"syncInference","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"totalPredictions","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"totalRevenueEarned","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"admin","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"bool","name":"_enabled","type":"bool"}],"name":"toggleFees","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"feesEnabled","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"latestAnswer","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"}];
         const IDENTITY_ABI = [{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"getIdentity","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"isAdmin","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"verifyIdentity","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"revokeVerification","outputs":[],"stateMutability":"nonpayable","type":"function"}];
 
         let signer, ballContract, identityContract, provider;
+
+        // Global Gas Overrides (10 Gwei) to bypass Metamask estimation errors
+        const gasOverrides = {
+            maxFeePerGas: ethers.parseUnits("10", "gwei"),
+            maxPriorityFeePerGas: ethers.parseUnits("10", "gwei")
+        };
 
         async function hardSync() {
             try {
                 const address = await signer.getAddress();
                 const [total, owner, isAdmin, profile, feesOn, revenue] = await Promise.all([
-                    ballContract.totalPredictions(), ballContract.admin(), identityContract.isAdmin(address), identityContract.getIdentity(address), ballContract.feesEnabled(), provider.getBalance(BALL_CONTRACT_ADDR)
+                    ballContract.totalPredictions(), ballContract.admin(), identityContract.isAdmin(address), identityContract.getIdentity(address), ballContract.feesEnabled(), ballContract.totalRevenueEarned()
                 ]);
                 document.getElementById('walletStatus').innerText = "Active: " + address.substring(0, 10) + "...";
                 document.getElementById('tokenBalance').innerText = parseFloat(ethers.formatEther(await provider.getBalance(address))).toFixed(4);
@@ -110,7 +115,7 @@
         async function connectWallet() {
             if (!window.ethereum) return;
             provider = new ethers.BrowserProvider(window.ethereum);
-            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+            await window.ethereum.request({ method: 'eth_requestAccounts' });
             signer = await provider.getSigner();
             ballContract = new ethers.Contract(BALL_CONTRACT_ADDR, BALL_ABI, signer);
             identityContract = new ethers.Contract(IDENTITY_CONTRACT, IDENTITY_ABI, signer);
@@ -142,7 +147,7 @@
         window.triggerSync = async () => {
             document.getElementById('resultText').innerText = "Attempting High-Priority Re-Sync...";
             try {
-                const tx = await ballContract.syncInference({ gasLimit: 25000000 });
+                const tx = await ballContract.syncInference({ ...gasOverrides, gasLimit: 25000000 });
                 await tx.wait();
                 await pollForResult();
             } catch (e) { document.getElementById('resultText').innerText = "Sync Failed. AI Node timeout."; }
@@ -177,7 +182,9 @@
                     const cost = (0.010 + (Math.floor(q.length / 10) * 0.005)).toFixed(3);
                     const val = (await ballContract.feesEnabled()) ? ethers.parseEther(cost) : 0n;
                     resText.innerText = "Transmitting to AIVM Engine...";
-                    const tx = await ballContract.getPrediction(q, { value: val, gasLimit: 25000000 });
+                    
+                    // Passing automated gas overrides alongside value and limit
+                    const tx = await ballContract.getPrediction(q, { value: val, gasLimit: 25000000, ...gasOverrides });
                     await tx.wait();
                     resText.innerText = "Parsing Consensus...";
                     await pollForResult();
@@ -187,51 +194,32 @@
                 }
             });
 
-            document.getElementById('lookupBtn').onclick = async () => {
-                const addr = document.getElementById('lookupAddr').value;
-                if(!addr) return;
-                const res = await identityContract.getIdentity(addr);
-                const display = document.getElementById('lookupResults');
-                display.style.display = 'block';
-                display.innerHTML = `<strong>Address:</strong> ${addr.substring(0,8)}...<br><strong>Username:</strong> ${res[0] || 'Unregistered'}<br><strong>Verified:</strong> ${res[2] ? '✅ Yes' : '❌ No'}`;
-            };
-
             document.getElementById('verifyBtn').onclick = async () => {
                 const addr = document.getElementById('verifyAddr').value;
                 const display = document.getElementById('actionResults');
-                display.style.display = 'block';
-                display.innerText = "Sending Verification...";
+                display.style.display = 'block'; display.innerText = "Sending Verification...";
                 try {
-                    await (await identityContract.verifyIdentity(addr)).wait();
-                    display.innerText = "Verification Success!";
-                    await hardSync();
+                    await (await identityContract.verifyIdentity(addr, gasOverrides)).wait();
+                    display.innerText = "Verification Success!"; await hardSync();
                 } catch(e) { display.innerText = "Error verifying."; }
             };
 
             document.getElementById('revokeBtn').onclick = async () => {
                 const addr = document.getElementById('verifyAddr').value;
                 const display = document.getElementById('actionResults');
-                display.style.display = 'block';
-                display.innerText = "Revoking Identity...";
+                display.style.display = 'block'; display.innerText = "Revoking Identity...";
                 try {
-                    await (await identityContract.revokeVerification(addr)).wait();
-                    display.innerText = "Revoked Successfully.";
-                    await hardSync();
+                    await (await identityContract.revokeVerification(addr, gasOverrides)).wait();
+                    display.innerText = "Revoked Successfully."; await hardSync();
                 } catch(e) { display.innerText = "Error revoking."; }
             };
 
             document.getElementById('toggleFeesBtn').onclick = async () => {
                 const current = await ballContract.feesEnabled();
-                await (await ballContract.toggleFees(!current)).wait();
-                await hardSync();
-            };
-            document.getElementById('withdrawBtn').onclick = async () => {
-                await (await ballContract.withdraw()).wait();
+                await (await ballContract.toggleFees(!current, gasOverrides)).wait();
                 await hardSync();
             };
         };
     </script>
 </body>
 </html>
-
-

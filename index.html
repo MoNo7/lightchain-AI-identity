@@ -25,7 +25,7 @@
 </head>
 <body>
     <div id="topNav">
-        <div class="nav-title"><h1>Lightchain Identity (Portal)</h1><span style="font-size:0.7rem; color:#999;">v30.0</span></div>
+        <div class="nav-title"><h1>Lightchain Identity (Portal)</h1><span style="font-size:0.7rem; color:#999;">v31.0</span></div>
         <div class="token-display"><span id="tokenBalance">0.0000</span> LCAI</div>
     </div>
     <div class="content-wrapper">
@@ -77,14 +77,14 @@
 
     <script>
         const IDENTITY_CONTRACT = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34";
-        const BALL_CONTRACT_ADDR = "0x0525423d44943ce3E666Dff09c9669fcea58039E"; 
+        const BALL_CONTRACT_ADDR = "0x8d425108fa6e48F2Eb4fb66C60C8a938520273De"; 
 
         const BALL_ABI = [{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"string","name":"question","type":"string"},{"indexed":false,"internalType":"string","name":"answer","type":"string"}],"name":"OracleAnswer","type":"event"},{"inputs":[{"internalType":"string","name":"_userQuestion","type":"string"}],"name":"getPrediction","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"totalPredictions","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"totalRevenueEarned","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"admin","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"bool","name":"_enabled","type":"bool"}],"name":"toggleFees","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"feesEnabled","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"latestAnswer","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"}];
         const IDENTITY_ABI = [{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"getIdentity","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"isAdmin","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"verifyIdentity","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"revokeVerification","outputs":[],"stateMutability":"nonpayable","type":"function"}];
 
         let signer, ballContract, identityContract, provider;
         
-        // GAS OVERRIDE: 10 GWEI (Applied only to Verify/Revoke)
+        // GAS OVERRIDE: 10 GWEI (Applied ONLY to Identity Admin tasks)
         const verifyGasSettings = { 
             maxFeePerGas: ethers.parseUnits("10", "gwei"), 
             maxPriorityFeePerGas: ethers.parseUnits("10", "gwei") 
@@ -137,7 +137,7 @@
                     document.getElementById('shakeBtn').disabled = false;
                     await hardSync();
                 } else if (pollCount > 15) {
-                    resText.innerText = "Inference finalising... check history in 30s.";
+                    resText.innerText = "Inference finishing... check history in 30s.";
                 }
             }, 2000);
         }
@@ -161,27 +161,28 @@
             document.getElementById('disconnectBtn').onclick = () => { localStorage.clear(); location.reload(); };
             document.getElementById('refreshLogBtn').onclick = hardSync;
             
-// Ensure the Consult button uses dynamic gas (line 175 approx)
-        document.getElementById('shakeBtn').onclick = async () => {
-            const q = document.getElementById('oracleQuestion').value;
-            if (!q) return;
-            const btn = document.getElementById('shakeBtn');
-            btn.disabled = true;
-            const resText = document.getElementById('resultText');
-            try {
-                const val = (await ballContract.feesEnabled()) ? ethers.parseEther("0.020") : 0n;
-                resText.innerText = "Connecting to AI Engine...";
-                // v31.0: Dynamic Gas Price for AI (No hardcoded 10 Gwei)
-                const tx = await ballContract.getPrediction(q, { value: val, gasLimit: 8000000 });
-                await tx.wait();
-                resText.innerText = "Parsing vision...";
-                await pollForResult();
-            } catch (e) {
-                resText.innerText = "Consult Error. Verify LCAI balance.";
-                btn.disabled = false;
-            }
-        };
-            // QUERY STATUS WINDOW RESTORED
+            document.getElementById('shakeBtn').onclick = async () => {
+                const q = document.getElementById('oracleQuestion').value;
+                if (!q) return;
+                const btn = document.getElementById('shakeBtn');
+                btn.disabled = true;
+                const resText = document.getElementById('resultText');
+                try {
+                    const val = (await ballContract.feesEnabled()) ? ethers.parseEther("0.020") : 0n;
+                    resText.innerText = "Consulting AIVM Engine...";
+                    
+                    // v31.0: Dynamic Gas Price for AI (Bypasses hardcoded gas setting)
+                    const tx = await ballContract.getPrediction(q, { value: val, gasLimit: 8000000 });
+                    await tx.wait();
+                    resText.innerText = "Parsing vision...";
+                    await pollForResult();
+                } catch (e) {
+                    resText.innerText = "Consult Error. Verify LCAI balance.";
+                    btn.disabled = false;
+                }
+            };
+
+            // RESTORED QUERY STATUS
             document.getElementById('lookupBtn').onclick = async () => {
                 const addr = document.getElementById('lookupAddr').value;
                 if(!addr) return;
@@ -191,12 +192,12 @@
                 display.innerHTML = `<strong>Username:</strong> ${res[0] || 'Unregistered'}<br><strong>Verified:</strong> ${res[2] ? '✅ Yes' : '❌ No'}`;
             };
 
-            // 10 GWEI HARDCODED ONLY HERE
             document.getElementById('verifyBtn').onclick = async () => {
                 const addr = document.getElementById('verifyAddr').value;
                 const display = document.getElementById('actionResults');
                 display.style.display = 'block'; display.innerText = "Sending Verification (10 Gwei)...";
                 try {
+                    // Hardcoded 10 Gwei ONLY for Identity Admin
                     await (await identityContract.verifyIdentity(addr, verifyGasSettings)).wait();
                     display.innerText = "Verification Success!"; await hardSync();
                 } catch(e) { display.innerText = "Error verifying."; }
@@ -221,4 +222,3 @@
     </script>
 </body>
 </html>
-

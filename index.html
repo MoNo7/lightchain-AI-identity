@@ -18,14 +18,14 @@
         .primary-btn { background: var(--primary); color: white; border: none; padding: 14px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: 600; margin-top: 10px; transition: 0.2s; }
         .small-btn { padding: 8px; font-size: 0.75rem; flex: 1; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; }
         .mimo-badge { background: var(--mimo); color: white; border-radius: 50%; width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; margin-left: 8px; font-weight: bold; }
-        .result-window { margin-top: 20px; padding: 20px; background: #f8f9fa; border: 2px dashed #cbd5e0; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 1rem; color: #333; line-height: 1.4; }
+        .result-window { margin-top: 20px; padding: 20px; background: #f8f9fa; border: 2px dashed #cbd5e0; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 1rem; color: #333; min-height: 60px; }
         .tx-item { font-size: 0.7rem; color: #666; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
         input[type="text"] { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 10px; box-sizing: border-box; }
     </style>
 </head>
 <body>
     <div id="topNav">
-        <div class="nav-title"><h1>Lightchain Identity (Portal)</h1><span style="font-size:0.7rem; color:#999;">v27.0</span></div>
+        <div class="nav-title"><h1>Lightchain Identity (Portal)</h1><span style="font-size:0.7rem; color:#999;">v28.0</span></div>
         <div class="token-display"><span id="tokenBalance">0.0000</span> LCAI</div>
     </div>
     <div class="content-wrapper">
@@ -77,13 +77,18 @@
 
     <script>
         const IDENTITY_CONTRACT = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34";
-        const BALL_CONTRACT_ADDR = "0x77311C5f706D82f7E77616d51D32116bd298d2E5"; 
+        const BALL_CONTRACT_ADDR = "0xd9609981f0712eCB9D6b271d1225FFBDe9C4Bef4"; 
 
         const BALL_ABI = [{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"string","name":"question","type":"string"},{"indexed":false,"internalType":"string","name":"answer","type":"string"}],"name":"OracleAnswer","type":"event"},{"inputs":[{"internalType":"string","name":"_userQuestion","type":"string"}],"name":"getPrediction","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"totalPredictions","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"totalRevenueEarned","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"admin","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"bool","name":"_enabled","type":"bool"}],"name":"toggleFees","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"feesEnabled","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"latestAnswer","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"}];
         const IDENTITY_ABI = [{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"getIdentity","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"isAdmin","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"verifyIdentity","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"revokeVerification","outputs":[],"stateMutability":"nonpayable","type":"function"}];
 
         let signer, ballContract, identityContract, provider;
-        const gasOverrides = { maxFeePerGas: ethers.parseUnits("10", "gwei"), maxPriorityFeePerGas: ethers.parseUnits("10", "gwei") };
+        
+        // AUTOMATED GAS OVERRIDES (10 GWEI)
+        const gasOverrides = { 
+            maxFeePerGas: ethers.parseUnits("10", "gwei"), 
+            maxPriorityFeePerGas: ethers.parseUnits("10", "gwei") 
+        };
 
         async function hardSync() {
             try {
@@ -131,8 +136,8 @@
                     clearInterval(pollInterval);
                     document.getElementById('shakeBtn').disabled = false;
                     await hardSync();
-                } else if (pollCount > 10) {
-                    resText.innerText = "Syncing with AIVM cluster... please wait.";
+                } else if (pollCount > 20) {
+                    resText.innerText = "Processing in background. Check Activity Log.";
                 }
             }, 2000);
         }
@@ -164,10 +169,12 @@
                 const resText = document.getElementById('resultText');
                 try {
                     const val = (await ballContract.feesEnabled()) ? ethers.parseEther("0.020") : 0n;
-                    resText.innerText = "Transmitting to AIVM Engine...";
-                    const tx = await ballContract.getPrediction(q, { value: val, gasLimit: 25000000, ...gasOverrides });
+                    resText.innerText = "Connecting to AI Precompile...";
+                    
+                    // BALANCED GAS LIMIT (10M) + AUTO OVERRIDES
+                    const tx = await ballContract.getPrediction(q, { value: val, gasLimit: 10000000, ...gasOverrides });
                     await tx.wait();
-                    resText.innerText = "Parsing Consensus...";
+                    resText.innerText = "Decoding AI vision...";
                     await pollForResult();
                 } catch (e) {
                     resText.innerText = "Error. Check Balance/Gas.";
@@ -175,7 +182,6 @@
                 }
             };
 
-            // RESTORED QUERY STATUS
             document.getElementById('lookupBtn').onclick = async () => {
                 const addr = document.getElementById('lookupAddr').value;
                 if(!addr) return;

@@ -77,7 +77,7 @@
 
     <script>
         const IDENTITY_CONTRACT = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34";
-        const BALL_CONTRACT_ADDR = "0x7923CBF3378B5000c6E9D4AE627948AD747A73d2"; 
+        const BALL_CONTRACT_ADDR = "0xeDB4352a15b5fda5D8a26b12c90b151AAD49e43e"; 
 
         const BALL_ABI = [{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"string","name":"question","type":"string"},{"indexed":false,"internalType":"string","name":"answer","type":"string"}],"name":"OracleAnswer","type":"event"},{"inputs":[{"internalType":"string","name":"_userQuestion","type":"string"}],"name":"getPrediction","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"totalPredictions","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"totalRevenueEarned","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"admin","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"bool","name":"_enabled","type":"bool"}],"name":"toggleFees","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"feesEnabled","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"latestAnswer","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"}];
         const IDENTITY_ABI = [{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"getIdentity","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"isAdmin","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"verifyIdentity","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"revokeVerification","outputs":[],"stateMutability":"nonpayable","type":"function"}];
@@ -161,26 +161,35 @@
             document.getElementById('disconnectBtn').onclick = () => { localStorage.clear(); location.reload(); };
             document.getElementById('refreshLogBtn').onclick = hardSync;
             
-            document.getElementById('shakeBtn').onclick = async () => {
-                const q = document.getElementById('oracleQuestion').value;
-                if (!q) return;
-                const btn = document.getElementById('shakeBtn');
-                btn.disabled = true;
-                const resText = document.getElementById('resultText');
-                try {
-                    const val = (await ballContract.feesEnabled()) ? ethers.parseEther("0.020") : 0n;
-                    resText.innerText = "Consulting AIVM Engine...";
-                    
-                    // v31.0: Dynamic Gas Price for AI (Bypasses hardcoded gas setting)
-                    const tx = await ballContract.getPrediction(q, { value: val, gasLimit: 8000000 });
-                    await tx.wait();
-                    resText.innerText = "Parsing vision...";
-                    await pollForResult();
-                } catch (e) {
-                    resText.innerText = "Consult Error. Verify LCAI balance.";
-                    btn.disabled = false;
-                }
-            };
+    document.getElementById('shakeBtn').onclick = async () => {
+    const q = document.getElementById('oracleQuestion').value;
+    if (!q) return;
+    const btn = document.getElementById('shakeBtn');
+    btn.disabled = true;
+    const resText = document.getElementById('resultText');
+    
+    try {
+        // v32 Fix: Check feesEnabled state BEFORE setting value
+        const isFeesOn = await ballContract.feesEnabled();
+        const val = isFeesOn ? ethers.parseEther("0.020") : 0n;
+        
+        resText.innerText = "Consulting AIVM Engine...";
+        
+        // Dynamic Gas Consult (Essential for AI calls)
+        const tx = await ballContract.getPrediction(q, { 
+            value: val, 
+            gasLimit: 10000000 
+        });
+        
+        await tx.wait();
+        resText.innerText = "Decoding AI response...";
+        await pollForResult();
+    } catch (e) {
+        console.error(e);
+        resText.innerText = "Consult Error. Check MetaMask Console.";
+        btn.disabled = false;
+    }
+};
 
             // RESTORED QUERY STATUS
             document.getElementById('lookupBtn').onclick = async () => {
@@ -222,4 +231,5 @@
     </script>
 </body>
 </html>
+
 

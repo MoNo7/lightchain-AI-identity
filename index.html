@@ -6,7 +6,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <style>
         :root { --primary: #007bff; --admin: #dc3545; --bg: #f0f2f5; --text: #1c1e21; --success: #28a745; --mimo: #1877F2; --owner: #6f42c1; }
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); color: var(--text); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); color: var(--text); display: flex; flex-direction: column; height: 100 vh; overflow: hidden; }
         #topNav { height: 60px; background: #fff; border-bottom: 1px solid #e1e4e8; display: flex; align-items: center; justify-content: space-between; padding: 0 25px; box-sizing: border-box; }
         .nav-title h1 { font-size: 1.2rem; color: #0056b3; margin: 0; }
         .token-display { background: #f8f9fa; padding: 8px 15px; border-radius: 20px; border: 1px solid #e1e4e8; font-weight: 700; font-size: 0.9rem; color: var(--success); }
@@ -25,7 +25,7 @@
 </head>
 <body>
     <div id="topNav">
-        <div class="nav-title"><h1>Lightchain Identity (Testnet)</h1><span style="font-size:0.7rem; color:#999;">v35.0</span></div>
+        <div class="nav-title"><h1>Lightchain Identity (Testnet)</h1><span style="font-size:0.7rem; color:#999;">v37.0</span></div>
         <div class="token-display"><span id="tokenBalance">0.0000</span> LCAI</div>
     </div>
     <div class="content-wrapper">
@@ -77,10 +77,10 @@
 
     <script>
         const IDENTITY_CONTRACT = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34";
-        const BALL_CONTRACT_ADDR = "0xBddcD81d75b99f5Cc148D843ec9B113b3048b00F"; 
+        const BALL_CONTRACT_ADDR = "0x7f71D44C1dE09f8A7515CfDF7c2EDEE3AaF1BB5C"; 
 
         const BALL_ABI = [{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"string","name":"question","type":"string"},{"indexed":false,"internalType":"string","name":"answer","type":"string"}],"name":"OracleAnswer","type":"event"},{"inputs":[{"internalType":"string","name":"_userQuestion","type":"string"}],"name":"getPrediction","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"totalPredictions","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"totalRevenueEarned","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"admin","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"bool","name":"_enabled","type":"bool"}],"name":"toggleFees","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"feesEnabled","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"latestAnswer","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"}];
-        const IDENTITY_ABI = [{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"getIdentity","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"isAdmin","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"verifyIdentity","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"revokeVerification","outputs":[],"stateMutability":"nonpayable","type":"function"}];
+        const IDENTITY_ABI = [{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"getIdentity","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"isAdmin","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"verifyIdentity","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"revokeVerification","outputs":[],"stateMutability":"nonpayable","type":"function"}];
 
         let signer, ballContract, identityContract, provider;
         const globalGas = { maxFeePerGas: ethers.parseUnits("100", "gwei"), maxPriorityFeePerGas: ethers.parseUnits("100", "gwei") };
@@ -126,13 +126,16 @@
             const pollInterval = setInterval(async () => {
                 const answer = await ballContract.latestAnswer(signer.address);
                 pollCount++;
-                if (answer && answer !== "" && answer !== "The cosmic ether is silent. Try re-phrasing your inquiry.") {
-                    resText.innerHTML = answer;
+                if (answer && answer !== "" && !answer.includes("NEURAL_LINK")) {
+                    resText.innerHTML = `<span style="color:#28a745; font-weight:bold;">INFERENCE COMPLETE:</span><br>${answer}`;
                     clearInterval(pollInterval);
                     document.getElementById('shakeBtn').disabled = false;
                     await hardSync();
-                } else if (pollCount > 10) {
-                    resText.innerText = "Finalizing inference...";
+                } else {
+                    resText.innerText = `Neural Link established... parsing patterns [${pollCount}s]`;
+                }
+                if (pollCount > 15) {
+                    resText.innerText = "Inference taking longer than expected. Check explorer.";
                     clearInterval(pollInterval);
                     document.getElementById('shakeBtn').disabled = false;
                 }
@@ -147,71 +150,4 @@
                 events.reverse().forEach(e => {
                     const item = document.createElement('div');
                     item.className = 'tx-item';
-                    item.innerHTML = `<strong>Query:</strong> "${e.args[1]}"<br><span style="font-size:0.6rem; color:#999;">${e.args[2]}</span>`;
-                    feed.appendChild(item);
-                });
-            } catch (e) {}
-        }
-
-        window.onload = () => {
-            document.getElementById('connectBtn').onclick = connectWallet;
-            document.getElementById('disconnectBtn').onclick = () => { localStorage.clear(); location.reload(); };
-            document.getElementById('refreshLogBtn').onclick = hardSync;
-            
-            document.getElementById('shakeBtn').onclick = async () => {
-                const q = document.getElementById('oracleQuestion').value;
-                if (!q) return;
-                const btn = document.getElementById('shakeBtn');
-                btn.disabled = true;
-                const resText = document.getElementById('resultText');
-                try {
-                    resText.innerText = "Transmitting to AI Hardware...";
-                    const val = (await ballContract.feesEnabled()) ? ethers.parseEther("0.020") : 0n;
-                    const tx = await ballContract.getPrediction(q, { value: val, gasLimit: 3000000, ...globalGas });
-                    await tx.wait();
-                    resText.innerText = "Parsing Consensus...";
-                    await pollForResult();
-                } catch (e) {
-                    resText.innerText = "AIVM Rejection. Verify MiMo identity.";
-                    btn.disabled = false;
-                }
-            };
-
-            document.getElementById('lookupBtn').onclick = async () => {
-                const addr = document.getElementById('lookupAddr').value;
-                if(!addr) return;
-                const res = await identityContract.getIdentity(addr);
-                const display = document.getElementById('lookupResults');
-                display.style.display = 'block';
-                display.innerHTML = `<strong>Username:</strong> ${res[0] || 'Unregistered'}<br><strong>Verified:</strong> ${res[2] ? '✅ Yes' : '❌ No'}`;
-            };
-
-            document.getElementById('verifyBtn').onclick = async () => {
-                const addr = document.getElementById('verifyAddr').value;
-                const display = document.getElementById('actionResults');
-                display.style.display = 'block'; display.innerText = "Sending Verification...";
-                try {
-                    await (await identityContract.verifyIdentity(addr, globalGas)).wait();
-                    display.innerText = "Verification Success!"; await hardSync();
-                } catch(e) { display.innerText = "Error verifying."; }
-            };
-
-            document.getElementById('revokeBtn').onclick = async () => {
-                const addr = document.getElementById('verifyAddr').value;
-                const display = document.getElementById('actionResults');
-                display.style.display = 'block'; display.innerText = "Revoking Identity...";
-                try {
-                    await (await identityContract.revokeVerification(addr, globalGas)).wait();
-                    display.innerText = "Revoked Successfully."; await hardSync();
-                } catch(e) { display.innerText = "Error revoking."; }
-            };
-
-            document.getElementById('toggleFeesBtn').onclick = async () => {
-                const current = await ballContract.feesEnabled();
-                await (await ballContract.toggleFees(!current, globalGas)).wait();
-                await hardSync();
-            };
-        };
-    </script>
-</body>
-</html>
+                    item.innerHTML = `<strong>Query:</strong> "${e.args[1]}"<br><span style="font-size:0.6rem; color:#999;">${e.args

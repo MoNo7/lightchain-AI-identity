@@ -25,7 +25,7 @@
 </head>
 <body>
     <div id="topNav">
-        <div class="nav-title"><h1>Lightchain Identity (Portal)</h1><span style="font-size:0.7rem; color:#999;">v48.0</span></div>
+        <div class="nav-title"><h1>Lightchain Identity (Portal)</h1><span style="font-size:0.7rem; color:#999;">v49.0</span></div>
         <div class="token-display"><span id="tokenBalance">0.0000</span> LCAI</div>
     </div>
     <div class="content-wrapper">
@@ -76,7 +76,7 @@
 
     <script>
         const IDENTITY_CONTRACT = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34";
-        const BALL_CONTRACT_ADDR = "0x40183C0217D57DD645E24aF20914b8B338FC2D31"; 
+        const BALL_CONTRACT_ADDR = "0xAe0c666d8f23812cabF5A852e6490C9615fCd602"; 
 
         const BALL_ABI = [{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"string","name":"question","type":"string"},{"indexed":false,"internalType":"string","name":"answer","type":"string"}],"name":"OracleAnswer","type":"event"},{"inputs":[{"internalType":"string","name":"_userQuestion","type":"string"}],"name":"getPrediction","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"totalPredictions","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"totalRevenueEarned","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"admin","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"bool","name":"_enabled","type":"bool"}],"name":"toggleFees","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"feesEnabled","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"latestAnswer","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"}];
         const IDENTITY_ABI = [{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"getIdentity","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"isAdmin","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"verifyIdentity","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"revokeVerification","outputs":[],"stateMutability":"nonpayable","type":"function"}];
@@ -121,20 +121,23 @@
             ballContract.on("OracleAnswer", scanChainHistory);
         }
 
-        async function pollForResult() {
+async function pollForResult() {
             const resText = document.getElementById('resultText');
             let count = 0;
             const interval = setInterval(async () => {
                 const answer = await ballContract.latestAnswer(signer.address);
                 count++;
-                if (answer && answer !== "" && answer !== "AIVM_PROCESSING") {
+                
+                // If the hardware responds with the actual vision
+                if (answer && answer !== "" && answer !== "AIVM_QUEUED" && answer !== "AIVM_PROCESSING") {
                     resText.innerHTML = `<span style="color:var(--success); font-weight:bold;">AIVM:</span><br>${answer}`;
                     clearInterval(interval);
                     document.getElementById('shakeBtn').disabled = false;
                     await hardSync();
                 } else {
-                    resText.innerText = `Analyzing Neural Patterns... [${count}s]`;
+                    resText.innerText = `Establishing Neural Link... [${count}s]`;
                 }
+
                 if (count > 25) { 
                     resText.innerText = "Inference finishing. Results will update in Activity Log.";
                     clearInterval(interval); 
@@ -202,3 +205,4 @@
     </script>
 </body>
 </html>
+

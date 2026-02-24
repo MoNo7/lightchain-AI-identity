@@ -37,7 +37,7 @@
 <body>
 
 <div id="topNav">
-    <div class="nav-title"><h1>Lightchain Identity Portal (Testnet)</h1><span style="font-size:0.6rem; color:#999;">v55.4</span></div>
+    <div class="nav-title"><h1>Lightchain Identity Portal (Testnet)</h1><span style="font-size:0.6rem; color:#999;">v55.5</span></div>
     <div class="token-display"><span id="tokenBalance">0.0000</span> LCAI</div>
 </div>
 
@@ -98,9 +98,8 @@
 
 <script>
     const IDENTITY_CONTRACT = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34";
-    const BALL_CONTRACT_ADDR = "0x23f61606c0B9640638f41F1Eb1Aa5Da8adD5e9e0"; 
+    const BALL_CONTRACT_ADDR = "0x9C81c6Ab3f275c8504F2462bbb730B50d496A91d"; 
 
-    // Streamlined Human-Readable ABIs
     const BALL_ABI = [
         "function getPrediction(string _userQuestion) payable",
         "function admin() view returns (address)",
@@ -134,22 +133,20 @@
 
             const [profile, ballAdmin, isIdAdmin, isFeeOn, lastPayout, lastAns] = await Promise.all([
                 identityContract.getIdentity(address).catch(() => ["User", "", false]),
-                ballContract.admin().catch(() => ""),
-                identityContract.isAdmin(address).catch(() => false),
-                ballContract.feesEnabled().catch(() => false),
-                ballContract.lastPayoutTime().catch(() => 0),
-                ballContract.latestAnswer(address).catch(() => "")
+                ballAdmin = ballContract.admin().catch(() => ""),
+                isIdAdmin = identityContract.isAdmin(address).catch(() => false),
+                isFeeOn = ballContract.feesEnabled().catch(() => false),
+                lastPayout = ballContract.lastPayoutTime().catch(() => 0),
+                lastAns = ballContract.latestAnswer(address).catch(() => "")
             ]);
 
             document.getElementById('feeStatusText').innerText = isFeeOn ? "ACTIVE (0.1 LCAI)" : "DISABLED";
             document.getElementById('feeStatusText').style.color = isFeeOn ? "var(--success)" : "var(--danger)";
 
-            // Update UI with the actual returned text from the contract debugging
             if (lastAns && lastAns !== "AI_CLUSTER_SYNC_PENDING" && lastAns !== "") {
                 document.getElementById('resultText').innerText = lastAns;
             }
 
-            // Countdown logic
             const nextPayout = Number(lastPayout) + 86400; // +1 day
             const now = Math.floor(Date.now() / 1000);
             const diff = nextPayout - now;
@@ -193,9 +190,11 @@
             ]);
             const feed = document.getElementById('txFeed');
             const combined = [...reqs.map(e => ({type:'req', text:e.args[1]})), ...ans.map(e => ({type:'ans', text:e.args[1]}))];
+            
+            // FIX: Changed "Output" and "Input" to "Answer" and "Question"
             feed.innerHTML = combined.reverse().map(item => `
                 <div class="tx-item ${item.type === 'ans' ? 'success' : 'pending'}">
-                    <strong>${item.type === 'ans' ? 'Output' : 'Input'}:</strong><br>${item.text}
+                    <strong>${item.type === 'ans' ? 'Answer' : 'Question'}:</strong><br>${item.text}
                 </div>
             `).join('');
         } catch (e) { console.error("History Scan Error:", e); }
@@ -214,7 +213,6 @@
             } catch(e) { res.innerText = "No record found."; }
         };
 
-        // FIXED Verify & Revoke logic restored
         document.getElementById('verifyBtn').onclick = async () => {
             const addr = document.getElementById('verifyAddr').value;
             if(!addr) return;

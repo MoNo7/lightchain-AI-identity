@@ -25,7 +25,7 @@
 </head>
 <body>
     <div id="topNav">
-        <div class="nav-title"><h1>Lightchain Identity Portal</h1><span style="font-size:0.7rem; color:#999;">v54.3</span></div>
+        <div class="nav-title"><h1>Lightchain Identity Portal</h1><span style="font-size:0.7rem; color:#999;">v54.5</span></div>
         <div class="token-display"><span id="tokenBalance">0.0000</span> LCAI</div>
     </div>
     <div class="content-wrapper">
@@ -104,13 +104,14 @@
         async function hardSync() {
             try {
                 const address = await signer.getAddress();
-                const [profile, balance, ballAdmin, isIdAdmin, total, rev] = await Promise.all([
+                const [profile, balance, ballAdmin, isIdAdmin, total, rev, lastAns] = await Promise.all([
                     identityContract.getIdentity(address), 
                     provider.getBalance(address),
                     ballContract.admin(),
                     identityContract.isAdmin(address),
                     ballContract.totalPredictions(),
-                    ballContract.totalRevenueEarned()
+                    ballContract.totalRevenueEarned(),
+                    ballContract.latestAnswer(address)
                 ]);
 
                 document.getElementById('walletStatus').innerText = "Active: " + address.substring(0, 10);
@@ -118,6 +119,11 @@
                 document.getElementById('globalCount').innerText = total.toString();
                 document.getElementById('totalRev').innerText = ethers.formatEther(rev);
                 
+                // If an answer exists in state, show it
+                if (lastAns && lastAns !== "" && lastAns !== "AI_CLUSTER_SYNC_PENDING") {
+                    document.getElementById('resultText').innerText = lastAns;
+                }
+
                 document.getElementById('ownerConsole').style.display = (address.toLowerCase() === ballAdmin.toLowerCase()) ? 'block' : 'none';
                 document.getElementById('adminConsole').style.display = isIdAdmin ? 'block' : 'none';
 
@@ -135,10 +141,8 @@
             provider = new ethers.BrowserProvider(window.ethereum);
             await window.ethereum.request({ method: 'eth_requestAccounts' });
             signer = await provider.getSigner();
-            
             ballContract = new ethers.Contract(BALL_CONTRACT_ADDR, BALL_ABI, signer);
             identityContract = new ethers.Contract(IDENTITY_CONTRACT, IDENTITY_ABI, signer);
-            
             document.getElementById('connectBtn').style.display = 'none';
             await hardSync();
 
@@ -154,32 +158,29 @@
 
         async function scanHistory() {
             try {
+                // Expanded block range to 10k to catch older v54 transactions
                 const filter = ballContract.filters.OracleAnswer();
-                const events = await ballContract.queryFilter(filter, -200);
+                const events = await ballContract.queryFilter(filter, -10000);
                 const feed = document.getElementById('txFeed');
                 feed.innerHTML = events.reverse().map(e => `
-                    <div class="tx-item"><strong>Vision:</strong><br>${e.args[1].substring(0,100)}...</div>
+                    <div class="tx-item"><strong>Vision:</strong><br>${e.args[1]}</div>
                 `).join('');
-            } catch(e) {}
+            } catch(e) { console.error("History Error:", e); }
         }
 
         window.onload = () => {
             document.getElementById('connectBtn').onclick = connectWallet;
-            
             document.getElementById('shakeBtn').onclick = async () => {
                 const q = document.getElementById('oracleQuestion').value;
                 if (!q) return;
                 const btn = document.getElementById('shakeBtn');
                 const resText = document.getElementById('resultText');
-                
                 btn.disabled = true;
                 resText.innerText = "Broadcasting to PoI Cluster...";
-                
                 try {
                     const tx = await ballContract.getPrediction(q, { gasLimit: 3000000 });
                     await tx.wait();
                     resText.innerText = "Anchored. Awaiting consensus...";
-                    
                     pollInterval = setInterval(async () => {
                         const currentAns = await ballContract.latestAnswer(signer.address);
                         if (currentAns && currentAns !== "AI_CLUSTER_SYNC_PENDING" && currentAns !== "") {
@@ -189,13 +190,11 @@
                             hardSync();
                         }
                     }, 5000);
-
                 } catch (e) {
                     resText.innerText = "Error: Check Identity or Gas.";
                     btn.disabled = false;
                 }
             };
-
             document.getElementById('lookupBtn').onclick = async () => {
                 const addr = document.getElementById('lookupAddr').value;
                 if(!addr) return;
@@ -206,7 +205,6 @@
                     res.innerHTML = `<strong>Name:</strong> ${data[0]}<br><strong>Bio:</strong> ${data[1]}<br><strong>Verified:</strong> ${data[2]}`;
                 } catch(e) { res.innerText = "Error querying."; }
             };
-
             document.getElementById('verifyBtn').onclick = async () => {
                 const addr = document.getElementById('verifyAddr').value;
                 const display = document.getElementById('actionResults');
@@ -216,7 +214,6 @@
                     display.innerText = "Verified!"; await hardSync();
                 } catch(e) { display.innerText = "Failed."; }
             };
-
             document.getElementById('revokeBtn').onclick = async () => {
                 const addr = document.getElementById('verifyAddr').value;
                 const display = document.getElementById('actionResults');

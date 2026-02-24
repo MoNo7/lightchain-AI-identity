@@ -25,7 +25,7 @@
 </head>
 <body>
     <div id="topNav">
-        <div class="nav-title"><h1>Lightchain Identity (Portal)</h1><span style="font-size:0.7rem; color:#999;">v43.0</span></div>
+        <div class="nav-title"><h1>Lightchain Identity (Portal)</h1><span style="font-size:0.7rem; color:#999;">v44.0</span></div>
         <div class="token-display"><span id="tokenBalance">0.0000</span> LCAI</div>
     </div>
     <div class="content-wrapper">
@@ -36,12 +36,28 @@
                 <button id="connectBtn" class="primary-btn">Connect Wallet</button>
                 <button id="disconnectBtn" class="primary-btn" style="display:none; background:#6c757d;">Disconnect</button>
             </div>
+            
+            <div id="adminConsole" class="card" style="display:none;">
+                <h4 style="color:var(--admin); margin: 0 0 10px 0;">Identity Admin</h4>
+                <input type="text" id="lookupAddr" placeholder="Lookup 0x...">
+                <button id="lookupBtn" class="small-btn" style="width:100%; background: var(--primary); margin-bottom:12px;">Query Status</button>
+                <div id="lookupResults" style="display:none; padding:10px; font-size:0.75rem; background:#f0f7ff; margin-bottom:10px; border-radius:6px; border: 1px solid #b8daff;"></div>
+                <hr style="border:0; border-top:1px solid #eee; margin:15px 0;">
+                <input type="text" id="verifyAddr" placeholder="Target 0x...">
+                <div style="display:flex; gap: 5px; margin-bottom:10px;">
+                    <button id="verifyBtn" class="small-btn" style="background:var(--success);">Verify</button>
+                    <button id="revokeBtn" class="small-btn" style="background:var(--admin);">Revoke</button>
+                </div>
+                <div id="actionResults" style="display:none; padding:10px; font-size:0.75rem; background:#e8f5e9; border-radius:6px; border: 1px solid #c3e6cb; color:#155724;"></div>
+            </div>
+
             <div id="ownerConsole" class="card" style="display:none; border: 1px solid var(--owner);">
                 <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px;"><h4 style="color:var(--owner); margin: 0;">Oracle Owner</h4><button id="refreshLogBtn" class="small-btn" style="padding:2px 6px; flex:none;">Sync</button></div>
                 <div style="margin-bottom:10px; font-size:0.8rem;">Revenue: <strong id="totalRevenueDisplay" style="color:var(--success);">0.000 LCAI</strong></div>
                 <button id="toggleFeesBtn" class="small-btn" style="width:100%; background:var(--owner);">Toggle Fees</button>
             </div>
         </div>
+
         <div class="main-utility-area">
             <div id="oracleUI" style="display:none; width: 100%; max-width: 600px;">
                 <div class="card" style="text-align: center; border-top: 4px solid var(--success);">
@@ -52,16 +68,18 @@
                 </div>
             </div>
         </div>
+
         <div id="rightSidebar">
             <div class="card"><h4 style="margin:0; color: #0056b3; font-size:0.9rem;">Network Metrics</h4><div style="font-size: 0.8rem; margin-top:10px;">Total Queries: <strong id="globalCount">0</strong></div><hr style="border:0; border-top:1px solid #eee; margin:15px 0;"><h4 style="margin:0 0 10px 0; font-size:0.75rem; color:#999;">Activity Log:</h4><div id="txFeed" style="max-height: 500px; overflow-y: auto;"></div></div>
         </div>
     </div>
+
     <script>
         const IDENTITY_CONTRACT = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34";
-        const BALL_CONTRACT_ADDR = "0xde634F2CEea512397c11e55cCA523981CDc7D071"; 
+        const BALL_CONTRACT_ADDR = "0x0F2F656Fc3c4544AA1Cf8587ec36910001365FF7"; 
 
         const BALL_ABI = [{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"string","name":"question","type":"string"},{"indexed":false,"internalType":"string","name":"answer","type":"string"}],"name":"OracleAnswer","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"string","name":"question","type":"string"}],"name":"InferenceRequested","type":"event"},{"inputs":[{"internalType":"string","name":"_userQuestion","type":"string"}],"name":"getPrediction","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"totalPredictions","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"totalRevenueEarned","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"admin","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"bool","name":"_enabled","type":"bool"}],"name":"toggleFees","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"feesEnabled","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"latestAnswer","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"}];
-        const IDENTITY_ABI = [{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"getIdentity","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"isAdmin","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"}];
+        const IDENTITY_ABI = [{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"getIdentity","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"isAdmin","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"verifyIdentity","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"revokeVerification","outputs":[],"stateMutability":"nonpayable","type":"function"}];
 
         let signer, ballContract, identityContract, provider;
 
@@ -85,6 +103,32 @@
             });
         }
 
+        async function hardSync() {
+            const address = await signer.getAddress();
+            const [total, ballAdmin, isIdentityAdmin, profile, revenue] = await Promise.all([
+                ballContract.totalPredictions(), 
+                ballContract.admin(), 
+                identityContract.isAdmin(address), 
+                identityContract.getIdentity(address), 
+                ballContract.totalRevenueEarned()
+            ]);
+
+            document.getElementById('walletStatus').innerText = "Connected: " + address.substring(0, 8);
+            document.getElementById('globalCount').innerText = total.toString();
+            document.getElementById('totalRevenueDisplay').innerText = parseFloat(ethers.formatEther(revenue)).toFixed(3) + " LCAI";
+            
+            // PANEL VISIBILITY RULES
+            document.getElementById('ownerConsole').style.display = (address.toLowerCase() === ballAdmin.toLowerCase()) ? 'block' : 'none';
+            document.getElementById('adminConsole').style.display = isIdentityAdmin ? 'block' : 'none';
+
+            if (profile[2]) {
+                document.getElementById('oracleUI').style.display = 'block';
+                document.getElementById('userStatusHeader').style.display = 'block';
+                document.getElementById('userNameDisplay').innerHTML = `${profile[0]} <span class="mimo-badge">✓</span>`;
+            }
+            scanChainHistory();
+        }
+
         async function pollForResult() {
             const resText = document.getElementById('resultText');
             let count = 0;
@@ -101,23 +145,6 @@
                 }
                 if (count > 20) { clearInterval(interval); document.getElementById('shakeBtn').disabled = false; }
             }, 2000);
-        }
-
-        async function hardSync() {
-            const address = await signer.getAddress();
-            const [total, owner, profile, revenue] = await Promise.all([
-                ballContract.totalPredictions(), ballContract.admin(), identityContract.getIdentity(address), ballContract.totalRevenueEarned()
-            ]);
-            document.getElementById('walletStatus').innerText = "Connected: " + address.substring(0, 8);
-            document.getElementById('globalCount').innerText = total.toString();
-            document.getElementById('totalRevenueDisplay').innerText = parseFloat(ethers.formatEther(revenue)).toFixed(3) + " LCAI";
-            document.getElementById('ownerConsole').style.display = (address.toLowerCase() === owner.toLowerCase()) ? 'block' : 'none';
-            if (profile[2]) {
-                document.getElementById('oracleUI').style.display = 'block';
-                document.getElementById('userStatusHeader').style.display = 'block';
-                document.getElementById('userNameDisplay').innerHTML = `${profile[0]} <span class="mimo-badge">✓</span>`;
-            }
-            scanChainHistory();
         }
 
         async function scanChainHistory() {
@@ -140,6 +167,27 @@
                     await tx.wait();
                     pollForResult();
                 } catch (e) { document.getElementById('shakeBtn').disabled = false; }
+            };
+
+            // Admin Logic
+            document.getElementById('lookupBtn').onclick = async () => {
+                const addr = document.getElementById('lookupAddr').value;
+                const res = await identityContract.getIdentity(addr);
+                const display = document.getElementById('lookupResults');
+                display.style.display = 'block';
+                display.innerHTML = `<strong>User:</strong> ${res[0]}<br><strong>Verified:</strong> ${res[2] ? '✅' : '❌'}`;
+            };
+
+            document.getElementById('verifyBtn').onclick = async () => {
+                const addr = document.getElementById('verifyAddr').value;
+                await (await identityContract.verifyIdentity(addr)).wait();
+                await hardSync();
+            };
+
+            document.getElementById('revokeBtn').onclick = async () => {
+                const addr = document.getElementById('verifyAddr').value;
+                await (await identityContract.revokeVerification(addr)).wait();
+                await hardSync();
             };
         };
     </script>

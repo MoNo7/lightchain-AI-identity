@@ -169,23 +169,21 @@
 
         async function scanHistory() {
             try {
-                // Fetching last 5000 blocks to prevent RPC timeouts
                 const filter = ballContract.filters.OracleAnswer();
-                const events = await ballContract.queryFilter(filter, -5000);
+                const events = await ballContract.queryFilter(filter, -10000);
                 const feed = document.getElementById('txFeed');
                 
                 if (events.length === 0) {
-                    feed.innerHTML = '<div style="text-align:center; color:#999; font-style:italic; padding: 10px;">No completed inferences in recent blocks. The AIVM Testnet cluster may be congested.</div>';
+                    // Keep the optimistic "Pending" request if one exists, otherwise show status
+                    const currentPending = feed.innerHTML.includes("pending") ? feed.innerHTML : "";
+                    feed.innerHTML = currentPending + '<div style="text-align:center; color:#999; font-size:0.7rem; padding: 10px;">Searching last 10k blocks... No finalized visions found yet.</div>';
                 } else {
                     feed.innerHTML = events.reverse().map(e => `
                         <div class="tx-item success"><strong>Completed Vision:</strong><br>${e.args[1]}</div>
                     `).join('');
                 }
-            } catch(e) { 
-                console.error("History Error:", e); 
-            }
+            } catch(e) { console.error("History Error:", e); }
         }
-
         window.onload = () => {
             document.getElementById('connectBtn').onclick = connectWallet;
 
@@ -264,3 +262,4 @@
     </script>
 </body>
 </html>
+

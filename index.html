@@ -25,7 +25,7 @@
 <body>
 
 <div id="topNav">
-    <div class="nav-title"><h1>Lightchain Identity Portal (Testnet)</h1><span style="font-size:0.6rem; color:#999;">v55.8</span></div>
+    <div class="nav-title"><h1>Lightchain Identity Portal (Testnet)</h1><span style="font-size:0.6rem; color:#999;">v55.9</span></div>
     <div class="token-display"><span id="tokenBalance">0.0000</span> LCAI</div>
 </div>
 
@@ -68,7 +68,7 @@
         <div id="oracleUI" style="display:none; width: 100%; max-width: 550px;">
             <div class="card" style="text-align: center; border-top: 4px solid var(--success);">
                 <h2 style="font-size: 1.3rem; margin-top: 0;">AIVM Oracle</h2>
-                <input type="text" id="oracleQuestion" placeholder="What is Lightchain?">
+                <input type="text" id="oracleQuestion" placeholder="Consult the cluster...">
                 <button id="shakeBtn" class="primary-btn" style="background: var(--success);">Consult AIVM</button>
                 <div class="result-window" id="resultText">Awaiting inference...</div>
             </div>
@@ -85,7 +85,7 @@
 
 <script>
     const IDENTITY_CONTRACT = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34";
-    const BALL_CONTRACT_ADDR = "0x426Ff66D278e2407C75039d409b7381046A56663";
+    const BALL_CONTRACT_ADDR = "0x25ECCf85c3364bAfd517882Bc1c306C5A05A97a4"; 
 
     const BALL_ABI = ["function getPrediction(string) payable", "function admin() view returns (address)", "function feesEnabled() view returns (bool)", "function lastPayoutTime() view returns (uint256)", "function toggleFees(bool)", "function latestAnswer(address) view returns (string)", "event OracleRequest(address indexed, string)", "event OracleAnswer(address indexed, string)"];
     const IDENTITY_ABI = ["function getIdentity(address) view returns (string, string, bool)", "function isAdmin(address) view returns (bool)", "function verifyIdentity(address)", "function revokeVerification(address)"];
@@ -111,7 +111,10 @@
 
             const [profile, ballAdmin, isIdAdmin, isFeeOn, lastPayout, lastAns] = res;
 
-            if (lastAns && lastAns !== "") document.getElementById('resultText').innerText = lastAns;
+            if (lastAns && lastAns !== "" && lastAns !== "AI_CLUSTER_SYNC_PENDING") {
+                document.getElementById('resultText').innerText = lastAns;
+            }
+            
             const diff = (Number(lastPayout) + 86400) - Math.floor(Date.now() / 1000);
             document.getElementById('releaseCountdown').innerText = (diff <= 0) ? "Ready" : `${Math.floor(diff/3600)}h remaining`;
 
@@ -133,6 +136,17 @@
         signer = await provider.getSigner();
         ballContract = new ethers.Contract(BALL_CONTRACT_ADDR, BALL_ABI, signer);
         identityContract = new ethers.Contract(IDENTITY_CONTRACT, IDENTITY_ABI, signer);
+        
+        // LIVE LISTENER: Automatically updates UI when the AI finishes
+        ballContract.on("OracleAnswer", (user, answer) => {
+            signer.getAddress().then(addr => {
+                if(user.toLowerCase() === addr.toLowerCase() && answer !== "AI_CLUSTER_SYNC_PENDING") {
+                    document.getElementById('resultText').innerText = answer;
+                    hardSync(); // Refresh logs
+                }
+            });
+        });
+
         document.getElementById('connectBtn').style.display = 'none';
         await hardSync();
     }
@@ -143,10 +157,12 @@
             ballContract.queryFilter(ballContract.filters.OracleAnswer(), -2000).catch(() => [])
         ]);
         const combined = [...reqs.map(e => ({type:'req', text:e.args[1]})), ...ans.map(e => ({type:'ans', text:e.args[1]}))];
-        document.getElementById('txFeed').innerHTML = combined.reverse().map(item => `
-            <div class="tx-item" style="border-left: 4px solid ${item.type === 'ans' ? 'var(--success)' : 'var(--warning)'}; background: ${item.type === 'ans' ? '#f6fff6' : '#fff9f0'};">
+        document.getElementById('txFeed').innerHTML = combined.reverse().map(item => {
+            if (item.text === "AI_CLUSTER_SYNC_PENDING") return ""; // Skip the "Pending" logs in history
+            return `<div class="tx-item" style="border-left: 4px solid ${item.type === 'ans' ? 'var(--success)' : 'var(--warning)'}; background: ${item.type === 'ans' ? '#f6fff6' : '#fff9f0'};">
                 <strong>${item.type === 'ans' ? 'Answer' : 'Question'}:</strong><br>${item.text}
-            </div>`).join('');
+            </div>`;
+        }).join('');
     }
 
     window.onload = () => {
@@ -166,8 +182,9 @@
             try { await (await identityContract.verifyIdentity(document.getElementById('verifyAddr').value)).wait(); out.innerText = "Success!"; await hardSync(); } catch(e) { out.innerText = "Failed."; }
         };
         document.getElementById('shakeBtn').onclick = async () => {
-            document.getElementById('resultText').innerText = "Processing...";
-            try { await (await ballContract.getPrediction(document.getElementById('oracleQuestion').value, { value: ethers.parseEther("0.1"), gasLimit: 5000000 })).wait(); await hardSync(); } catch(e) { document.getElementById('resultText').innerText = "Error."; }
+            document.getElementById('resultText').innerText = "Broadcasting to PoI Cluster...";
+            try { await (await ballContract.getPrediction(document.getElementById('oracleQuestion').value, { value: ethers.parseEther("0.1"), gasLimit: 5000000 })).wait(); } 
+            catch(e) { document.getElementById('resultText').innerText = "Consult Error."; }
         };
     };
 </script>

@@ -25,7 +25,7 @@
 </head>
 <body>
     <div id="topNav">
-        <div class="nav-title"><h1>Lightchain Identity (Portal)</h1><span style="font-size:0.7rem; color:#999;">v32.0</span></div>
+        <div class="nav-title"><h1>Lightchain Identity (Portal)</h1><span style="font-size:0.7rem; color:#999;">v33.0</span></div>
         <div class="token-display"><span id="tokenBalance">0.0000</span> LCAI</div>
     </div>
     <div class="content-wrapper">
@@ -77,7 +77,7 @@
 
     <script>
         const IDENTITY_CONTRACT = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34";
-        const BALL_CONTRACT_ADDR = "0xd837B9cD6f25d80d7b4bA421Ca36C0e2B3f9D397"; 
+        const BALL_CONTRACT_ADDR = "0xd4C9Ada3B12D100f8F03bA7D54d909A78646954a"; 
 
         const BALL_ABI = [{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"string","name":"question","type":"string"},{"indexed":false,"internalType":"string","name":"answer","type":"string"}],"name":"OracleAnswer","type":"event"},{"inputs":[{"internalType":"string","name":"_userQuestion","type":"string"}],"name":"getPrediction","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[],"name":"totalPredictions","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"totalRevenueEarned","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"admin","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"bool","name":"_enabled","type":"bool"}],"name":"toggleFees","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"feesEnabled","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"latestAnswer","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"}];
         const IDENTITY_ABI = [{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"getIdentity","outputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"string","name":"","type":"string"},{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"isAdmin","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"verifyIdentity","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"_userAddress","type":"address"}],"name":"revokeVerification","outputs":[],"stateMutability":"nonpayable","type":"function"}];
@@ -137,7 +137,7 @@
                     document.getElementById('shakeBtn').disabled = false;
                     await hardSync();
                 } else if (pollCount > 15) {
-                    resText.innerText = "Inference finalising... check history in 30s.";
+                    resText.innerText = "Processing... check Activity Log soon.";
                 }
             }, 2000);
         }
@@ -171,14 +171,14 @@
                     const isFeesOn = await ballContract.feesEnabled();
                     const val = isFeesOn ? ethers.parseEther("0.020") : 0n;
                     resText.innerText = "Consulting AIVM Engine...";
-                    // Dynamic gas consult (Uses RPC settings, NO 10 GWEI hardcode)
-                    const tx = await ballContract.getPrediction(q, { value: val, gasLimit: 12000000 });
+                    
+                    // v33.0: Lower gasLimit (5,000,000) to stay under block CAP
+                    const tx = await ballContract.getPrediction(q, { value: val, gasLimit: 5000000 });
                     await tx.wait();
                     resText.innerText = "Decoding AI response...";
                     await pollForResult();
                 } catch (e) {
-                    // This will now catch the "AIVM_NODE_RETURNED_NULL" revert from Solidity
-                    resText.innerText = "AIVM Node Busy. Try a different query.";
+                    resText.innerText = "AIVM Cluster busy or Gas Cap exceeded.";
                     btn.disabled = false;
                 }
             };
@@ -195,7 +195,7 @@
             document.getElementById('verifyBtn').onclick = async () => {
                 const addr = document.getElementById('verifyAddr').value;
                 const display = document.getElementById('actionResults');
-                display.style.display = 'block'; display.innerText = "Sending Verification ...";
+                display.style.display = 'block'; display.innerText = "Sending Verification (10 Gwei)...";
                 try {
                     await (await identityContract.verifyIdentity(addr, verifyGasSettings)).wait();
                     display.innerText = "Verification Success!"; await hardSync();

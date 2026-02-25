@@ -20,12 +20,14 @@
         .result-window { margin-top: 20px; padding: 15px; background: #fdfdfd; border: 2px dashed #cbd5e0; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 0.95rem; color: #333; line-height: 1.4; min-height: 80px; word-break: break-word; }
         .tx-item { font-size: 0.75rem; color: #444; padding: 10px; border-bottom: 1px solid #f0f0f0; background: #fafafa; border-radius: 6px; margin-bottom: 8px; }
         input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 8px; box-sizing: border-box; font-size: 0.8rem; }
+        .pulsing-text { animation: pulse 1.5s infinite; color: var(--warning); font-weight: bold; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
     </style>
 </head>
 <body>
 
 <div id="topNav">
-    <div class="nav-title"><h1>Lightchain Identity Portal (Testnet)</h1><span style="font-size:0.6rem; color:#999;">v55.9</span></div>
+    <div class="nav-title"><h1>Lightchain Identity Portal (Testnet)</h1><span style="font-size:0.6rem; color:#999;">v56.0 (Async)</span></div>
     <div class="token-display"><span id="tokenBalance">0.0000</span> LCAI</div>
 </div>
 
@@ -85,9 +87,10 @@
 
 <script>
     const IDENTITY_CONTRACT = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34";
-    const BALL_CONTRACT_ADDR = "0x25ECCf85c3364bAfd517882Bc1c306C5A05A97a4"; 
 
-    const BALL_ABI = ["function getPrediction(string) payable", "function admin() view returns (address)", "function feesEnabled() view returns (bool)", "function lastPayoutTime() view returns (uint256)", "function toggleFees(bool)", "function latestAnswer(address) view returns (string)", "event OracleRequest(address indexed, string)", "event OracleAnswer(address indexed, string)"];
+    const BALL_CONTRACT_ADDR = "0xc82c997e8A2098286CEf62584C5e4Bce747C2e57"; 
+
+    const BALL_ABI = ["function getPrediction(string) payable", "function fulfillOracle(address, string)", "function admin() view returns (address)", "function feesEnabled() view returns (bool)", "function lastPayoutTime() view returns (uint256)", "function toggleFees(bool)", "function latestAnswer(address) view returns (string)", "event OracleRequest(address indexed, string)", "event OracleAnswer(address indexed, string)"];
     const IDENTITY_ABI = ["function getIdentity(address) view returns (string, string, bool)", "function isAdmin(address) view returns (bool)", "function verifyIdentity(address)", "function revokeVerification(address)"];
 
     let signer, ballContract, identityContract, provider;
@@ -111,8 +114,12 @@
 
             const [profile, ballAdmin, isIdAdmin, isFeeOn, lastPayout, lastAns] = res;
 
-            if (lastAns && lastAns !== "" && lastAns !== "AI_CLUSTER_SYNC_PENDING") {
-                document.getElementById('resultText').innerText = lastAns;
+            if (lastAns && lastAns !== "") {
+                if (lastAns === "AI_CLUSTER_SYNC_PENDING") {
+                    document.getElementById('resultText').innerHTML = '<span class="pulsing-text">AI Cluster Processing...</span>';
+                } else {
+                    document.getElementById('resultText').innerText = lastAns;
+                }
             }
             
             const diff = (Number(lastPayout) + 86400) - Math.floor(Date.now() / 1000);
@@ -137,12 +144,12 @@
         ballContract = new ethers.Contract(BALL_CONTRACT_ADDR, BALL_ABI, signer);
         identityContract = new ethers.Contract(IDENTITY_CONTRACT, IDENTITY_ABI, signer);
         
-        // LIVE LISTENER: Automatically updates UI when the AI finishes
+        // ✨ LIVE LISTENER: Automatically updates UI when the AI finishes
         ballContract.on("OracleAnswer", (user, answer) => {
             signer.getAddress().then(addr => {
                 if(user.toLowerCase() === addr.toLowerCase() && answer !== "AI_CLUSTER_SYNC_PENDING") {
                     document.getElementById('resultText').innerText = answer;
-                    hardSync(); // Refresh logs
+                    hardSync(); // Refresh logs and balances
                 }
             });
         });
@@ -182,8 +189,11 @@
             try { await (await identityContract.verifyIdentity(document.getElementById('verifyAddr').value)).wait(); out.innerText = "Success!"; await hardSync(); } catch(e) { out.innerText = "Failed."; }
         };
         document.getElementById('shakeBtn').onclick = async () => {
-            document.getElementById('resultText').innerText = "Broadcasting to PoI Cluster...";
-            try { await (await ballContract.getPrediction(document.getElementById('oracleQuestion').value, { value: ethers.parseEther("0.1"), gasLimit: 5000000 })).wait(); } 
+            document.getElementById('resultText').innerHTML = '<span class="pulsing-text">Broadcasting to AI Cluster...</span>';
+            try { 
+                await (await ballContract.getPrediction(document.getElementById('oracleQuestion').value, { value: ethers.parseEther("0.1"), gasLimit: 5000000 })).wait();
+                document.getElementById('resultText').innerHTML = '<span class="pulsing-text">AI Cluster Processing...</span>';
+            } 
             catch(e) { document.getElementById('resultText').innerText = "Consult Error."; }
         };
     };

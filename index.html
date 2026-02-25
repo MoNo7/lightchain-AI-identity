@@ -27,7 +27,7 @@
 <body>
 
 <div id="topNav">
-    <div class="nav-title"><h1>Lightchain Identity Portal (Testnet)</h1><span style="font-size:0.6rem; color:#999;">v56.2 (Async)</span></div>
+    <div class="nav-title"><h1>Lightchain Identity Portal (Testnet)</h1><span style="font-size:0.6rem; color:#999;">v56.3 (Ready)</span></div>
     <div class="token-display"><span id="tokenBalance">0.0000</span> LCAI</div>
 </div>
 
@@ -88,7 +88,7 @@
 <script>
     const IDENTITY_CONTRACT = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34";
 
-    const BALL_CONTRACT_ADDR = "0x261e25DAf9de322551567cA371bBEd6E95CE50f3"; 
+    const BALL_CONTRACT_ADDR = "0xCe6e831B2b15D801D6b170489F371B769788b1d0"; 
 
     const BALL_ABI = ["function getPrediction(string) payable", "function fulfillOracle(address, string)", "function admin() view returns (address)", "function feesEnabled() view returns (bool)", "function lastPayoutTime() view returns (uint256)", "function toggleFees(bool)", "function latestAnswer(address) view returns (string)", "event OracleRequest(address indexed, string, bytes32)", "event OracleAnswer(address indexed, string)"];
     const IDENTITY_ABI = ["function getIdentity(address) view returns (string, string, bool)", "function isAdmin(address) view returns (bool)", "function verifyIdentity(address)", "function revokeVerification(address)"];
@@ -144,12 +144,11 @@
         ballContract = new ethers.Contract(BALL_CONTRACT_ADDR, BALL_ABI, signer);
         identityContract = new ethers.Contract(IDENTITY_CONTRACT, IDENTITY_ABI, signer);
         
-        // ✨ LIVE LISTENER: Automatically updates UI when the AI finishes
         ballContract.on("OracleAnswer", (user, answer) => {
             signer.getAddress().then(addr => {
                 if(user.toLowerCase() === addr.toLowerCase() && answer !== "AI_CLUSTER_SYNC_PENDING") {
                     document.getElementById('resultText').innerText = answer;
-                    hardSync(); // Refresh logs and balances
+                    hardSync();
                 }
             });
         });
@@ -191,14 +190,16 @@
         document.getElementById('shakeBtn').onclick = async () => {
             document.getElementById('resultText').innerHTML = '<span class="pulsing-text">Broadcasting to AI Router...</span>';
             try { 
-                // Increased gasLimit for Router call
+                // Using 0.1 LCAI fee for Testnet workers
                 await (await ballContract.getPrediction(document.getElementById('oracleQuestion').value, { value: ethers.parseEther("0.1"), gasLimit: 6000000 })).wait();
                 document.getElementById('resultText').innerHTML = '<span class="pulsing-text">AI Cluster Processing...</span>';
             } 
-            catch(e) { document.getElementById('resultText').innerText = "Consult Error."; }
+            catch(e) { 
+                console.error(e);
+                document.getElementById('resultText').innerText = "Consult Error."; 
+            }
         };
     };
 </script>
 </body>
 </html>
-

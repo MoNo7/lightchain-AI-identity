@@ -27,7 +27,7 @@
 <body>
 
 <div id="topNav">
-    <div class="nav-title"><h1>Lightchain Identity Portal (Testnet)</h1><span style="font-size:0.6rem; color:#999;">v56.1</span></div>
+    <div class="nav-title"><h1>Lightchain Identity Portal (Testnet)</h1><span style="font-size:0.6rem; color:#999;">v56.2 (Async)</span></div>
     <div class="token-display"><span id="tokenBalance">0.0000</span> LCAI</div>
 </div>
 
@@ -87,9 +87,10 @@
 
 <script>
     const IDENTITY_CONTRACT = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34";
-    const BALL_CONTRACT_ADDR = "0x0D16781ca179Ce0D5562A74F128Ce06D9409A212"; 
 
-    const BALL_ABI = ["function getPrediction(string) payable", "function fulfillOracle(address, string)", "function admin() view returns (address)", "function feesEnabled() view returns (bool)", "function lastPayoutTime() view returns (uint256)", "function toggleFees(bool)", "function latestAnswer(address) view returns (string)", "event OracleRequest(address indexed, string)", "event OracleAnswer(address indexed, string)"];
+    const BALL_CONTRACT_ADDR = "0x9C7C24776bA9B5a0c5Ef1e39bcE104B059f8D359"; 
+
+    const BALL_ABI = ["function getPrediction(string) payable", "function fulfillOracle(address, string)", "function admin() view returns (address)", "function feesEnabled() view returns (bool)", "function lastPayoutTime() view returns (uint256)", "function toggleFees(bool)", "function latestAnswer(address) view returns (string)", "event OracleRequest(address indexed, string, bytes32)", "event OracleAnswer(address indexed, string)"];
     const IDENTITY_ABI = ["function getIdentity(address) view returns (string, string, bool)", "function isAdmin(address) view returns (bool)", "function verifyIdentity(address)", "function revokeVerification(address)"];
 
     let signer, ballContract, identityContract, provider;
@@ -164,7 +165,7 @@
         ]);
         const combined = [...reqs.map(e => ({type:'req', text:e.args[1]})), ...ans.map(e => ({type:'ans', text:e.args[1]}))];
         document.getElementById('txFeed').innerHTML = combined.reverse().map(item => {
-            if (item.text === "AI_CLUSTER_SYNC_PENDING") return ""; // Skip the "Pending" logs in history
+            if (item.text === "AI_CLUSTER_SYNC_PENDING") return "";
             return `<div class="tx-item" style="border-left: 4px solid ${item.type === 'ans' ? 'var(--success)' : 'var(--warning)'}; background: ${item.type === 'ans' ? '#f6fff6' : '#fff9f0'};">
                 <strong>${item.type === 'ans' ? 'Answer' : 'Question'}:</strong><br>${item.text}
             </div>`;
@@ -188,9 +189,10 @@
             try { await (await identityContract.verifyIdentity(document.getElementById('verifyAddr').value)).wait(); out.innerText = "Success!"; await hardSync(); } catch(e) { out.innerText = "Failed."; }
         };
         document.getElementById('shakeBtn').onclick = async () => {
-            document.getElementById('resultText').innerHTML = '<span class="pulsing-text">Broadcasting to AI Cluster...</span>';
+            document.getElementById('resultText').innerHTML = '<span class="pulsing-text">Broadcasting to AI Router...</span>';
             try { 
-                await (await ballContract.getPrediction(document.getElementById('oracleQuestion').value, { value: ethers.parseEther("0.1"), gasLimit: 5000000 })).wait();
+                // Increased gasLimit for Router call
+                await (await ballContract.getPrediction(document.getElementById('oracleQuestion').value, { value: ethers.parseEther("0.1"), gasLimit: 6000000 })).wait();
                 document.getElementById('resultText').innerHTML = '<span class="pulsing-text">AI Cluster Processing...</span>';
             } 
             catch(e) { document.getElementById('resultText').innerText = "Consult Error."; }
@@ -199,5 +201,3 @@
 </script>
 </body>
 </html>
-
-

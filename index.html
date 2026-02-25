@@ -162,9 +162,11 @@
                     await tx.wait();
                     box.innerHTML = '<span class="pulsing-text">AIVM Cluster Inference in progress...</span>';
                     await hardSync();
-                } catch(e) { 
-                    box.innerHTML = `<span style="color:var(--danger)">Error: ${e.reason || "Verify YOUR CONTRACT in the Admin panel."}</span>`; 
-                }
+            } catch(e) { 
+                console.error("Inference Error:", e);
+                // This will show the actual revert reason from the blockchain
+                box.innerHTML = `<span style="color:var(--danger)">Error: ${e.reason || e.message || "Check Console"}</span>`; 
+            }
             };
 
             document.getElementById('lookupBtn').onclick = async () => {
@@ -202,6 +204,7 @@
     </script>
 </body>
 </html>
+
 
 
 

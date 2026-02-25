@@ -25,169 +25,191 @@
     </style>
 </head>
 <body>
-
-<div id="topNav">
-    <div class="nav-title"><h1>Lightchain Identity Portal (Testnet)</h1><span style="font-size:0.6rem; color:#999;">v56.8</span></div>
-    <div class="token-display"><span id="tokenBalance">0.0000</span> LCAI</div>
-</div>
-
-<div class="content-wrapper">
-    <div id="leftSidebar">
-        <div class="card" style="text-align: center;">
-            <div id="userProfile" style="display:none; margin-bottom:15px;">
-                <div id="userNameDisplay" style="font-size: 1.2rem; font-weight:800; color: #0056b3; margin-bottom: 5px;"></div>
-                <div style="font-size: 0.65rem; color: var(--success); font-weight: bold;">IDENTITY VERIFIED</div>
+    <div id="topNav">
+        <div class="nav-title"><h1>Lightchain Identity Portal</h1><span style="font-size:0.6rem; color:#999;">PRO MODE v57.1</span></div>
+        <div class="token-display"><span id="tokenBalance">0.0000</span> LCAI</div>
+    </div>
+    <div class="content-wrapper">
+        <div id="leftSidebar">
+            <div class="card" style="text-align: center;">
+                <div id="userProfile" style="display:none; margin-bottom:15px;">
+                    <div id="userNameDisplay" style="font-size: 1.2rem; font-weight:800; color: #0056b3; margin-bottom: 5px;"></div>
+                    <div style="font-size: 0.65rem; color: var(--success); font-weight: bold;">IDENTITY VERIFIED</div>
+                </div>
+                <button id="connectBtn" class="primary-btn">Connect Wallet</button>
             </div>
-            <button id="connectBtn" class="primary-btn">Connect Wallet</button>
+
+            <div id="adminConsole" class="card" style="display:none; border-top: 4px solid var(--admin-blue); background: #f8fbff;">
+                <h4 style="color:var(--admin-blue); margin: 0 0 10px 0; font-size: 0.9rem;">Identity Management</h4>
+                <input type="text" id="lookupAddr" placeholder="Lookup 0x...">
+                <button id="lookupBtn" class="primary-btn" style="padding: 8px; font-size: 0.75rem; background: var(--admin-blue);">Query Status</button>
+                <div id="lookupResults" style="display:none; padding:12px; font-size:0.75rem; background:#fff; margin-top:10px; border-radius:8px; border: 1px solid #b8daff; line-height:1.6;"></div>
+                <hr style="border:0; border-top:1px solid #eee; margin:15px 0;">
+                <input type="text" id="verifyAddr" placeholder="Target 0x...">
+                <div style="display:flex; gap: 5px;">
+                    <button id="verifyBtn" class="small-btn" style="background:var(--success);">Verify</button>
+                    <button id="revokeBtn" class="small-btn" style="background:var(--danger);">Revoke</button>
+                </div>
+            </div>
+
+            <div id="ownerSection" class="card" style="display:none; border-top: 4px solid var(--owner); background: #fcfaff;">
+                <h4 style="color:var(--owner); margin:0; font-size:0.9rem;">Contract Owner</h4>
+                <div id="ownerAddrDisplay" style="font-size:0.65rem; word-break:break-all; margin-top:10px; color:#555;"></div>
+            </div>
         </div>
 
-        <div id="adminConsole" class="card" style="display:none; border-top: 4px solid var(--admin-blue); background: #f8fbff;">
-            <h4 style="color:var(--admin-blue); margin: 0 0 10px 0; font-size: 0.9rem;">Identity Admin</h4>
-            <input type="text" id="lookupAddr" placeholder="Lookup 0x...">
-            <button id="lookupBtn" class="primary-btn" style="padding: 8px; font-size: 0.75rem; background: var(--admin-blue);">Query Status</button>
-            <div id="lookupResults" style="display:none; padding:12px; font-size:0.75rem; background:#fff; margin-top:10px; border-radius:8px; border: 1px solid #b8daff; line-height:1.6;"></div>
-            <hr style="border:0; border-top:1px solid #eee; margin:15px 0;">
-            <input type="text" id="verifyAddr" placeholder="Target 0x...">
-            <div style="display:flex; gap: 5px;">
-                <button id="verifyBtn" class="small-btn" style="background:var(--success);">Verify</button>
-                <button id="revokeBtn" class="small-btn" style="background:var(--danger);">Revoke</button>
+        <div class="main-utility-area">
+            <div id="oracleUI" style="display:none; width: 100%; max-width: 550px;">
+                <div class="card" style="text-align: center; border-top: 4px solid var(--success);">
+                    <h2 style="font-size: 1.3rem; margin-top: 0;">AIVM Pro Oracle</h2>
+                    <input type="text" id="oracleQuestion" placeholder="Consult the cluster...">
+                    <button id="shakeBtn" class="primary-btn" style="background: var(--success);">Request Inference</button>
+                    <div class="result-window" id="resultText">Awaiting inference...</div>
+                </div>
             </div>
-            <div id="actionResults" style="display:none; padding:10px; font-size:0.75rem; background:#e8f5e9; border-radius:8px; margin-top:10px; border: 1px solid var(--success); text-align:center;"></div>
+        </div>
+
+        <div id="rightSidebar">
+            <div class="card">
+                <h4 style="margin:0; color: #0056b3; font-size:0.85rem;">Cluster Logs</h4>
+                <div id="txFeed" style="max-height: 550px; overflow-y: auto; margin-top:10px;"></div>
+            </div>
         </div>
     </div>
 
-    <div class="main-utility-area">
-        <div id="oracleUI" style="display:none; width: 100%; max-width: 550px;">
-            <div class="card" style="text-align: center; border-top: 4px solid var(--success);">
-                <h2 style="font-size: 1.3rem; margin-top: 0;">AIVM Oracle</h2>
-                <input type="text" id="oracleQuestion" placeholder="Consult the cluster...">
-                <button id="shakeBtn" class="primary-btn" style="background: var(--success);">Consult AIVM</button>
-                <div class="result-window" id="resultText">Awaiting inference...</div>
-            </div>
-        </div>
-    </div>
+    <script>
+        const IDENTITY_CONTRACT = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34";
+        // --- IMPORTANT: UPDATE THIS TO YOUR LATEST DEPLOYED MAGIC8BALL ADDRESS ---
+        const BALL_CONTRACT_ADDR = "0x5A8E89349BaEC38cF2d82e8B4591e7062"; 
+        
+        const BALL_ABI = [
+            "function getPrediction(string) payable",
+            "function admin() view returns (address)",
+            "function latestAnswer(address) view returns (string)",
+            "event OracleRequest(address indexed, string, bytes32)",
+            "event OracleAnswer(address indexed, string)"
+        ];
+        const IDENTITY_ABI = [
+            "function getIdentity(address) view returns (string, string, bool)",
+            "function isAdmin(address) view returns (bool)",
+            "function verifyIdentity(address)",
+            "function revokeVerification(address)"
+        ];
 
-    <div id="rightSidebar">
-        <div class="card">
-            <h4 style="margin:0; color: #0056b3; font-size:0.85rem;">Activity Log</h4>
-            <div id="txFeed" style="max-height: 550px; overflow-y: auto; margin-top:10px;"></div>
-        </div>
-    </div>
-</div>
+        let signer, ballContract, identityContract, provider;
 
-<script>
-    const IDENTITY_CONTRACT = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34";
-    const BALL_CONTRACT_ADDR = "0x10d56C221471f73CBC4626d83140776BDA2F23e2"; 
+        async function hardSync() {
+            try {
+                const address = await signer.getAddress();
+                const balance = await provider.getBalance(address);
+                document.getElementById('tokenBalance').innerText = parseFloat(ethers.formatEther(balance)).toFixed(4);
 
-    const BALL_ABI = [
-        "function getPrediction(string) payable", 
-        "function fulfillOracle(address, string)", 
-        "function admin() view returns (address)", 
-        "function latestAnswer(address) view returns (string)", 
-        "event OracleRequest(address indexed, string, bytes32)", 
-        "event OracleAnswer(address indexed, string)"
-    ];
-    const IDENTITY_ABI = [
-        "function getIdentity(address) view returns (string, string, bool)", 
-        "function isAdmin(address) view returns (bool)", 
-        "function verifyIdentity(address)", 
-        "function revokeVerification(address)"
-    ];
+                const [profile, ballAdmin, isIdAdmin, lastAns] = await Promise.all([
+                    identityContract.getIdentity(address).catch(() => ["User", "", false]),
+                    ballContract.admin().catch(() => "Unknown"),
+                    identityContract.isAdmin(address).catch(() => false),
+                    ballContract.latestAnswer(address).catch(() => "")
+                ]);
 
-    let signer, ballContract, identityContract, provider;
+                // Update UI Sections
+                if (isIdAdmin) document.getElementById('adminConsole').style.display = 'block';
+                
+                // Owner Section Logic
+                if (ballAdmin.toLowerCase() === address.toLowerCase()) {
+                    document.getElementById('ownerSection').style.display = 'block';
+                    document.getElementById('ownerAddrDisplay').innerText = `You are the owner of Magic8Ball at ${BALL_CONTRACT_ADDR}`;
+                }
 
-    async function hardSync() {
-        try {
-            const address = await signer.getAddress();
-            const balance = await provider.getBalance(address);
-            document.getElementById('tokenBalance').innerText = parseFloat(ethers.formatEther(balance)).toFixed(4);
+                if (profile[2]) {
+                    document.getElementById('oracleUI').style.display = 'block';
+                    document.getElementById('userProfile').style.display = 'block';
+                    document.getElementById('userNameDisplay').innerHTML = `${profile[0]} <span style="color:var(--mimo)">✓</span>`;
+                }
 
-            const res = await Promise.all([
-                identityContract.getIdentity(address).catch(() => ["User", "", false]),
-                ballContract.admin().catch(() => ""),
-                identityContract.isAdmin(address).catch(() => false),
-                ballContract.latestAnswer(address).catch(() => "")
-            ]);
-
-            const [profile, ballAdmin, isIdAdmin, lastAns] = res;
-
-            if (lastAns && lastAns !== "") {
-                if (lastAns === "AI_CLUSTER_SYNC_PENDING") {
-                    document.getElementById('resultText').innerHTML = '<span class="pulsing-text">AI Cluster Processing...</span>';
-                } else {
+                if (lastAns && lastAns !== "") {
                     document.getElementById('resultText').innerText = lastAns;
                 }
-            }
+
+                await scanHistory();
+            } catch (e) { console.error("Sync Error:", e); }
+        }
+
+        async function connectWallet() {
+            if (!window.ethereum) return alert("MetaMask not found!");
+            provider = new ethers.BrowserProvider(window.ethereum);
+            await window.ethereum.request({ method: 'eth_requestAccounts' });
+            signer = await provider.getSigner();
             
-            if (isIdAdmin) document.getElementById('adminConsole').style.display = 'block';
-            if (profile[2]) {
-                document.getElementById('oracleUI').style.display = 'block';
-                document.getElementById('userProfile').style.display = 'block';
-                document.getElementById('userNameDisplay').innerHTML = `${profile[0]} <span style="color:var(--mimo)">✓</span>`;
-            }
-            await scanHistory();
-        } catch (e) { console.error("Sync Error:", e); }
-    }
+            ballContract = new ethers.Contract(BALL_CONTRACT_ADDR, BALL_ABI, signer);
+            identityContract = new ethers.Contract(IDENTITY_CONTRACT, IDENTITY_ABI, signer);
 
-    async function connectWallet() {
-        if (!window.ethereum) return alert("MetaMask not found!");
-        provider = new ethers.BrowserProvider(window.ethereum);
-        await window.ethereum.request({ method: 'eth_requestAccounts' });
-        signer = await provider.getSigner();
-        ballContract = new ethers.Contract(BALL_CONTRACT_ADDR, BALL_ABI, signer);
-        identityContract = new ethers.Contract(IDENTITY_CONTRACT, IDENTITY_ABI, signer);
-        
-        ballContract.on("OracleAnswer", (user, answer) => {
-            signer.getAddress().then(addr => {
-                if(user.toLowerCase() === addr.toLowerCase() && answer !== "AI_CLUSTER_SYNC_PENDING") {
-                    document.getElementById('resultText').innerText = answer;
-                    hardSync();
-                }
-            });
-        });
-
-        document.getElementById('connectBtn').style.display = 'none';
-        await hardSync();
-    }
-
-    async function scanHistory() {
-        const [reqs, ans] = await Promise.all([
-            ballContract.queryFilter(ballContract.filters.OracleRequest(), -2000).catch(() => []),
-            ballContract.queryFilter(ballContract.filters.OracleAnswer(), -2000).catch(() => [])
-        ]);
-        const combined = [...reqs.map(e => ({type:'req', text:e.args[1]})), ...ans.map(e => ({type:'ans', text:e.args[1]}))];
-        document.getElementById('txFeed').innerHTML = combined.reverse().map(item => {
-            if (item.text === "AI_CLUSTER_SYNC_PENDING") return "";
-            return `<div class="tx-item" style="border-left: 4px solid ${item.type === 'ans' ? 'var(--success)' : 'var(--warning)'}; background: ${item.type === 'ans' ? '#f6fff6' : '#fff9f0'};">
-                <strong>${item.type === 'ans' ? 'Answer' : 'Question'}:</strong><br>${item.text}
-            </div>`;
-        }).join('');
-    }
-
-    window.onload = () => {
-        document.getElementById('connectBtn').onclick = connectWallet;
-        document.getElementById('shakeBtn').onclick = async () => {
-            document.getElementById('resultText').innerHTML = '<span class="pulsing-text">Broadcasting to AI Router...</span>';
-            try { 
-                // Manual Gas Limit of 8,000,000 to match IDE settings
-                const tx = await ballContract.getPrediction(document.getElementById('oracleQuestion').value, { 
-                    value: ethers.parseEther("0.1"), 
-                    gasLimit: 8000000 
+            ballContract.on("OracleAnswer", (user, answer) => {
+                signer.getAddress().then(addr => {
+                    if(user.toLowerCase() === addr.toLowerCase()) {
+                        document.getElementById('resultText').innerText = answer;
+                        hardSync();
+                    }
                 });
+            });
+
+            document.getElementById('connectBtn').style.display = 'none';
+            await hardSync();
+        }
+
+        async function scanHistory() {
+            const [reqs, ans] = await Promise.all([
+                ballContract.queryFilter(ballContract.filters.OracleRequest(), -2000).catch(() => []),
+                ballContract.queryFilter(ballContract.filters.OracleAnswer(), -2000).catch(() => [])
+            ]);
+            const combined = [...reqs.map(e => ({type:'req', text:e.args[1]})), ...ans.map(e => ({type:'ans', text:e.args[1]}))];
+            document.getElementById('txFeed').innerHTML = combined.reverse().map(item => `
+                <div class="tx-item" style="border-left: 4px solid ${item.type === 'ans' ? 'var(--success)' : 'var(--warning)'};">
+                    <strong>${item.type === 'ans' ? 'Result' : 'Inference Request'}:</strong><br>${item.text}
+                </div>
+            `).join('');
+        }
+
+        window.onload = () => {
+            document.getElementById('connectBtn').onclick = connectWallet;
+
+            // FIX: Shake/Consult Button
+            document.getElementById('shakeBtn').onclick = async () => {
+                const q = document.getElementById('oracleQuestion').value;
+                if (!q) return alert("Enter a question!");
+                document.getElementById('resultText').innerHTML = '<span class="pulsing-text">Broadcasting to AIVM Router...</span>';
+                try {
+                    const tx = await ballContract.getPrediction(q, { value: ethers.parseEther("0.1"), gasLimit: 8000000 });
+                    await tx.wait();
+                    document.getElementById('resultText').innerHTML = '<span class="pulsing-text">AI Cluster Processing...</span>';
+                } catch(e) { 
+                    console.error(e);
+                    document.getElementById('resultText').innerText = "Inference Reverted. Check wallet balance/permissions.";
+                }
+            };
+
+            // FIX: Admin Menu Buttons
+            document.getElementById('lookupBtn').onclick = async () => {
+                const addr = document.getElementById('lookupAddr').value;
+                const res = await identityContract.getIdentity(addr);
+                const box = document.getElementById('lookupResults');
+                box.style.display = 'block';
+                box.innerHTML = `<strong>Name:</strong> ${res[0]}<br><strong>Bio:</strong> ${res[1]}<br><strong>Status:</strong> ${res[2] ? 'VERIFIED' : 'UNVERIFIED'}`;
+            };
+
+            document.getElementById('verifyBtn').onclick = async () => {
+                const addr = document.getElementById('verifyAddr').value;
+                const tx = await identityContract.verifyIdentity(addr);
                 await tx.wait();
-                document.getElementById('resultText').innerHTML = '<span class="pulsing-text">AI Cluster Processing...</span>';
-            } 
-            catch(e) { 
-                console.error("Consult Error:", e);
-                document.getElementById('resultText').innerText = "Consult Error. Check Console."; 
-            }
+                alert("Identity Verified!");
+            };
+
+            document.getElementById('revokeBtn').onclick = async () => {
+                const addr = document.getElementById('verifyAddr').value;
+                const tx = await identityContract.revokeVerification(addr);
+                await tx.wait();
+                alert("Identity Revoked.");
+            };
         };
-    };
-</script>
+    </script>
 </body>
 </html>
-
-
-
-
-

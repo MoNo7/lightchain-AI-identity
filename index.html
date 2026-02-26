@@ -1,44 +1,139 @@
-// ... existing HTML/CSS ...
-<script>
-    // PASTE NEW ADDRESS FROM IDE HERE
-    const CONTRACT_ADDR = "0xd54b030b8AF411473F21345a0eFaB037a2F16F51"; 
-    const ABI = [
-        "function getPrediction(string calldata _question) external payable",
-        "event OracleAnswer(address indexed user, string answer)"
-    ];
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Magic 8-Ball Oracle | Lightchain AI</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.11.1/ethers.umd.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: #ffffff; margin: 0; padding: 40px 20px; display: flex; flex-direction: column; align-items: center; }
+        .container { background: #1e1e1e; padding: 40px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); max-width: 500px; width: 100%; text-align: center; }
+        h1 { color: #bb86fc; margin-bottom: 5px; }
+        p.subtitle { color: #aaa; margin-bottom: 30px; }
+        button { background: #bb86fc; color: #000; border: none; padding: 12px 24px; font-size: 16px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; width: 100%; box-sizing: border-box; margin-bottom: 10px;}
+        button:hover { background: #9b59b6; }
+        button:disabled { background: #444; color: #777; cursor: not-allowed; }
+        input[type="text"] { width: 100%; padding: 14px; border-radius: 8px; border: 1px solid #444; background: #2c2c2c; color: #fff; font-size: 16px; margin-bottom: 15px; box-sizing: border-box;}
+        input[type="text"]:focus { outline: none; border-color: #bb86fc; }
+        .status { margin-top: 15px; font-size: 14px; color: #03dac6; min-height: 20px;}
+        .error-status { color: #cf6679; }
+        
+        /* Magic 8-Ball UI */
+        .answer-box { margin: 30px auto 0; padding: 20px; background: radial-gradient(circle at 30% 30%, #333, #000); border-radius: 50%; width: 220px; height: 220px; display: flex; align-items: center; justify-content: center; border: 6px solid #111; box-shadow: 0 10px 20px rgba(0,0,0,0.5), inset 0 0 30px rgba(255,255,255,0.05); }
+        .triangle { background: #000080; clip-path: polygon(50% 100%, 0 0, 100% 0); width: 120px; height: 105px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 10px; }
+        .answer-text { color: #fff; font-size: 14px; font-weight: bold; text-shadow: 0 0 5px rgba(255,255,255,0.5); font-family: 'Courier New', Courier, monospace; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI Magic 8-Ball</h1>
+        <p class="subtitle">Powered by Lightchain AI Inference</p>
+        
+        <button id="connectBtn">Connect Wallet</button>
+        <p id="walletAddress" class="status"></p>
 
-    let signer, contract;
+        <div id="appSection" class="hidden">
+            <input type="text" id="questionInput" placeholder="Enter your question for the Oracle...">
+            <button id="askBtn">Consult Oracle (0.15 LCAI)</button>
+            <p id="txStatus" class="status"></p>
 
-    document.getElementById('connectBtn').onclick = async () => {
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        signer = await provider.getSigner();
-        document.getElementById('connectBtn').style.display = 'none';
-        document.getElementById('game').style.display = 'block';
-        contract = new ethers.Contract(CONTRACT_ADDR, ABI, signer);
+            <div class="answer-box">
+                <div class="triangle">
+                    <div id="answerDisplay" class="answer-text">8</div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        contract.on("OracleAnswer", (user, ans) => {
-            if (user.toLowerCase() === signer.address.toLowerCase()) {
-                document.getElementById('answer').innerText = ans;
-                document.getElementById('status').innerText = "Oracle has spoken.";
+    <script>
+        // ==========================================
+        // ⚠️ PASTE YOUR NEW CONTRACT ADDRESS HERE ⚠️
+        // ==========================================
+        const MAGIC8BALL_ADDRESS = "0xA70AAb7A31A90F47E083f874DD4153ecd240309b";
+        
+        // Exact ABI mapping to match the new Solidity contract
+        const MAGIC8BALL_ABI = [
+            "function getPrediction(string calldata _question) external payable",
+            "function latestAnswer(address) external view returns (string)",
+            "event OracleRequest(address indexed user, string question, bytes32 taskId)",
+            "event OracleAnswer(address indexed user, string answer)"
+        ];
+
+        let provider, signer, contract;
+
+        async function init() {
+            if (typeof window.ethereum === 'undefined') {
+                document.getElementById('walletAddress').innerText = 'MetaMask is required.';
+                document.getElementById('walletAddress').classList.add('error-status');
+                return;
             }
-        });
-    };
 
-    document.getElementById('askBtn').onclick = async () => {
-        try {
-            const q = document.getElementById('question').value;
-            document.getElementById('answer').innerText = "WAIT...";
-            document.getElementById('status').innerText = "Processing on Lightchain...";
-            
-            // FIXED: Sending 0.15 LCAI with enough gas to handle the AI routing
-            const tx = await contract.getPrediction(q, { 
-                value: ethers.parseEther("0.15"), 
-                gasLimit: 3000000 
-            });
-            await tx.wait();
-            document.getElementById('status').innerText = "Tx Confirmed. Awaiting AI callback...";
-        } catch (e) {
-            document.getElementById('status').innerText = "Error: " + (e.reason || e.message);
+            provider = new ethers.BrowserProvider(window.ethereum);
+            document.getElementById('connectBtn').addEventListener('click', connectWallet);
+            document.getElementById('askBtn').addEventListener('click', askQuestion);
         }
-    };
-</script>
+
+        async function connectWallet() {
+            try {
+                await provider.send("eth_requestAccounts", []);
+                signer = await provider.getSigner();
+                const address = await signer.getAddress();
+                
+                document.getElementById('connectBtn').classList.add('hidden');
+                document.getElementById('walletAddress').innerText = `Connected: ${address.substring(0, 6)}...${address.substring(38)}`;
+                document.getElementById('walletAddress').classList.remove('error-status');
+                document.getElementById('appSection').classList.remove('hidden');
+                
+                contract = new ethers.Contract(MAGIC8BALL_ADDRESS, MAGIC8BALL_ABI, signer);
+                
+                // Real-time listener for the callback
+                contract.on("OracleAnswer", (user, answer) => {
+                    if (user.toLowerCase() === address.toLowerCase()) {
+                        document.getElementById('answerDisplay').innerText = answer;
+                        document.getElementById('txStatus').innerText = "The Oracle has answered!";
+                        document.getElementById('askBtn').disabled = false;
+                    }
+                });
+
+            } catch (error) {
+                console.error("Connection failed", error);
+            }
+        }
+
+        async function askQuestion() {
+            const q = document.getElementById('questionInput').value;
+            if (!q) return alert("Please enter a question!");
+
+            const askBtn = document.getElementById('askBtn');
+            const statusLabel = document.getElementById('txStatus');
+            const answerDisplay = document.getElementById('answerDisplay');
+
+            try {
+                askBtn.disabled = true;
+                statusLabel.innerText = "Estimating gas & requesting inference...";
+                statusLabel.classList.remove('error-status');
+                answerDisplay.innerText = "Thinking...";
+
+                // Sends exactly 0.15 LCAI with a generous gas limit
+                const tx = await contract.getPrediction(q, { 
+                    value: ethers.parseEther("0.15")
+                });
+
+                statusLabel.innerText = `Tx Sent: ${tx.hash.substring(0,10)}... Awaiting network confirmation...`;
+                await tx.wait();
+                
+                statusLabel.innerText = "Transaction confirmed! Waiting for AIVM callback...";
+            } catch (error) {
+                console.error("Transaction failed", error);
+                statusLabel.innerText = "Error: " + (error.reason || "Transaction Reverted. Are you verified?");
+                statusLabel.classList.add('error-status');
+                askBtn.disabled = false;
+                answerDisplay.innerText = "8";
+            }
+        }
+
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>

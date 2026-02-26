@@ -83,7 +83,7 @@
     <script>
             
     const IDENTITY_CONTRACT = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34";
-    const BALL_CONTRACT_ADDR = "0xa8dc20a5bE8e94afEFDbDBEBf3632e41254e29cF"; 
+    const BALL_CONTRACT_ADDR = "0xdF47F3D2aee40a39ba73c89f12f5FF60088c48e5"; 
     
     const BALL_ABI = [
         "function getPrediction(string _question) payable",
@@ -102,24 +102,25 @@
     
     let signer, ballContract, identityContract, provider;
     
-    function parseBlockchainError(e) {
-        console.log("Deep Diagnostic:", e);
-        // 1. Check for standard revert reasons
-        if (e.reason) return e.reason;
-        // 2. Check for the specific 'DIAGNOSTIC' strings from our new contract
-        if (e.message) {
-            if (e.message.includes("DIAGNOSTIC")) {
-                return e.message.match(/DIAGNOSTIC: (.*?)"/)[1];
-            }
-            if (e.message.includes("AI Cluster Rejected")) {
-                return "AI Cluster Busy: Try again in 30 seconds.";
-            }
-        }
-        // 3. Fallback for Ethers v6 info objects
-        if (e.info?.error?.message) return e.info.error.message;    
-        return "Transaction Reverted: Check if contract itself is Verified.";
+function parseBlockchainError(e) {
+    console.log("Deep Diagnostic Log:", e);
+    // 1. Capture the 'DIAGNOSTIC' or 'AI Cluster' strings from our new Solidity reverts
+    if (e.message) {
+        const diag = e.message.match(/DIAGNOSTIC: (.*?)(?:"|'|$)/);
+        if (diag) return diag[1];
+        const cluster = e.message.match(/AI Cluster Rejected: (.*?)(?:"|'|$)/);
+        if (cluster) return `Cluster Error: ${cluster[1]}`;
     }
-    
+    // 2. Handle Ethers v6 Revert Data
+    if (e.data) {
+        try {
+            const decoded = ballContract.interface.parseError(e.data);
+            if (decoded) return `Contract Revert: ${decoded.name}`;
+        } catch (err) {}
+    }
+    return e.reason || "Execution Reverted: Ensure your contract address is Verified in the Portal.";
+}
+        
     async function hardSync() {
         try {
             const address = await signer.getAddress();
@@ -227,6 +228,7 @@
     </script>
 </body>
 </html>
+
 
 
 

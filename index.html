@@ -189,7 +189,8 @@ document.getElementById('shakeBtn').onclick = async () => {
     box.innerHTML = '<span class="pulsing-text">Consulting the Cluster...</span>';
     try {
         const tx = await ballContract.getPrediction(q, { 
-            value: ethers.parseEther("0.15")
+            value: ethers.parseEther("0.15"),
+            gasLimit: 3000000
         });
         box.innerHTML = '<span class="pulsing-text">Broadcasting to Blockchain...</span>';
         await tx.wait();

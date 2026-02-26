@@ -83,13 +83,16 @@
 
     <script>
         const IDENTITY_CONTRACT = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34";
-        const BALL_CONTRACT_ADDR = "0xd54b030b8AF411473F21345a0eFaB037a2F16F51"; 
-        
+        const BALL_CONTRACT_ADDR = "0xC04bf6afF2712c8b3Fafc66D26417a1D9a29a872"; 
+
         const BALL_ABI = [
-            "function getPrediction(string) payable", "function admin() view returns (address)", 
-            "function latestAnswer(address) view returns (string)", "function withdraw() external",
-            "event OracleAnswer(address indexed, string)"
+            "function getPrediction(string _question) payable", 
+            "function admin() view returns (address)", 
+            "function latestAnswer(address) view returns (string)", 
+            "function withdraw() external", 
+            "event OracleAnswer(address indexed user, string answer)" 
         ];
+
         const IDENTITY_ABI = [
             "function getIdentity(address) view returns (string, string, bool)", 
             "function isAdmin(address) view returns (bool)", "function verifyIdentity(address)", 
@@ -139,7 +142,8 @@
                 signer.getAddress().then(addr => {
                     if(user.toLowerCase() === addr.toLowerCase()) {
                         document.getElementById('resultText').innerText = answer;
-                        hardSync();
+                        document.getElementById('resultText').classList.remove('pulsing-text');
+                        hardSync(); 
                     }
                 });
             });
@@ -155,18 +159,24 @@
                 const q = document.getElementById('oracleQuestion').value;
                 const box = document.getElementById('resultText');
                 if (!q) return;
-                box.innerHTML = '<span class="pulsing-text">Validating Identity & Revenue Fee...</span>';
+            
+                box.innerHTML = '<span class="pulsing-text">Consulting the Oracle...</span>';
+                
                 try {
-                    const tx = await ballContract.getPrediction(q, { value: ethers.parseEther("0.15"), gasLimit: 3000000 });
-                    box.innerHTML = '<span class="pulsing-text">Confirming Transaction...</span>';
+                    // This transaction sends the 0.15 LCAI and triggers the AI Router
+                    const tx = await ballContract.getPrediction(q, { 
+                        value: ethers.parseEther("0.15"), 
+                        gasLimit: 3000000 
+                    });
+                    
+                    box.innerHTML = '<span class="pulsing-text">Inference request broadcasting...</span>';
                     await tx.wait();
-                    box.innerHTML = '<span class="pulsing-text">AIVM Cluster Inference in progress...</span>';
-                    await hardSync();
-            } catch(e) { 
-                console.error("Inference Error:", e);
-                // This will show the actual revert reason from the blockchain
-                box.innerHTML = `<span style="color:var(--danger)">Error: ${e.reason || e.message || "Check Console"}</span>`; 
-            }
+                    
+                    box.innerHTML = '<span class="pulsing-text">AIVM Cluster processing your answer...</span>';
+                } catch(e) {
+                    console.error("Inference Error:", e);
+                    box.innerHTML = `<span style="color:var(--danger)">Oracle Error: ${e.reason || "Check Wallet/Verification"}</span>`;
+                }
             };
 
             document.getElementById('lookupBtn').onclick = async () => {
@@ -204,6 +214,7 @@
     </script>
 </body>
 </html>
+
 
 
 

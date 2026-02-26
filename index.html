@@ -83,7 +83,7 @@
 
     <script>
         const IDENTITY_CONTRACT = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34";
-        const BALL_CONTRACT_ADDR = "0xFd61E054C68c5d05cD1bcf1366674828DB6AC659"; 
+        const BALL_CONTRACT_ADDR = "0xaE4396C14844C10fCb4A59F9EC934Ef72764bA70"; 
         
         const BALL_ABI = [
             "function getPrediction(string) payable", "function admin() view returns (address)", 
@@ -157,7 +157,7 @@
                 if (!q) return;
                 box.innerHTML = '<span class="pulsing-text">Validating Identity & Revenue Fee...</span>';
                 try {
-                    const tx = await ballContract.getPrediction(q, { value: ethers.parseEther("0.15"), gasLimit: 2000000 });
+                    const tx = await ballContract.getPrediction(q, { value: ethers.parseEther("0.15"), gasLimit: 3000000 });
                     box.innerHTML = '<span class="pulsing-text">Confirming Transaction...</span>';
                     await tx.wait();
                     box.innerHTML = '<span class="pulsing-text">AIVM Cluster Inference in progress...</span>';
@@ -204,6 +204,7 @@
     </script>
 </body>
 </html>
+
 
 
 

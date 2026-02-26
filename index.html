@@ -2,138 +2,218 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Magic 8-Ball Oracle | Lightchain AI</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.11.1/ethers.umd.min.js"></script>
+    <title>Lightchain AI Identity Portal</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: #ffffff; margin: 0; padding: 40px 20px; display: flex; flex-direction: column; align-items: center; }
-        .container { background: #1e1e1e; padding: 40px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); max-width: 500px; width: 100%; text-align: center; }
-        h1 { color: #bb86fc; margin-bottom: 5px; }
-        p.subtitle { color: #aaa; margin-bottom: 30px; }
-        button { background: #bb86fc; color: #000; border: none; padding: 12px 24px; font-size: 16px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; width: 100%; box-sizing: border-box; margin-bottom: 10px;}
-        button:hover { background: #9b59b6; }
-        button:disabled { background: #444; color: #777; cursor: not-allowed; }
-        input[type="text"] { width: 100%; padding: 14px; border-radius: 8px; border: 1px solid #444; background: #2c2c2c; color: #fff; font-size: 16px; margin-bottom: 15px; box-sizing: border-box;}
-        input[type="text"]:focus { outline: none; border-color: #bb86fc; }
-        .status { margin-top: 15px; font-size: 14px; color: #03dac6; min-height: 20px;}
-        .error-status { color: #cf6679; }
-        
-        /* Magic 8-Ball UI */
-        .answer-box { margin: 30px auto 0; padding: 20px; background: radial-gradient(circle at 30% 30%, #333, #000); border-radius: 50%; width: 220px; height: 220px; display: flex; align-items: center; justify-content: center; border: 6px solid #111; box-shadow: 0 10px 20px rgba(0,0,0,0.5), inset 0 0 30px rgba(255,255,255,0.05); }
-        .triangle { background: #000080; clip-path: polygon(50% 100%, 0 0, 100% 0); width: 120px; height: 105px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 10px; }
-        .answer-text { color: #fff; font-size: 14px; font-weight: bold; text-shadow: 0 0 5px rgba(255,255,255,0.5); font-family: 'Courier New', Courier, monospace; }
-        .hidden { display: none !important; }
+        :root { --primary: #007bff; --admin-blue: #0056b3; --bg: #f0f2f5; --text: #1c1e21; --success: #28a745; --mimo: #1877F2; --owner: #6f42c1; --warning: #f0ad4e; --danger: #dc3545; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); color: var(--text); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        #topNav { height: 60px; background: #fff; border-bottom: 1px solid #e1e4e8; display: flex; align-items: center; justify-content: space-between; padding: 0 25px; flex-shrink: 0; }
+        .token-display { background: #f8f9fa; padding: 8px 15px; border-radius: 20px; border: 1px solid #e1e4e8; font-weight: 700; font-size: 0.85rem; color: var(--success); }
+        .content-wrapper { display: flex; flex: 1; overflow: hidden; }
+        #leftSidebar, #rightSidebar { width: 320px; background: #fff; padding: 20px; overflow-y: auto; border-right: 1px solid #e1e4e8; box-sizing: border-box; }
+        #rightSidebar { border-right: none; border-left: 1px solid #e1e4e8; }
+        .main-utility-area { flex: 1; padding: 30px; display: flex; flex-direction: column; align-items: center; background: #f8f9fa; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid #e1e4e8; width: 100%; box-sizing: border-box; }
+        .primary-btn { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: 600; margin-top: 10px; }
+        .small-btn { padding: 10px; font-size: 0.75rem; flex: 1; border: none; border-radius: 6px; cursor: pointer; color: white; }
+        .result-window { margin-top: 20px; padding: 15px; background: #fdfdfd; border: 2px dashed #cbd5e0; border-radius: 8px; min-height: 80px; font-size: 0.9rem; }
+        input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 8px; box-sizing: border-box; }
+        .pulsing-text { animation: pulse 1.5s infinite; color: var(--warning); font-weight: bold; }
+        .status-box { padding: 10px; margin-top: 10px; border-radius: 6px; font-size: 0.75rem; display: none; border: 1px solid #eee; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>AI Magic 8-Ball</h1>
-        <p class="subtitle">Powered by Lightchain AI Inference</p>
-        
-        <button id="connectBtn">Connect Wallet</button>
-        <p id="walletAddress" class="status"></p>
-
-        <div id="appSection" class="hidden">
-            <input type="text" id="questionInput" placeholder="Enter your question for the Oracle...">
-            <button id="askBtn">Consult Oracle (0.15 LCAI)</button>
-            <p id="txStatus" class="status"></p>
-
-            <div class="answer-box">
-                <div class="triangle">
-                    <div id="answerDisplay" class="answer-text">8</div>
+    <div id="topNav">
+        <h1 style="font-size: 1.1rem; color: #0056b3; margin: 0;">Identity Portal</h1>
+        <div class="token-display"><span id="tokenBalance">0.0000</span> LCAI</div>
+    </div>
+    <div class="content-wrapper">
+        <div id="leftSidebar">
+            <div class="card" style="text-align: center;">
+                <div id="userProfile" style="display:none; margin-bottom:15px;">
+                    <div id="userNameDisplay" style="font-size: 1.1rem; font-weight:800; color: #0056b3;"></div>
+                    <div id="verifyTag" style="font-size: 0.65rem; font-weight: bold;">CONNECTED</div>
                 </div>
+                <button id="connectBtn" class="primary-btn">Connect Wallet</button>
+            </div>
+
+            <div id="adminConsole" class="card" style="display:none; border-top: 4px solid var(--admin-blue);">
+                <h4 style="color:var(--admin-blue); margin: 0 0 10px 0;">Identity Management</h4>
+                <input type="text" id="lookupAddr" placeholder="Lookup 0x...">
+                <button id="lookupBtn" class="primary-btn" style="background: var(--admin-blue);">Query Status</button>
+                <div id="lookupResults" style="display:none; padding:12px; font-size:0.75rem; background:#f8fbff; margin-top:10px; border-radius:8px; border: 1px solid #b8daff;"></div>
+                <hr style="border:0; border-top:1px solid #eee; margin:15px 0;">
+                <input type="text" id="verifyAddr" placeholder="Target 0x...">
+                <div style="display:flex; gap: 5px;">
+                    <button id="verifyBtn" class="small-btn" style="background:var(--success);">Verify</button>
+                    <button id="revokeBtn" class="small-btn" style="background:var(--danger);">Revoke</button>
+                </div>
+                <div id="adminActionResult" class="status-box"></div>
+            </div>
+
+            <div id="ownerSection" class="card" style="display:none; border-top: 4px solid var(--owner);">
+                <h4 style="color:var(--owner); margin:0;">Contract Owner</h4>
+                <div id="ownerAddrDisplay" style="font-size:0.6rem; color:#666; word-break:break-all; margin-top:10px;"></div>
+                <div style="margin-top:10px; font-size:0.9rem; font-weight:bold;">
+                    Revenue: <span id="contractRevenue" style="color:var(--success)">0.0000</span> LCAI
+                </div>
+                <button id="withdrawBtn" class="primary-btn" style="background:var(--owner); padding: 5px; font-size:0.75rem;">Withdraw All</button>
+            </div>
+        </div>
+
+        <div class="main-utility-area">
+            <div id="oracleUI" style="display:none; width: 100%; max-width: 500px;">
+                <div class="card" style="text-align: center; border-top: 4px solid var(--success);">
+                    <h2>AIVM Oracle</h2>
+                    <input type="text" id="oracleQuestion" placeholder="Ask the cluster...">
+                    <button id="shakeBtn" class="primary-btn" style="background: var(--success);">Request Inference</button>
+                    <div class="result-window" id="resultText">Awaiting inference...</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="rightSidebar">
+            <div class="card">
+                <h4 style="margin:0;">Cluster Logs</h4>
+                <div id="txFeed" style="font-size: 0.75rem; margin-top:10px; max-height: 400px; overflow-y:auto;"></div>
             </div>
         </div>
     </div>
 
     <script>
-        // ==========================================
-        // ⚠️ PASTE YOUR NEW CONTRACT ADDRESS HERE ⚠️
-        // ==========================================
-        const MAGIC8BALL_ADDRESS = "0xA70AAb7A31A90F47E083f874DD4153ecd240309b";
+        const IDENTITY_CONTRACT = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34";
+        const BALL_CONTRACT_ADDR = "0x477e8f556321227f12D8376b94789e427E532E14"; 
         
-        // Exact ABI mapping to match the new Solidity contract
-        const MAGIC8BALL_ABI = [
-            "function getPrediction(string calldata _question) external payable",
-            "function latestAnswer(address) external view returns (string)",
-            "event OracleRequest(address indexed user, string question, bytes32 taskId)",
-            "event OracleAnswer(address indexed user, string answer)"
+        const BALL_ABI = [
+            "function getPrediction(string) payable", "function admin() view returns (address)", 
+            "function latestAnswer(address) view returns (string)", "function withdraw() external",
+            "event OracleAnswer(address indexed, string)"
+        ];
+        const IDENTITY_ABI = [
+            "function getIdentity(address) view returns (string, string, bool)", 
+            "function isAdmin(address) view returns (bool)", "function verifyIdentity(address)", 
+            "function revokeVerification(address)"
         ];
 
-        let provider, signer, contract;
+        let signer, ballContract, identityContract, provider;
 
-        async function init() {
-            if (typeof window.ethereum === 'undefined') {
-                document.getElementById('walletAddress').innerText = 'MetaMask is required.';
-                document.getElementById('walletAddress').classList.add('error-status');
-                return;
-            }
+        async function hardSync() {
+            try {
+                const address = await signer.getAddress();
+                const [profile, ballAdmin, isIdAdmin, lastAns, balance, contractBal] = await Promise.all([
+                    identityContract.getIdentity(address),
+                    ballContract.admin(),
+                    identityContract.isAdmin(address),
+                    ballContract.latestAnswer(address),
+                    provider.getBalance(address),
+                    provider.getBalance(BALL_CONTRACT_ADDR)
+                ]);
 
-            provider = new ethers.BrowserProvider(window.ethereum);
-            document.getElementById('connectBtn').addEventListener('click', connectWallet);
-            document.getElementById('askBtn').addEventListener('click', askQuestion);
+                document.getElementById('tokenBalance').innerText = parseFloat(ethers.formatEther(balance)).toFixed(4);
+                
+                if (isIdAdmin) document.getElementById('adminConsole').style.display = 'block';
+                if (ballAdmin.toLowerCase() === address.toLowerCase()) {
+                    document.getElementById('ownerSection').style.display = 'block';
+                    document.getElementById('ownerAddrDisplay').innerText = `Contract: ${BALL_CONTRACT_ADDR}`;
+                    document.getElementById('contractRevenue').innerText = parseFloat(ethers.formatEther(contractBal)).toFixed(4);
+                }
+
+                document.getElementById('oracleUI').style.display = 'block';
+                document.getElementById('userProfile').style.display = 'block';
+                document.getElementById('userNameDisplay').innerText = profile[0];
+                document.getElementById('verifyTag').innerText = profile[2] ? "VERIFIED" : "UNVERIFIED";
+                document.getElementById('verifyTag').style.color = profile[2] ? "var(--success)" : "var(--danger)";
+                
+                if (lastAns) document.getElementById('resultText').innerText = lastAns;
+            } catch (e) { console.error("Sync Error:", e); }
         }
 
         async function connectWallet() {
-            try {
-                await provider.send("eth_requestAccounts", []);
-                signer = await provider.getSigner();
-                const address = await signer.getAddress();
-                
-                document.getElementById('connectBtn').classList.add('hidden');
-                document.getElementById('walletAddress').innerText = `Connected: ${address.substring(0, 6)}...${address.substring(38)}`;
-                document.getElementById('walletAddress').classList.remove('error-status');
-                document.getElementById('appSection').classList.remove('hidden');
-                
-                contract = new ethers.Contract(MAGIC8BALL_ADDRESS, MAGIC8BALL_ABI, signer);
-                
-                // Real-time listener for the callback
-                contract.on("OracleAnswer", (user, answer) => {
-                    if (user.toLowerCase() === address.toLowerCase()) {
-                        document.getElementById('answerDisplay').innerText = answer;
-                        document.getElementById('txStatus').innerText = "The Oracle has answered!";
-                        document.getElementById('askBtn').disabled = false;
+            provider = new ethers.BrowserProvider(window.ethereum);
+            signer = await provider.getSigner();
+            ballContract = new ethers.Contract(BALL_CONTRACT_ADDR, BALL_ABI, signer);
+            identityContract = new ethers.Contract(IDENTITY_CONTRACT, IDENTITY_ABI, signer);
+
+            ballContract.on("OracleAnswer", (user, answer) => {
+                signer.getAddress().then(addr => {
+                    if(user.toLowerCase() === addr.toLowerCase()) {
+                        document.getElementById('resultText').innerText = answer;
+                        hardSync();
                     }
                 });
+            });
 
-            } catch (error) {
-                console.error("Connection failed", error);
-            }
+            document.getElementById('connectBtn').style.display = 'none';
+            await hardSync();
         }
 
-        async function askQuestion() {
-            const q = document.getElementById('questionInput').value;
-            if (!q) return alert("Please enter a question!");
+        window.onload = () => {
+            document.getElementById('connectBtn').onclick = connectWallet;
 
-            const askBtn = document.getElementById('askBtn');
-            const statusLabel = document.getElementById('txStatus');
-            const answerDisplay = document.getElementById('answerDisplay');
-
-            try {
-                askBtn.disabled = true;
-                statusLabel.innerText = "Estimating gas & requesting inference...";
-                statusLabel.classList.remove('error-status');
-                answerDisplay.innerText = "Thinking...";
-
-                // Sends exactly 0.15 LCAI with a generous gas limit
-                const tx = await contract.getPrediction(q, { 
-                    value: ethers.parseEther("0.15")
-                });
-
-                statusLabel.innerText = `Tx Sent: ${tx.hash.substring(0,10)}... Awaiting network confirmation...`;
-                await tx.wait();
-                
-                statusLabel.innerText = "Transaction confirmed! Waiting for AIVM callback...";
-            } catch (error) {
-                console.error("Transaction failed", error);
-                statusLabel.innerText = "Error: " + (error.reason || "Transaction Reverted. Are you verified?");
-                statusLabel.classList.add('error-status');
-                askBtn.disabled = false;
-                answerDisplay.innerText = "8";
+            document.getElementById('shakeBtn').onclick = async () => {
+                const q = document.getElementById('oracleQuestion').value;
+                const box = document.getElementById('resultText');
+                if (!q) return;
+                box.innerHTML = '<span class="pulsing-text">Validating Identity & Revenue Fee...</span>';
+                try {
+                    const tx = await ballContract.getPrediction(q, { value: ethers.parseEther("0.15"), gasLimit: 3000000 });
+                    box.innerHTML = '<span class="pulsing-text">Confirming Transaction...</span>';
+                    await tx.wait();
+                    box.innerHTML = '<span class="pulsing-text">AIVM Cluster Inference in progress...</span>';
+                    await hardSync();
+            } catch(e) { 
+                console.error("Inference Error:", e);
+                // This will show the actual revert reason from the blockchain
+                box.innerHTML = `<span style="color:var(--danger)">Error: ${e.reason || e.message || "Check Console"}</span>`; 
             }
-        }
+            };
 
-        window.addEventListener('load', init);
+            document.getElementById('lookupBtn').onclick = async () => {
+                const target = document.getElementById('lookupAddr').value;
+                const res = await identityContract.getIdentity(target);
+                const box = document.getElementById('lookupResults');
+                box.style.display = 'block';
+                box.innerHTML = `<strong>Name:</strong> ${res[0]}<br><strong>Status:</strong> ${res[2] ? 'VERIFIED' : 'UNVERIFIED'}`;
+            };
+
+            document.getElementById('verifyBtn').onclick = async () => {
+                const target = document.getElementById('verifyAddr').value;
+                const statusBox = document.getElementById('adminActionResult');
+                statusBox.style.display = 'block';
+                statusBox.innerHTML = '<span class="pulsing-text">Broadcasting Verification...</span>';
+                try {
+                    const tx = await identityContract.verifyIdentity(target);
+                    await tx.wait();
+                    statusBox.innerHTML = `<span style="color:var(--success)">Verified: ${target.substring(0,8)}...</span>`;
+                    await hardSync();
+                } catch(e) { 
+                    console.error("FULL ERROR:", e);
+                    statusBox.innerHTML = `<span style="color:var(--danger); font-size:0.75rem;">Revert Reason: ${e.reason || e.shortMessage || "Check browser console"}</span>`; 
+                }
+            };
+
+            document.getElementById('withdrawBtn').onclick = async () => {
+                try {
+                    const tx = await ballContract.withdraw();
+                    await tx.wait();
+                    await hardSync();
+                } catch(e) { alert("Withdrawal failed."); }
+            };
+        };
     </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+

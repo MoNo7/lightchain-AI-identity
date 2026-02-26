@@ -117,8 +117,7 @@
 
                 // Sends exactly 0.15 LCAI with a generous gas limit
                 const tx = await contract.getPrediction(q, { 
-                    value: ethers.parseEther("0.15"),
-                    gasLimit: 3000000 
+                    value: ethers.parseEther("0.15")
                 });
 
                 statusLabel.innerText = `Tx Sent: ${tx.hash.substring(0,10)}... Awaiting network confirmation...`;
@@ -138,3 +137,4 @@
     </script>
 </body>
 </html>
+

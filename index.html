@@ -83,7 +83,7 @@
 
     <script>
 const IDENTITY_CONTRACT = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34";
-const BALL_CONTRACT_ADDR = "0xC2ae74352f51a8C9439800c867750A3FC14e7FE1"; 
+const BALL_CONTRACT_ADDR = "0xB85E4e843EDA08FaefFe37E0aAcD3E940bA14040"; 
 
 const BALL_ABI = [
     "function getPrediction(string _question) payable",
@@ -93,29 +93,45 @@ const BALL_ABI = [
     "event OracleAnswer(address indexed user, string answer, bytes32 taskId)"
 ];
 
-const IDENTITY_ABI = ["function getIdentity(address) view returns (string, string, bool)", "function isAdmin(address) view returns (bool)", "function verifyIdentity(address)"];
-
+const IDENTITY_ABI = [
+    "function getIdentity(address) view returns (string, string, bool)",
+    "function isAdmin(address) view returns (bool)",
+    "function verifyIdentity(address)",
+    "function revokeVerification(address)"
+];
 let signer, ballContract, identityContract, provider;
 
 async function hardSync() {
     try {
         const address = await signer.getAddress();
-        const [profile, lastAns, balance, contractBal] = await Promise.all([
+        const [profile, ballAdmin, isRegAdmin, lastAns, balance, contractBal] = await Promise.all([
             identityContract.getIdentity(address),
+            ballContract.admin(),
+            identityContract.isAdmin(address),
             ballContract.latestAnswer(address),
             provider.getBalance(address),
             provider.getBalance(BALL_CONTRACT_ADDR)
         ]);
 
+        // 1. Update Profile UI
         document.getElementById('tokenBalance').innerText = parseFloat(ethers.formatEther(balance)).toFixed(4);
-        document.getElementById('contractRevenue').innerText = parseFloat(ethers.formatEther(contractBal)).toFixed(4);
         document.getElementById('userNameDisplay').innerText = profile[0];
         document.getElementById('verifyTag').innerText = profile[2] ? "VERIFIED" : "UNVERIFIED";
         document.getElementById('verifyTag').style.color = profile[2] ? "var(--success)" : "var(--danger)";
-        
-        if (lastAns) {
-            document.getElementById('resultText').innerText = lastAns;
+
+        // 2. Show Admin Section if you are a Registry Admin
+        if (isRegAdmin) {
+            document.getElementById('adminConsole').style.display = 'block';
         }
+
+        // 3. Show Owner Section if you own the Magic8Ball contract
+        if (ballAdmin.toLowerCase() === address.toLowerCase()) {
+            document.getElementById('ownerSection').style.display = 'block';
+            document.getElementById('ownerAddrDisplay').innerText = `Contract: ${BALL_CONTRACT_ADDR}`;
+            document.getElementById('contractRevenue').innerText = parseFloat(ethers.formatEther(contractBal)).toFixed(4);
+        }
+
+        if (lastAns) document.getElementById('resultText').innerText = lastAns;
     } catch (e) { console.error("Sync Error:", e); }
 }
 
@@ -182,6 +198,7 @@ window.onload = () => {
     </script>
 </body>
 </html>
+
 
 
 

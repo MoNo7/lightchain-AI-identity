@@ -83,7 +83,7 @@
 
     <script>
 const IDENTITY_CONTRACT = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34";
-const BALL_CONTRACT_ADDR = "0x695aF9CAa97313808fb22e3047223508Abd2e8eA"; 
+const BALL_CONTRACT_ADDR = "0x8102009165230dC21CA2E6970DB5696532836Ed5"; 
 
 const BALL_ABI = [
     "function getPrediction(string _question) payable",
@@ -102,17 +102,19 @@ const IDENTITY_ABI = [
 
 let signer, ballContract, identityContract, provider;
 
-// --- ROBUST ERROR HANDLER ---
 function parseBlockchainError(e) {
-    console.error("Full Error:", e);
     if (e.reason) return e.reason;
     if (e.info && e.info.error && e.info.error.message) return e.info.error.message;
     if (e.message) {
         if (e.message.includes("USER_NOT_VERIFIED")) return "Identity Error: Your wallet is not verified.";
         if (e.message.includes("MIN_FEE")) return "Fee Error: Transaction requires 0.15 LCAI.";
         if (e.message.includes("ONLY_ADMIN")) return "Permission Denied: You are not the contract admin.";
-        if (e.message.includes("NOT_AUTHORIZED")) return "Permission Denied: Not an authorized router.";
-        return e.message.split("(")[0].substring(0, 50) + "..."; // Safely truncate wild errors
+        
+        // This will catch our new Solidity try/catch output
+        const match = e.message.match(/reverted with reason string '([^']+)'/);
+        if (match) return match[1];
+
+        return e.message.split("(")[0].substring(0, 50) + "..."; 
     }
     return "Transaction failed or was rejected by wallet.";
 }
@@ -134,9 +136,7 @@ async function hardSync() {
         document.getElementById('verifyTag').innerText = profile[2] ? "VERIFIED" : "UNVERIFIED";
         document.getElementById('verifyTag').style.color = profile[2] ? "var(--success)" : "var(--danger)";
 
-        if (isRegAdmin) {
-            document.getElementById('adminConsole').style.display = 'block';
-        }
+        if (isRegAdmin) document.getElementById('adminConsole').style.display = 'block';
         
         if (ballAdmin.toLowerCase() === address.toLowerCase()) {
             document.getElementById('ownerSection').style.display = 'block';
@@ -169,20 +169,46 @@ async function connectWallet() {
     await hardSync();
 }
 
-// --- RESTORED ROBUST BUTTON ACTIONS ---
+// --- MISSING QUERY STATUS LOGIC ADDED ---
+document.getElementById('queryBtn').onclick = async () => {
+    const target = document.getElementById('queryAddr').value;
+    if (!target) return;
+    
+    let statusBox = document.getElementById('queryStatusBox');
+    if (!statusBox) {
+        statusBox = document.createElement('div');
+        statusBox.id = 'queryStatusBox';
+        statusBox.style.marginTop = '10px';
+        statusBox.style.padding = '8px';
+        statusBox.style.borderRadius = '5px';
+        statusBox.style.backgroundColor = 'rgba(0,0,0,0.05)';
+        // Inserts the box directly below the Query button
+        document.getElementById('queryBtn').parentNode.insertBefore(statusBox, document.getElementById('verifyAddr'));
+    }
 
+    statusBox.innerHTML = '<span style="color:var(--primary)">Querying blockchain...</span>';
+    try {
+        const [name, bio, isVer] = await identityContract.getIdentity(target);
+        if (!name) {
+            statusBox.innerHTML = `<span style="color:var(--danger)">No Identity Found for this address.</span>`;
+        } else {
+            const verText = isVer ? '<span style="color:var(--success); font-weight:bold">VERIFIED</span>' : '<span style="color:var(--danger); font-weight:bold">NOT VERIFIED</span>';
+            statusBox.innerHTML = `<strong>Name:</strong> ${name}<br><strong>Bio:</strong> ${bio}<br><strong>Status:</strong> ${verText}`;
+        }
+    } catch(e) {
+        statusBox.innerHTML = `<span style="color:var(--danger)">Invalid Address / Query Failed</span>`;
+    }
+};
+
+// --- INFERENCE CALL ---
 document.getElementById('shakeBtn').onclick = async () => {
     const q = document.getElementById('oracleQuestion').value;
     const box = document.getElementById('resultText');
     if (!q) return;
 
     box.innerHTML = '<span class="pulsing-text">Consulting the Oracle...</span>';
-    
     try {
-        const tx = await ballContract.getPrediction(q, {
-            value: ethers.parseEther("0.15"),
-            gasLimit: 3000000 
-        });
+        const tx = await ballContract.getPrediction(q, { value: ethers.parseEther("0.15"), gasLimit: 3000000 });
         box.innerHTML = '<span class="pulsing-text">Broadcasting transaction...</span>';
         await tx.wait();
         box.innerHTML = '<span class="pulsing-text">Awaiting AI callback from Cluster...</span>';
@@ -192,17 +218,13 @@ document.getElementById('shakeBtn').onclick = async () => {
     }
 };
 
+// --- ADMIN / OWNER BUTTONS ---
 document.getElementById('verifyBtn').onclick = async () => {
     const target = document.getElementById('verifyAddr').value;
-    // Assuming you have an element to display the status, or we append one dynamically
-    let statusBox = document.getElementById('adminStatus');
-    if (!statusBox) {
-        statusBox = document.createElement('div');
-        statusBox.id = 'adminStatus';
-        statusBox.style.marginTop = '10px';
-        statusBox.style.fontSize = '0.9rem';
-        document.getElementById('adminConsole').appendChild(statusBox);
-    }
+    let statusBox = document.getElementById('adminStatus') || document.createElement('div');
+    statusBox.id = 'adminStatus';
+    statusBox.style.marginTop = '10px';
+    document.getElementById('verifyBtn').parentNode.parentNode.appendChild(statusBox);
 
     statusBox.innerHTML = '<span style="color:var(--primary)">Processing Verification...</span>';
     try {
@@ -210,20 +232,30 @@ document.getElementById('verifyBtn').onclick = async () => {
         await tx.wait();
         statusBox.innerHTML = '<span style="color:var(--success)">Verification Successful!</span>';
         await hardSync();
-    } catch(e) { 
-        statusBox.innerHTML = `<span style="color:var(--danger)">Failed: ${parseBlockchainError(e)}</span>`;
-    }
+    } catch(e) { statusBox.innerHTML = `<span style="color:var(--danger)">Failed: ${parseBlockchainError(e)}</span>`; }
+};
+
+document.getElementById('revokeBtn').onclick = async () => {
+    const target = document.getElementById('verifyAddr').value;
+    let statusBox = document.getElementById('adminStatus') || document.createElement('div');
+    statusBox.id = 'adminStatus';
+    statusBox.style.marginTop = '10px';
+    document.getElementById('revokeBtn').parentNode.parentNode.appendChild(statusBox);
+
+    statusBox.innerHTML = '<span style="color:var(--primary)">Processing Revocation...</span>';
+    try {
+        const tx = await identityContract.revokeVerification(target);
+        await tx.wait();
+        statusBox.innerHTML = '<span style="color:var(--success)">Revocation Successful!</span>';
+        await hardSync();
+    } catch(e) { statusBox.innerHTML = `<span style="color:var(--danger)">Failed: ${parseBlockchainError(e)}</span>`; }
 };
 
 document.getElementById('withdrawBtn').onclick = async () => {
-    let statusBox = document.getElementById('ownerStatus');
-    if (!statusBox) {
-        statusBox = document.createElement('div');
-        statusBox.id = 'ownerStatus';
-        statusBox.style.marginTop = '10px';
-        statusBox.style.fontSize = '0.9rem';
-        document.getElementById('ownerSection').appendChild(statusBox);
-    }
+    let statusBox = document.getElementById('ownerStatus') || document.createElement('div');
+    statusBox.id = 'ownerStatus';
+    statusBox.style.marginTop = '10px';
+    document.getElementById('ownerSection').appendChild(statusBox);
 
     statusBox.innerHTML = '<span style="color:var(--primary)">Initiating Withdrawal...</span>';
     try {
@@ -231,41 +263,10 @@ document.getElementById('withdrawBtn').onclick = async () => {
         await tx.wait();
         statusBox.innerHTML = '<span style="color:var(--success)">Funds successfully withdrawn!</span>';
         await hardSync();
-    } catch(e) { 
-        statusBox.innerHTML = `<span style="color:var(--danger)">Failed: ${parseBlockchainError(e)}</span>`;
-    }
+    } catch(e) { statusBox.innerHTML = `<span style="color:var(--danger)">Failed: ${parseBlockchainError(e)}</span>`; }
 };
 
 window.onload = () => { document.getElementById('connectBtn').onclick = connectWallet; };
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

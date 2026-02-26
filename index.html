@@ -83,7 +83,7 @@
 
     <script>
 const IDENTITY_CONTRACT = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34";
-const BALL_CONTRACT_ADDR = "0x7daa073Ea50049958919738772e541DDE6c03E41"; 
+const BALL_CONTRACT_ADDR = "0x0511B136c0CB731FA23808D886c752E4B5cc81d1"; 
 
 const BALL_ABI = [
     "function getPrediction(string _question) payable",
@@ -169,41 +169,42 @@ async function connectWallet() {
 window.onload = () => {
     document.getElementById('connectBtn').onclick = connectWallet;
 
-    document.getElementById('shakeBtn').onclick = async () => {
-        const q = document.getElementById('oracleQuestion').value;
-        const box = document.getElementById('resultText');
-        if (!q) return;
+document.getElementById('shakeBtn').onclick = async () => {
+    const q = document.getElementById('oracleQuestion').value;
+    const box = document.getElementById('resultText');
+    if (!q) return;
 
-        box.innerHTML = '<span class="pulsing-text">Consulting the Oracle...</span>';
+    box.innerHTML = '<span class="pulsing-text">Consulting the Oracle...</span>';
+    
+    try {
+        const tx = await ballContract.getPrediction(q, {
+            value: ethers.parseEther("0.15"),
+            gasLimit: 3000000 
+        });
         
-        try {
-            const tx = await ballContract.getPrediction(q, {
-                value: ethers.parseEther("0.15"),
-                gasLimit: 3000000
-            });
-            
-            box.innerHTML = '<span class="pulsing-text">Broadcasting to Cluster...</span>';
-            await tx.wait();
-            box.innerHTML = '<span class="pulsing-text">Awaiting AI callback...</span>';
-        } catch(e) {
-            console.error("Inference Failure Details:", e);
-            
-            // Detailed Error Parsing for Debugging
-            let errorMsg = "Check Verification or Gas";
-            
-            if (e.reason) {
-                errorMsg = e.reason;
-            } else if (e.info && e.info.error && e.info.error.message) {
-                errorMsg = e.info.error.message; // Captures deep RPC errors
-            } else if (e.message && e.message.includes("User Identity not verified")) {
-                errorMsg = "Identity Error: Please verify your wallet.";
-            } else if (e.code === "INSUFFICIENT_FUNDS") {
-                errorMsg = "Error: Insufficient LCAI for fee.";
-            }
-
-            box.innerHTML = `<span style="color:var(--danger)">Oracle Reverted: ${errorMsg}</span>`;
+        box.innerHTML = '<span class="pulsing-text">Broadcasting to Cluster...</span>';
+        await tx.wait();
+        box.innerHTML = '<span class="pulsing-text">Awaiting AI callback...</span>';
+        
+    } catch(e) {
+        console.error("Full Error Object:", e);
+        
+        // Robust Error Extraction
+        let errorMsg = "Check Verification or Gas";
+        
+        if (e.reason) {
+            errorMsg = e.reason; // Standard revert string
+        } else if (e.info && e.info.error && e.info.error.message) {
+            errorMsg = e.info.error.message; // Deep RPC error
+        } else if (e.message) {
+            if (e.message.includes("USER_NOT_VERIFIED")) errorMsg = "Identity Registry: Your wallet is not verified.";
+            else if (e.message.includes("INSUFFICIENT_FEE")) errorMsg = "Fee Error: Must send 0.15 LCAI.";
+            else errorMsg = e.message.substring(0, 60);
         }
-    };
+
+        box.innerHTML = `<span style="color:var(--danger)">Oracle Reverted: ${errorMsg}</span>`;
+    }
+};
 
     document.getElementById('lookupBtn').onclick = async () => {
         const target = document.getElementById('lookupAddr').value;
@@ -242,6 +243,7 @@ window.onload = () => {
     </script>
 </body>
 </html>
+
 
 
 

@@ -6,12 +6,8 @@
     <title>Lightchain AI | (Testnet)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <style>
-        :root { 
-            --primary: #00d1ff; --bg: #050505; --sidebar: #0d0d0e; --card: #141417; --text: #e0e0e0; 
-            --glow: 0 0 15px rgba(0, 209, 255, 0.4); 
-        }
+        :root { --primary: #00d1ff; --bg: #050505; --sidebar: #0d0d0e; --card: #141417; --text: #e0e0e0; --glow: 0 0 15px rgba(0, 209, 255, 0.4); }
         body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; display: flex; height: 100vh; overflow: hidden; }
-        
         aside { width: 260px; background: var(--sidebar); border-right: 1px solid #222; display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; }
         .logo { font-size: 20px; font-weight: bold; margin-bottom: 40px; }
         .logo span { color: var(--primary); }
@@ -19,28 +15,19 @@
         .nav-item:hover:not(.disabled) { background: #1a1a1c; color: white; }
         .nav-item.active { background: rgba(0, 209, 255, 0.1); color: var(--primary); border-left: 3px solid var(--primary); }
         .nav-item.disabled { opacity: 0.2; cursor: not-allowed; }
-
         main { flex: 1; padding: 40px; overflow-y: auto; display: flex; flex-direction: column; }
         header { display: flex; justify-content: flex-end; align-items: center; gap: 15px; margin-bottom: 40px; }
         .sbt-badge { padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 800; border: 1px solid var(--primary); box-shadow: var(--glow); color: var(--primary); background: rgba(0, 209, 255, 0.05); }
-        
         .card { background: var(--card); border: 1px solid #222; padding: 30px; border-radius: 16px; width: 100%; max-width: 900px; align-self: center; }
         .btn { background: var(--primary); color: #000; border: none; padding: 14px 28px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        .btn:disabled { background: #333; color: #666; cursor: not-allowed; }
-        
         .gated { display: none; }
         input { width: 100%; padding: 15px; background: #000; border: 1px solid #333; color: white; margin-bottom: 20px; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
-        
-        /* History & Viewer Layout */
-        #artLayout { display: flex; gap: 30px; margin-top: 10px; }
+        #artLayout { display: flex; gap: 30px; }
         #artWorkArea { flex: 2; }
         #artLog { flex: 1; background: #000; border: 1px solid #222; border-radius: 12px; padding: 20px; max-height: 550px; overflow-y: auto; }
-        
         .log-entry { font-size: 12px; padding: 12px; border-bottom: 1px solid #222; cursor: pointer; transition: 0.2s; border-radius: 6px; margin-bottom: 8px; }
-        .log-entry:hover { background: #111; border-color: #444; }
         .log-entry.pending { color: #888; border-left: 3px solid #444; }
-        .log-entry.ready { color: var(--primary); border-left: 3px solid var(--primary); font-weight: bold; background: rgba(0, 209, 255, 0.03); }
-        
+        .log-entry.ready { color: var(--primary); border-left: 3px solid var(--primary); font-weight: bold; }
         #artViewer { margin-top: 20px; border: 1px dashed #333; border-radius: 12px; min-height: 400px; display: flex; align-items: center; justify-content: center; background: #080808; overflow: hidden; }
         #artViewer img { max-width: 100%; max-height: 100%; border-radius: 8px; box-shadow: var(--glow); }
         #viewerStatus { font-size: 14px; text-align: center; max-width: 80%; }
@@ -63,7 +50,6 @@
 
         <div id="gateView" class="card">
             <h2>ZK-KYC Required</h2>
-            <p style="color:#888;">Your wallet is unverified. To access the AIVM Creative Suite, generate a ZK-Proof to mint your Identity SBT.</p>
             <button id="verifyBtn" class="btn" disabled>Verify & Mint ZK-SBT</button>
             <p id="status" style="text-align:center; margin-top:20px; color:#666;">Connect wallet to check status.</p>
         </div>
@@ -72,31 +58,25 @@
             <h2>AI Art Generator</h2>
             <div id="artLayout">
                 <div id="artWorkArea">
-                    <input type="text" id="artPrompt" placeholder="A cybernetic panda working on a railroad, neon blue light...">
+                    <input type="text" id="artPrompt" placeholder="A cybernetic panda...">
                     <button id="generateArtBtn" class="btn" style="width: auto;">Generate Art</button>
-                    <div id="artViewer">
-                        <span id="viewerStatus" style="color:#555;">Select a task from history or generate a new one</span>
-                    </div>
+                    <div id="artViewer"><span id="viewerStatus" style="color:#555;">Select a task or generate a new one</span></div>
                 </div>
-                <div id="artLog">
-                    <div style="font-size: 11px; color: #555; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; font-weight: bold;">Inference History</div>
-                    <div id="logItems"></div>
-                </div>
+                <div id="artLog"><div id="logItems"></div></div>
             </div>
         </div>
 
         <div id="oracleView" class="card gated">
             <h2>AIVM Oracle</h2>
-            <p style="color:#888;">Direct prompt anchoring for decentralized LLM inference.</p>
-            <input type="text" placeholder="Ask the cluster anything...">
+            <input type="text" placeholder="Ask the cluster...">
             <button class="btn" style="width:auto;">Submit Request</button>
         </div>
 
         <div id="identityView" class="card gated">
             <h2>Identity Registry</h2>
-            <div style="background:#000; border:1px solid #333; padding:25px; border-radius:12px;">
+            <div style="background:#000; border: 1px solid #333; padding:25px; border-radius:12px;">
                 <p>Status: <b style="color:var(--primary)">✓ ZK-VERIFIED</b></p>
-                <p id="displaySbtAddr" style="font-family:monospace; color:var(--primary); font-size: 12px; margin-top:10px;"></p>
+                <p id="displaySbtAddr" style="font-family:monospace; color:var(--primary); font-size: 12px;"></p>
             </div>
         </div>
     </main>
@@ -114,10 +94,9 @@
                 signer = await provider.getSigner();
                 const address = await signer.getAddress();
                 document.getElementById('connectBtn').innerText = address.substring(0,6) + "..." + address.slice(-4);
-                document.getElementById('displaySbtAddr').innerText = `SBT Contract: ${SBT_ADDR}`;
+                document.getElementById('displaySbtAddr').innerText = `SBT: ${SBT_ADDR}`;
                 renderLog();
                 await checkVerification();
-                // Resume polling for any unfinished tasks
                 userTasks.forEach((t, i) => { if(!t.ready && t.taskId) pollTask(i); });
             }
         }
@@ -128,7 +107,6 @@
                 const isVerified = await sbt.hasSBT(await signer.getAddress());
                 const badge = document.getElementById('sbtBadge');
                 badge.style.display = "inline-block";
-                
                 if (isVerified) {
                     badge.innerText = "ZK-VERIFIED";
                     document.getElementById('gateView').classList.add('gated');
@@ -139,7 +117,6 @@
                     badge.innerText = "UNVERIFIED";
                     badge.style.color = "#ff4444";
                     document.getElementById('verifyBtn').disabled = false;
-                    document.getElementById('status').innerText = "ZK-SBT not detected.";
                 }
             } catch (e) { console.error(e); }
         }
@@ -150,7 +127,7 @@
             userTasks.forEach((t, i) => {
                 const div = document.createElement('div');
                 div.className = `log-entry ${t.ready ? 'ready' : 'pending'}`;
-                div.innerHTML = `<b>#${i+1}</b> ${t.prompt.substring(0,18)}...<br><small>${t.ready ? '✓ VIEW RESULT' : '⟳ IN QUEUE'}</small>`;
+                div.innerHTML = `<b>#${i+1}</b> ${t.prompt.substring(0,18)}...<br><small>${t.ready ? '✓ READY' : '⟳ IN QUEUE'}</small>`;
                 div.onclick = () => viewArt(i);
                 list.prepend(div);
             });
@@ -166,18 +143,15 @@
             } else {
                 viewer.innerHTML = "";
                 status.style.display = "block";
-                status.style.color = "var(--primary)";
-                status.innerText = `Task Anchored. Waiting for PoI Consensus verification for task ${task.taskId.substring(0,10)}...`;
+                status.innerText = `Task Anchored. Waiting for PoI... (ID: ${task.taskId.substring(0,10)})`;
             }
         }
 
         document.getElementById('generateArtBtn').onclick = async () => {
             const prompt = document.getElementById('artPrompt').value;
-            if(!prompt) return alert("Please enter a prompt");
-            
+            if(!prompt) return alert("Enter a prompt");
             const loader = document.getElementById('viewerStatus');
-            loader.innerText = "Step 1: Signing Anchor Transaction (0.1 LCAI Fee)...";
-            
+            loader.innerText = "Step 1: Signing Anchor Transaction...";
             try {
                 const router = new ethers.Contract(ROUTER_ADDR, [
                     "function requestInferenceV2(uint256 m, string p) external payable returns (bytes32)",
@@ -187,10 +161,10 @@
                 const tx = await router.requestInferenceV2(2, prompt, { value: ethers.parseEther("0.1") });
                 const receipt = await tx.wait();
                 
-                // Find correct log for Task ID
+                // Hunt for the correct log
                 const eventHash = ethers.id("InferenceRequested(bytes32,address,uint256)");
                 const log = receipt.logs.find(x => x.topics[0] === eventHash);
-                if (!log) throw new Error("Log not found");
+                if (!log) throw new Error("ID not in logs");
                 const taskId = log.topics[1];
 
                 const newTask = { prompt, taskId, ready: false, url: null };
@@ -198,10 +172,9 @@
                 localStorage.setItem('lcai_art_tasks', JSON.stringify(userTasks));
                 renderLog();
                 pollTask(userTasks.length - 1);
-                
-                loader.innerText = "Step 2: Task Anchored. GPU Cluster Processing...";
+                loader.innerText = "Step 2: Anchored! Cluster generating...";
             } catch (e) { 
-                loader.innerText = "Inference Failed. Check LCAI balance or gas.";
+                loader.innerText = "Inference Failed. Check gas/LCAI fee.";
                 loader.style.color = "#ff4444";
                 console.error(e);
             }
@@ -217,7 +190,7 @@
                     task.url = data.url;
                     localStorage.setItem('lcai_art_tasks', JSON.stringify(userTasks));
                     renderLog();
-                    if(document.getElementById('artView').className.indexOf('gated') === -1) viewArt(index);
+                    if(document.getElementById('tab-art').classList.contains('active')) viewArt(index);
                 } else {
                     setTimeout(() => pollTask(index), 5000);
                 }
@@ -241,4 +214,3 @@
     </script>
 </body>
 </html>
-

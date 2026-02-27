@@ -74,7 +74,7 @@
     </main>
 
     <script>
-  const SBT_ADDR = "0xa344e0f391e8DCfd6195D89b910C5Beb27525c4F";
+const SBT_ADDR = "0xa344e0f391e8DCfd6195D89b910C5Beb27525c4F";
 const ROUTER_ADDR = "0x0269683E61b210d56b3D692603336fEB27B8a83a";
 const CHAT_API = "https://chat2.lightchain.ai/api/v1"; 
 
@@ -140,15 +140,18 @@ document.getElementById('generateArtBtn').onclick = async () => {
     const loader = document.getElementById('viewerStatus');
     loader.innerText = "Anchoring Task on Testnet...";
     try {
-        const router = new ethers.Contract(ROUTER_ADDR, ["function requestInferenceV2(uint256 m, string p) external payable returns (bytes32)"], signer);
+        const router = new ethers.Contract(ROUTER_ADDR, [
+            "function requestInferenceV2(uint256 m, string p) external payable returns (bytes32)",
+            "event InferenceRequested(bytes32 indexed taskId, address indexed requester, uint256 modelId)"
+        ], signer);
+        
         const tx = await router.requestInferenceV2(2, prompt, { value: ethers.parseEther("0.1") });
         const receipt = await tx.wait();
         
-        // FIND THE TASK ID: Loop through all logs to find the 32-byte ID
-        let taskId = null;
-        for (const log of receipt.logs) {
-            if (log.topics.length > 1) { taskId = log.topics[1]; break; }
-        }
+        // FIND THE TASK ID: Using the event hash to be 100% accurate
+        const eventHash = ethers.id("InferenceRequested(bytes32,address,uint256)");
+        const log = receipt.logs.find(x => x.topics[0] === eventHash);
+        const taskId = log ? log.topics[1] : null;
 
         if(!taskId) throw new Error("Task ID not found");
 
@@ -190,4 +193,5 @@ document.getElementById('connectBtn').onclick = init;
     </script>
 </body>
 </html>
+
 

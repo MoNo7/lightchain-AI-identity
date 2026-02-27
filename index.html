@@ -3,42 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lightchain AI | Portal</title>
+    <title>Lightchain AI | Privacy Portal</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <style>
         :root { --primary: #00d1ff; --bg: #050505; --sidebar: #0d0d0e; --card: #141417; --text: #e0e0e0; --glow: 0 0 15px rgba(0, 209, 255, 0.4); }
-        body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; display: flex; height: 100 vh; overflow: hidden; }
+        body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; display: flex; height: 100vh; overflow: hidden; }
+        
+        /* Sidebar Styles */
         aside { width: 260px; background: var(--sidebar); border-right: 1px solid #222; display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; }
-        .logo { font-size: 20px; font-weight: bold; margin-bottom: 40px; }
+        .logo { font-size: 20px; font-weight: bold; margin-bottom: 30px; }
         .logo span { color: var(--primary); }
         .nav-item { padding: 12px 15px; border-radius: 8px; cursor: pointer; margin-bottom: 10px; transition: 0.3s; color: #888; display: flex; align-items: center; gap: 10px; }
         .nav-item:hover:not(.disabled) { background: #1a1a1c; color: white; }
         .nav-item.active { background: rgba(0, 209, 255, 0.1); color: var(--primary); border-left: 3px solid var(--primary); }
         .nav-item.disabled { opacity: 0.2; cursor: not-allowed; }
+        
+        .status-container { margin-top: auto; padding: 15px; background: #000; border: 1px solid #222; border-radius: 12px; font-size: 11px; }
+        .status-dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+        .status-online { background: #00ff88; box-shadow: 0 0 8px #00ff88; }
+        .status-offline { background: #ff4444; }
+
         main { flex: 1; padding: 40px; overflow-y: auto; display: flex; flex-direction: column; }
         header { display: flex; justify-content: flex-end; align-items: center; gap: 15px; margin-bottom: 40px; }
-        .sbt-badge { padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 800; border: 1px solid var(--primary); box-shadow: var(--glow); color: var(--primary); }
+        .sbt-badge { padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 800; border: 1px solid var(--primary); color: var(--primary); background: rgba(0, 209, 255, 0.05); }
+        
         .card { background: var(--card); border: 1px solid #222; padding: 30px; border-radius: 16px; width: 100%; max-width: 900px; align-self: center; }
-        .btn { background: var(--primary); color: #000; border: none; padding: 14px 28px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .btn { background: var(--primary); color: #000; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .btn-outline { background: transparent; border: 1px solid var(--primary); color: var(--primary); margin-top: 15px; }
         .gated { display: none !important; }
         input { width: 100%; padding: 15px; background: #000; border: 1px solid #333; color: white; margin-bottom: 20px; border-radius: 8px; font-size: 16px; }
+
         #artLayout { display: flex; gap: 25px; }
-        #artWorkArea { flex: 2; }
-        #artLog { flex: 1; background: #000; border: 1px solid #222; border-radius: 12px; padding: 20px; max-height: 550px; overflow-y: auto; }
-        .log-entry { font-size: 11px; padding: 12px; border-bottom: 1px solid #222; cursor: pointer; border-radius: 6px; margin-bottom: 8px; line-height: 1.4; }
+        #artWorkArea { flex: 2; position: relative; }
+        #artLog { flex: 1; background: #000; border: 1px solid #222; border-radius: 12px; padding: 15px; max-height: 550px; overflow-y: auto; }
+        
+        .log-entry { font-size: 11px; padding: 12px; border-bottom: 1px solid #222; cursor: pointer; border-radius: 6px; margin-bottom: 8px; }
         .log-entry.pending { color: #888; border-left: 3px solid #444; }
         .log-entry.ready { color: var(--primary); border-left: 3px solid var(--primary); font-weight: bold; background: rgba(0,209,255,0.05); }
-        #artViewer { margin-top: 20px; border: 1px dashed #333; border-radius: 12px; min-height: 400px; display: flex; align-items: center; justify-content: center; background: #080808; overflow: hidden; }
-        #artViewer img { max-width: 100%; max-height: 100%; box-shadow: var(--glow); border-radius: 8px; }
+        
+        #artViewer { margin-top: 20px; border: 1px dashed #333; border-radius: 12px; min-height: 400px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #080808; overflow: hidden; padding: 20px; }
+        #artViewer img { max-width: 100%; max-height: 350px; border-radius: 8px; box-shadow: var(--glow); margin-bottom: 15px; }
     </style>
 </head>
 <body>
-    <aside id="sidebarNav">
+    <aside>
         <div class="logo">LCAI <span>Identity</span></div>
         <div id="tab-oracle" class="nav-item active" onclick="switchTab('oracle')">AIVM Oracle</div>
         <div id="tab-art" class="nav-item disabled" onclick="switchTab('art')">AI Art</div>
         <div id="tab-identity" class="nav-item disabled" onclick="switchTab('identity')">Identity Registry</div>
-        <div style="margin-top: auto; font-size: 11px; color: #444;">Testnet v2.0-Alpha</div>
+        
+        <div class="status-container">
+            <div id="gpuStatus"><span class="status-dot status-offline"></span> GPU Cluster: Checking...</div>
+            <div style="color: #555; margin-top: 5px;">Model: Stable-Diffusion-XL</div>
+        </div>
     </aside>
 
     <main>
@@ -48,36 +65,35 @@
         </header>
 
         <div id="gateView" class="card">
-            <h2>ZK-KYC Required</h2>
-            <p style="color:#888; margin-bottom: 20px;">Identity verification is required to access the AIVM Creative Suite.</p>
+            <h2>Identity Verification Required</h2>
+            <p style="color:#888;">Mint your Soulbound Identity Token to unlock GPU accelerated art generation.</p>
             <button id="verifyBtn" class="btn" disabled onclick="verifyAndMint()">Verify & Mint ZK-SBT</button>
-            <p id="status" style="text-align:center; margin-top:20px; color:#666;">Connect wallet to check status.</p>
+            <p id="status" style="margin-top:20px; color:#666;">Waiting for wallet connection...</p>
         </div>
 
         <div id="artView" class="card gated">
             <h2>AI Art Generator</h2>
             <div id="artLayout">
                 <div id="artWorkArea">
-                    <input type="text" id="artPrompt" placeholder="A panda railroad worker on mars...">
-                    <button id="generateArtBtn" class="btn" style="width: auto;">Generate Art</button>
-                    <div id="artViewer"><span id="viewerStatus" style="color:#555;">Ready for your prompt.</span></div>
+                    <input type="text" id="artPrompt" placeholder="A panda railroad worker on mars, hyper-realistic...">
+                    <button id="generateArtBtn" class="btn">Generate Art (0.1 LCAI)</button>
+                    <div id="artViewer">
+                        <div id="viewerContent" style="width:100%; text-align:center;">
+                            <span id="viewerStatus" style="color:#555;">Ready for inference.</span>
+                        </div>
+                        <button id="downloadBtn" class="btn btn-outline gated" onclick="downloadArt()">Download Masterpiece</button>
+                    </div>
                 </div>
                 <div id="artLog"><div id="logItems"></div></div>
             </div>
         </div>
 
-        <div id="oracleView" class="card gated">
-            <h2>AIVM Oracle</h2>
-            <input type="text" placeholder="Ask the decentralized cluster...">
-            <button class="btn" style="width:auto;">Submit Query</button>
-        </div>
-
         <div id="identityView" class="card gated">
-            <h2>Identity Registry</h2>
+            <h2>Registry Settings</h2>
             <div style="background:#000; border: 1px solid #333; padding:25px; border-radius:12px;">
-                <p>Status: <b style="color:var(--primary)">✓ ZK-VERIFIED</b></p>
-                <p id="displaySbtAddr" style="font-family:monospace; color:var(--primary); font-size: 12px; margin-top:10px;"></p>
-                <button class="btn" style="margin-top:20px; font-size:12px;" onclick="localStorage.clear(); location.reload();">Clear History</button>
+                <p>Identity: <b style="color:var(--primary)">✓ ZK-VERIFIED</b></p>
+                <p id="displaySbtAddr" style="font-family:monospace; color:var(--primary); font-size: 11px;"></p>
+                <button class="btn btn-outline" onclick="localStorage.clear(); location.reload();">Reset Session History</button>
             </div>
         </div>
     </main>
@@ -95,11 +111,24 @@
                 signer = await provider.getSigner();
                 const address = await signer.getAddress();
                 document.getElementById('connectBtn').innerText = address.substring(0,6) + "..." + address.slice(-4);
-                document.getElementById('displaySbtAddr').innerText = `SBT Contract: ${SBT_ADDR}`;
                 renderLog();
-                await checkVerification();
+                checkVerification();
+                updateGPUStatus();
                 userTasks.forEach((t, i) => { if(!t.ready && t.taskId) pollTask(i); });
             }
+        }
+
+        async function updateGPUStatus() {
+            try {
+                const resp = await fetch(`${CHAT_API}/chat/health`);
+                const statusEl = document.getElementById('gpuStatus');
+                if(resp.ok) {
+                    statusEl.innerHTML = `<span class="status-dot status-online"></span> GPU Cluster: Online`;
+                } else {
+                    statusEl.innerHTML = `<span class="status-dot status-offline"></span> GPU Cluster: Busy`;
+                }
+            } catch (e) { console.error("Health check failed"); }
+            setTimeout(updateGPUStatus, 30000);
         }
 
         async function checkVerification() {
@@ -107,17 +136,15 @@
                 const sbt = new ethers.Contract(SBT_ADDR, ["function hasSBT(address) view returns (bool)"], signer);
                 const isVerified = await sbt.hasSBT(await signer.getAddress());
                 if (isVerified) {
-                    const badge = document.getElementById('sbtBadge');
-                    badge.innerText = "ZK-VERIFIED";
-                    badge.style.display = "inline-block";
-                    badge.style.color = "var(--primary)";
+                    document.getElementById('sbtBadge').style.display = "inline-block";
+                    document.getElementById('sbtBadge').innerText = "ZK-VERIFIED";
                     document.getElementById('gateView').classList.add('gated');
-                    document.getElementById('tab-identity').classList.remove('disabled');
                     document.getElementById('tab-art').classList.remove('disabled');
-                    switchTab('oracle');
+                    document.getElementById('tab-identity').classList.remove('disabled');
+                    switchTab('art');
                 } else {
                     document.getElementById('verifyBtn').disabled = false;
-                    document.getElementById('status').innerText = "Identity SBT not found. Please verify.";
+                    document.getElementById('status').innerText = "ZK-SBT not detected in your wallet.";
                 }
             } catch (e) { console.error(e); }
         }
@@ -128,7 +155,7 @@
             userTasks.forEach((t, i) => {
                 const div = document.createElement('div');
                 div.className = `log-entry ${t.ready ? 'ready' : 'pending'}`;
-                div.innerHTML = `<b>#${i+1}</b> ${t.prompt.substring(0,18)}...<br><small>${t.ready ? '✓ VIEW RESULT' : '⟳ IN QUEUE'}</small>`;
+                div.innerHTML = `<b>#${i+1}</b> ${t.prompt.substring(0,18)}...<br><small>${t.ready ? '✓ READY' : '⟳ PROCESSING'}</small>`;
                 div.onclick = () => viewArt(i);
                 list.prepend(div);
             });
@@ -136,48 +163,61 @@
 
         function viewArt(index) {
             const task = userTasks[index];
-            const viewer = document.getElementById('artViewer');
+            const content = document.getElementById('viewerContent');
             const status = document.getElementById('viewerStatus');
+            const dlBtn = document.getElementById('downloadBtn');
+            
             if(task.ready) {
                 status.style.display = "none";
-                viewer.innerHTML = `<img src="${task.url}" alt="AI Result">`;
+                content.innerHTML = `<img id="currentArt" src="${task.url}" alt="AI Result">`;
+                dlBtn.classList.remove('gated');
             } else {
-                viewer.innerHTML = "";
+                content.innerHTML = "";
                 status.style.display = "block";
-                status.innerText = `Task Anchored. Processing ID: ${task.taskId.substring(0,12)}...`;
+                status.innerText = `Anchored Task: ${task.taskId.substring(0,12)}... Waiting for GPU result.`;
+                dlBtn.classList.add('gated');
             }
+        }
+
+        function downloadArt() {
+            const img = document.getElementById('currentArt');
+            const link = document.createElement('a');
+            link.href = img.src;
+            link.download = `LCAI-Art-${Date.now()}.png`;
+            link.click();
         }
 
         document.getElementById('generateArtBtn').onclick = async () => {
             const prompt = document.getElementById('artPrompt').value;
             if(!prompt) return alert("Enter a prompt");
-            const loader = document.getElementById('viewerStatus');
-            loader.innerText = "Step 1: Signing Anchor Transaction (0.1 LCAI)...";
-            loader.style.color = "var(--primary)";
-
+            const status = document.getElementById('viewerStatus');
+            status.innerText = "Step 1: Signing Anchor Transaction...";
+            
             try {
-                const router = new ethers.Contract(ROUTER_ADDR, ["function requestInferenceV2(uint256 m, string p) external payable returns (bytes32)"], signer);
+                const router = new ethers.Contract(ROUTER_ADDR, [
+                    "function requestInferenceV2(uint256 m, string p) external payable returns (bytes32)",
+                    "event InferenceRequested(bytes32 indexed taskId, address indexed requester, uint256 modelId)"
+                ], signer);
+                
                 const tx = await router.requestInferenceV2(2, prompt, { value: ethers.parseEther("0.1") });
                 const receipt = await tx.wait();
                 
-                // ROBUST LOG SCANNER: Finds any 32-byte indexed topic in the logs
-                let taskId = null;
-                for (const log of receipt.logs) {
-                    if (log.topics.length > 1) { taskId = log.topics[1]; break; }
-                }
-
-                if(!taskId) throw new Error("Could not extract TaskID");
+                // PRECISION LOG FILTER: Extract TaskID from the specific event signature
+                const eventHash = ethers.id("InferenceRequested(bytes32,address,uint256)");
+                const log = receipt.logs.find(x => x.topics[0] === eventHash);
+                if(!log) throw new Error("InferenceRequested event not found in logs");
+                const taskId = log.topics[1];
 
                 const newTask = { prompt, taskId, ready: false, url: null };
                 userTasks.push(newTask);
                 localStorage.setItem('lcai_art_tasks', JSON.stringify(userTasks));
                 renderLog();
                 pollTask(userTasks.length - 1);
-                loader.innerText = "Step 2: Task Anchored. Waiting for GPU results...";
+                status.innerText = "Step 2: Anchored! GPU cluster generating image...";
             } catch (e) { 
-                loader.innerText = "Inference Failed. Check gas or 0.1 LCAI balance.";
-                loader.style.color = "#ff4444";
-                console.error("Art Error:", e);
+                status.innerText = "Inference Failed. Check LCAI balance or gas price.";
+                status.style.color = "#ff4444";
+                console.error(e);
             }
         };
 
@@ -191,6 +231,7 @@
                     task.url = data.url;
                     localStorage.setItem('lcai_art_tasks', JSON.stringify(userTasks));
                     renderLog();
+                    if(document.getElementById('artView').offsetParent !== null) viewArt(index);
                 } else { setTimeout(() => pollTask(index), 5000); }
             } catch (e) { setTimeout(() => pollTask(index), 5000); }
         }

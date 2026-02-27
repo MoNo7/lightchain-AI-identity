@@ -3,58 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lightchain AI | Gated Identity Portal</title>
+    <title>Lightchain AI | Privacy Identity Portal</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <style>
-        :root { 
-            --primary: #00ffa3; 
-            --bg: #050505; 
-            --sidebar: #0d0d0e;
-            --card: #141417; 
-            --text: #e0e0e0;
-            --glow: 0 0 10px rgba(0, 255, 163, 0.5), 0 0 20px rgba(0, 255, 163, 0.2);
-        }
+        :root { --primary: #00ffa3; --bg: #050505; --sidebar: #0d0d0e; --card: #141417; --text: #e0e0e0; --glow: 0 0 15px rgba(0, 255, 163, 0.4); }
         body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; display: flex; height: 100vh; overflow: hidden; }
-        
-        /* Sidebar Styles */
         aside { width: 260px; background: var(--sidebar); border-right: 1px solid #222; display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; }
         .logo { font-size: 20px; font-weight: bold; margin-bottom: 40px; }
         .logo span { color: var(--primary); }
         .nav-item { padding: 12px 15px; border-radius: 8px; cursor: pointer; margin-bottom: 10px; transition: 0.3s; color: #888; display: flex; align-items: center; gap: 10px; }
-        .nav-item:hover { background: #1a1a1c; color: white; }
+        .nav-item:hover:not(.disabled) { background: #1a1a1c; color: white; }
         .nav-item.active { background: rgba(0, 255, 163, 0.1); color: var(--primary); border-left: 3px solid var(--primary); }
-        .nav-item.disabled { opacity: 0.4; cursor: not-allowed; }
-
-        /* Main Content */
+        .nav-item.disabled { opacity: 0.3; cursor: not-allowed; }
         main { flex: 1; padding: 40px; overflow-y: auto; display: flex; flex-direction: column; }
         header { display: flex; justify-content: flex-end; align-items: center; gap: 15px; margin-bottom: 40px; }
-        
-        /* Premium Badge Logic */
-        .sbt-badge { 
-            padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;
-            border: 1px solid var(--primary); box-shadow: var(--glow); color: var(--primary); background: rgba(0, 255, 163, 0.05);
-            animation: pulse 2s infinite ease-in-out;
-        }
-        @keyframes pulse { 0% { opacity: 0.8; } 50% { opacity: 1; box-shadow: 0 0 15px rgba(0, 255, 163, 0.7); } 100% { opacity: 0.8; } }
-        
+        .sbt-badge { padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 800; border: 1px solid var(--primary); box-shadow: var(--glow); color: var(--primary); background: rgba(0, 255, 163, 0.05); }
         .card { background: var(--card); border: 1px solid #222; padding: 30px; border-radius: 16px; width: 100%; max-width: 800px; align-self: center; }
-        .btn { background: var(--primary); color: #000; border: none; padding: 14px 28px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; transition: 0.2s; }
-        .btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
-        .btn:disabled { background: #333; color: #666; cursor: not-allowed; transform: none; }
-
-        input { background: #000; border: 1px solid #333; color: white; padding: 15px; border-radius: 8px; width: 100%; box-sizing: border-box; margin-bottom: 20px; outline: none; }
-        input:focus { border-color: var(--primary); }
-        #status { text-align: center; margin-top: 20px; font-size: 14px; color: #888; }
+        .btn { background: var(--primary); color: #000; border: none; padding: 14px 28px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .btn:disabled { background: #333; color: #666; cursor: not-allowed; }
         .gated { display: none; }
+        #status { text-align: center; margin-top: 20px; font-size: 14px; color: #888; }
     </style>
 </head>
 <body>
-
     <aside id="sidebarNav">
         <div class="logo">LCAI <span>Identity</span></div>
-        <div class="nav-item active" onclick="switchTab('oracle', this)">AIVM Oracle</div>
-        <div class="nav-item disabled" id="navIdentity" onclick="switchTab('identity', this)">Identity Registry</div>
-        <div class="nav-item" style="margin-top: auto; font-size: 12px; color: #444;">Testnet v2.0</div>
+        <div id="tab-oracle" class="nav-item active" onclick="switchTab('oracle')">AIVM Oracle</div>
+        <div id="tab-identity" class="nav-item disabled" onclick="switchTab('identity')">Identity Registry</div>
+        <div style="margin-top: auto; font-size: 11px; color: #444;">Testnet v2.0-Alpha</div>
     </aside>
 
     <main>
@@ -64,91 +40,90 @@
         </header>
 
         <div id="gateView" class="card">
-            <h2 style="margin-top:0">Protected Access</h2>
-            <p style="color: #888; line-height: 1.6;">You must verify your identity via ZK-Proof to unlock full network functionality. This process mints a Soulbound Token (SBT) to your wallet.</p>
+            <h2>ZK-KYC Required</h2>
+            <p style="color:#888;">Access to the AIVM Oracle is restricted to verified identities. Please mint your ZK-SBT to proceed.</p>
             <button id="verifyBtn" class="btn" disabled>Verify via zkPass & Mint SBT</button>
-            <p id="status">Connect your wallet to begin.</p>
+            <p id="status">Please connect your wallet.</p>
         </div>
 
         <div id="oracleView" class="card gated">
-            <h2 style="margin-top:0">Oracle Inference</h2>
-            <p style="color:#888">Submit requests to the Lightchain AI decentralized cluster.</p>
-            <input type="text" id="oracleInput" placeholder="What is the year?">
-            <button class="btn" style="width: auto;" onclick="alert('Inference sent to AIVM!')">Request Inference</button>
-            <div id="oracleOutput" style="margin-top:30px; font-family: monospace; color: var(--primary);">Awaiting command...</div>
+            <h2>AIVM Oracle</h2>
+            <p style="color:#888;">Submit prompt requests to the Lightchain AI decentralized cluster.</p>
+            <input type="text" placeholder="Ask the cluster..." style="width:100%; padding:12px; background:#000; border:1px solid #333; color:white; margin-bottom:20px; border-radius:8px;">
+            <button class="btn" style="width:auto;" onclick="alert('Inference Request Sent')">Submit Request</button>
         </div>
 
         <div id="identityView" class="card gated">
-            <h2>Identity Registry</h2>
-            <p>Verification anchored at: <span style="color:var(--primary)" id="displaySbtAddr"></span></p>
-            <div style="border: 1px solid #333; padding: 15px; border-radius: 8px; background: #000;">
-                <p style="margin:0; font-size: 14px;">On-Chain Status: <span style="color:var(--primary)">✓ VERIFIED</span></p>
+            <h2>Identity Management</h2>
+            <div style="background:#000; border:1px solid #333; padding:20px; border-radius:12px;">
+                <p>Status: <b style="color:var(--primary)">✓ VERIFIED</b></p>
+                <p style="margin:0; font-size:13px; color:#666;">SBT Contract Address:</p>
+                <p id="displaySbtAddr" style="font-family:monospace; color:var(--primary); margin-top:5px;"></p>
             </div>
         </div>
     </main>
 
     <script>
-        const SBT_ADDR = "0xa344e0f391e8DCfd6195D89b910C5Beb27525c4F"; 
-        let signer, provider;
+        const SBT_ADDR = "0xa344e0f391e8DCfd6195D89b910C5Beb27525c4F";
+        let signer;
 
         async function init() {
             if (window.ethereum) {
-                provider = new ethers.BrowserProvider(window.ethereum);
+                const provider = new ethers.BrowserProvider(window.ethereum);
                 signer = await provider.getSigner();
                 const address = await signer.getAddress();
                 document.getElementById('connectBtn').innerText = address.substring(0,6) + "..." + address.slice(-4);
+                
+                // Immediately update the display address to remove "Loading..."
+                document.getElementById('displaySbtAddr').innerText = SBT_ADDR;
+                
                 await checkVerification();
             }
         }
 
         async function checkVerification() {
-            const sbt = new ethers.Contract(SBT_ADDR, ["function hasSBT(address) view returns (bool)"], signer);
-            const userAddr = await signer.getAddress();
-            const isVerified = await sbt.hasSBT(userAddr);
-
-            const badge = document.getElementById('sbtBadge');
-            badge.style.display = "inline-block";
-
-            if (isVerified) {
-                badge.innerText = "ZK-VERIFIED";
-                document.getElementById('gateView').classList.add('gated');
-                document.getElementById('oracleView').classList.remove('gated');
-                document.getElementById('navIdentity').classList.remove('disabled');
-            } else {
-                badge.innerText = "UNVERIFIED";
-                badge.style.color = "#ff4444";
-                badge.style.borderColor = "#ff4444";
-                badge.style.boxShadow = "none";
-                document.getElementById('verifyBtn').disabled = false;
-                document.getElementById('status').innerText = "ZK-SBT not found. Please verify.";
-            }
+            try {
+                const sbt = new ethers.Contract(SBT_ADDR, ["function hasSBT(address) view returns (bool)"], signer);
+                const userAddr = await signer.getAddress();
+                const isVerified = await sbt.hasSBT(userAddr);
+                const badge = document.getElementById('sbtBadge');
+                
+                badge.style.display = "inline-block";
+                if (isVerified) {
+                    badge.innerText = "ZK-VERIFIED";
+                    document.getElementById('gateView').classList.add('gated');
+                    document.getElementById('oracleView').classList.remove('gated');
+                    document.getElementById('tab-identity').classList.remove('disabled');
+                } else {
+                    badge.innerText = "UNVERIFIED";
+                    badge.style.color = "#ff4444";
+                    badge.style.borderColor = "#ff4444";
+                    document.getElementById('verifyBtn').disabled = false;
+                    document.getElementById('status').innerText = "ZK-SBT not found.";
+                }
+            } catch (e) { console.error(e); }
         }
 
-        document.getElementById('verifyBtn').onclick = async () => {
-            try {
-                document.getElementById('status').innerText = "Transacting...";
-                const sbtContract = new ethers.Contract(SBT_ADDR, ["function verifyAndMint(uint[2] _pA, uint[2][2] _pB, uint[2] _pC, uint[1] _pubSignals) external"], signer);
-                
-                // Testing Dummy Proof (Passes your custom Verifier.sol)
-                const tx = await sbtContract.verifyAndMint(["0","0"],[["0","0"],["0","0"]],["0","0"],[Math.floor(Math.random()*100000).toString()]);
-                await tx.wait();
-                
-                document.getElementById('status').innerText = "SBT Minted Successfully!";
-                await checkVerification();
-            } catch (e) {
-                document.getElementById('status').innerText = "Minting failed. Handshake auth check needed?";
-            }
-        };
+        function switchTab(tab) {
+            const tabEl = document.getElementById('tab-' + tab);
+            if (tabEl.classList.contains('disabled')) return;
 
-        function switchTab(tab, el) {
-            if (el.classList.contains('disabled')) return;
             document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-            el.classList.add('active');
-            
+            tabEl.classList.add('active');
+
             document.getElementById('oracleView').classList.add('gated');
             document.getElementById('identityView').classList.add('gated');
             document.getElementById(tab + 'View').classList.remove('gated');
         }
+
+        document.getElementById('verifyBtn').onclick = async () => {
+            try {
+                const sbtContract = new ethers.Contract(SBT_ADDR, ["function verifyAndMint(uint[2] _pA, uint[2][2] _pB, uint[2] _pC, uint[1] _pubSignals) external"], signer);
+                const tx = await sbtContract.verifyAndMint(["0","0"],[["0","0"],["0","0"]],["0","0"],[Math.floor(Math.random()*100000).toString()]);
+                await tx.wait();
+                await checkVerification();
+            } catch (e) { alert("Transaction failed or rejected."); }
+        };
 
         document.getElementById('connectBtn').onclick = init;
     </script>

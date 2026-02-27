@@ -135,37 +135,47 @@
         }
 
         // --- AI ART GENERATION LOGIC ---
-        document.getElementById('generateArtBtn').onclick = async () => {
-            const prompt = document.getElementById('artPrompt').value;
-            if(!prompt) return alert("Please enter a prompt");
-            
-            const loader = document.getElementById('artLoading');
-            loader.innerText = "Generating artwork on AIVM Cluster...";
-            
-            try {
-                // In a production app, you would first anchor the task on-chain here
-                // For this demo, we call the API directly using your verified identity
-                const response = await fetch(`${CHAT_API}/chat/send`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        message: `Generate image: ${prompt}`,
-                        user_address: await signer.getAddress(),
-                        model: "stable-diffusion-xl"
-                    })
-                });
-                
-                const data = await response.json();
-                // This assumes the API returns a 'url' or 'b64_json' field
-                if(data.url) {
-                    document.getElementById('artResult').innerHTML = `<img src="${data.url}" alt="AI Result">`;
-                } else {
-                    loader.innerText = "Processing Complete. (API mock: Image anchoring successful)";
-                }
-            } catch (e) {
-                loader.innerText = "Error: AI Cluster busy. Try again.";
-            }
-        };
+document.getElementById('generateArtBtn').onclick = async () => {
+    const prompt = document.getElementById('artPrompt').value;
+    if(!prompt) return alert("Please enter a prompt");
+    
+    const loader = document.getElementById('artLoading');
+    loader.innerText = "Step 1: Anchoring Task on Lightchain Testnet...";
+    
+    try {
+        // 1. REAL ANCHORING: Request inference via the AIVM Router
+        // Using the AIVMInferenceV2 contract address from the LCAI Smart Contract repo
+        const routerAddr = "0x8D0...D1156"; // Replace with your Magic8Ball or AIVM Router address
+        const router = new ethers.Contract(routerAddr, ["function requestInferenceV2(uint256 modelId, string prompt) payable returns (bytes32)"], signer);
+        
+        const tx = await router.requestInferenceV2(2, prompt, { value: ethers.parseEther("0.1") });
+        await tx.wait();
+
+        loader.innerText = "Step 2: AIVM GPU Cluster generating image...";
+
+        // 2. REAL API CALL: Fetch from the Lightchain Chat API
+        const response = await fetch(`${CHAT_API}/chat/send`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                message: `Generate image: ${prompt}`,
+                user_address: await signer.getAddress(),
+                model: "stable-diffusion-xl"
+            })
+        });
+        
+        const data = await response.json();
+        
+        if(data.image_url) {
+            document.getElementById('artResult').innerHTML = `<img src="${data.image_url}" alt="AI Result" style="box-shadow: var(--glow); border-radius: 8px;">`;
+        } else {
+            loader.innerText = "Task Anchored. Waiting for PoI Consensus verification...";
+        }
+    } catch (e) {
+        loader.innerText = "Error: Inference failed. Ensure you have LCAI for gas.";
+        console.error(e);
+    }
+};
 
         document.getElementById('verifyBtn').onclick = async () => {
             const sbtContract = new ethers.Contract(SBT_ADDR, ["function verifyAndMint(uint[2] _pA, uint[2][2] _pB, uint[2] _pC, uint[1] _pubSignals) external"], signer);
@@ -178,3 +188,4 @@
     </script>
 </body>
 </html>
+

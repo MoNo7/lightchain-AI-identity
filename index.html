@@ -190,15 +190,25 @@ document.getElementById('generateArtBtn').onclick = async () => {
         const receipt = await tx.wait();
         
         // ROBUST SCRAPER: Find any 32-byte topic from the router
-        let taskId = null;
-        for (const log of receipt.logs) {
-            if (log.address.toLowerCase() === ROUTER_ADDR.toLowerCase() && log.topics.length > 1) {
-                taskId = log.topics[1]; // The taskId is the first indexed parameter
-                break;
-            }
-        }
+let taskId = null;
 
-        if(!taskId) throw new Error("TaskID extraction failed");
+// Search through all logs in the transaction receipt
+for (const log of receipt.logs) {
+    // 1. Ensure the log comes from the AIVM Router
+    const isFromRouter = log.address.toLowerCase() === ROUTER_ADDR.toLowerCase();
+    
+    // 2. InferenceRequested(bytes32, ...) has taskId as the first indexed param (topics[1])
+    const hasIndexedTaskId = log.topics && log.topics.length >= 2;
+
+    if (isFromRouter && hasIndexedTaskId) {
+        // This is your valid Task ID
+        taskId = log.topics[1]; 
+        console.log("Verified Task ID Found:", taskId);
+        break; 
+    }
+}
+
+if (!taskId) throw new Error("AIVM Anchor failed: No Task ID found in logs.");
 
         const newTask = { prompt, taskId, ready: false, url: null };
         userTasks.push(newTask);
@@ -240,4 +250,5 @@ document.getElementById('connectBtn').onclick = init;
     </script>
 </body>
 </html>
+
 

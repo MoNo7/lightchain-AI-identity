@@ -89,6 +89,7 @@ const SBT_ADDR = "0xa344e0f391e8DCfd6195D89b910C5Beb27525c4F";
 const ROUTER_ADDR = "0x0269683E61b210d56b3D692603336fEB27B8a83a";
 const CHAT_API = "https://chat2.lightchain.ai/api/v1"; 
 
+// Initialize history from localStorage immediately
 let signer, userTasks = JSON.parse(localStorage.getItem('lcai_art_tasks') || '[]');
 
 async function init() {
@@ -97,88 +98,52 @@ async function init() {
         signer = await provider.getSigner();
         const address = await signer.getAddress();
         document.getElementById('connectBtn').innerText = address.substring(0,6) + "..." + address.slice(-4);
-        document.getElementById('displaySbtAddr').innerText = `SBT: ${SBT_ADDR}`;
         
-        renderLog();
+        renderLog(); // Build the sidebar from stored history
         checkVerification();
-        updateHealth();
+        updateGPUStatus();
         
-        // Resume polling for all tasks in history
+        // AUTO-RETRIEVAL: Resume polling for any unfinished tasks found in the log
         userTasks.forEach((t, i) => { if(!t.ready && t.taskId) pollTask(i); });
     }
 }
 
-async function updateHealth() {
-    try {
-        const resp = await fetch(`${CHAT_API}/chat/health`);
-        const el = document.getElementById('gpuStatus');
-        el.innerHTML = resp.ok ? `<span class="status-dot status-online"></span> Cluster: Online` : `<span class="status-dot status-offline"></span> Cluster: Busy`;
-    } catch (e) { console.error("Health check failed"); }
-    setTimeout(updateHealth, 30000);
+// LOG STORAGE: Saves the transaction data so it's never lost
+function saveTaskToLog(prompt, taskId) {
+    const newTask = { prompt, taskId, ready: false, url: null, timestamp: Date.now() };
+    userTasks.push(newTask);
+    localStorage.setItem('lcai_art_tasks', JSON.stringify(userTasks));
+    renderLog();
+    return userTasks.length - 1; // Return index for polling
 }
 
-async function checkVerification() {
-    try {
-        const sbt = new ethers.Contract(SBT_ADDR, ["function hasSBT(address) view returns (bool)"], signer);
-        const isVerified = await sbt.hasSBT(await signer.getAddress());
-        if (isVerified) {
-            document.getElementById('sbtBadge').style.display = "inline-block";
-            document.getElementById('sbtBadge').innerText = "ZK-VERIFIED";
-            document.getElementById('gateView').classList.add('gated');
-            document.getElementById('tab-art').classList.remove('disabled');
-            document.getElementById('tab-identity').classList.remove('disabled');
-            switchTab('art');
-        } else {
-            document.getElementById('verifyBtn').disabled = false;
-        }
-    } catch (e) { console.error("SBT Error", e); }
-}
-
-function renderLog() {
-    const list = document.getElementById('logItems');
-    list.innerHTML = '';
-    userTasks.forEach((t, i) => {
-        const div = document.createElement('div');
-        div.className = `log-entry ${t.ready ? 'ready' : 'pending'}`;
-        div.innerHTML = `<b>#${i+1}</b> ${t.prompt.substring(0,18)}...<br><small>${t.ready ? '✓ READY' : '⟳ IN QUEUE'}</small>`;
-        div.onclick = () => viewArt(i);
-        list.prepend(div);
-    });
-}
-
-function viewArt(index) {
+// RETRIEVAL BY ID: Fetches the specific art based on the stored taskId
+async function pollTask(index) {
     const task = userTasks[index];
-    const content = document.getElementById('viewerContent');
-    const status = document.getElementById('viewerStatus');
-    const dlBtn = document.getElementById('downloadBtn');
-    
-    if(task.ready) {
-        status.style.display = "none";
-        content.innerHTML = `<img id="currArt" src="${task.url}" alt="AI Result" style="max-width:100%; border-radius:8px;">`;
-        dlBtn.classList.remove('gated');
-    } else {
-        content.innerHTML = "";
-        status.style.display = "block";
-        status.innerText = `Task Anchored. Processing ID: ${task.taskId.substring(0,12)}...`;
-        dlBtn.classList.add('gated');
+    try {
+        const resp = await fetch(`${CHAT_API}/chat/status?taskId=${task.taskId}`);
+        const data = await resp.json();
+        
+        if(data.ready && data.url) {
+            task.ready = true;
+            task.url = data.url;
+            localStorage.setItem('lcai_art_tasks', JSON.stringify(userTasks));
+            renderLog(); // Update UI to show '✓ READY'
+        } else {
+            // Keep polling every 5 seconds until the cluster responds
+            setTimeout(() => pollTask(index), 5000);
+        }
+    } catch (e) { 
+        setTimeout(() => pollTask(index), 5000); 
     }
-}
-
-function downloadArt() {
-    const img = document.getElementById('currArt');
-    if(!img) return;
-    const a = document.createElement('a');
-    a.href = img.src;
-    a.download = `LCAI-Art-${Date.now()}.png`;
-    a.click();
 }
 
 document.getElementById('generateArtBtn').onclick = async () => {
     const prompt = document.getElementById('artPrompt').value;
-    if(!prompt) return alert("Enter a prompt");
+    if(!prompt) return;
+    
     const status = document.getElementById('viewerStatus');
-    status.style.color = "var(--primary)";
-    status.innerText = "Step 1: Signing anchoring transaction...";
+    status.innerText = "Step 1: Anchoring Task...";
     
     try {
         const router = new ethers.Contract(ROUTER_ADDR, [
@@ -186,69 +151,47 @@ document.getElementById('generateArtBtn').onclick = async () => {
         ], signer);
         
         const tx = await router.requestInferenceV2(2, prompt, { value: ethers.parseEther("0.1") });
-        status.innerText = "Step 2: Confirming on Lightchain Network...";
         const receipt = await tx.wait();
         
-        // ROBUST SCRAPER: Find any 32-byte topic from the router
-let taskId = null;
+        // FIND TASK ID: Scans raw logs to link the chain txn to the AI task
+        let taskId = null;
+        for (const log of receipt.logs) {
+            if (log.address.toLowerCase() === ROUTER_ADDR.toLowerCase() && log.topics.length > 1) {
+                taskId = log.topics[1];
+                break;
+            }
+        }
 
-// Search through all logs in the transaction receipt
-for (const log of receipt.logs) {
-    // 1. Ensure the log comes from the AIVM Router
-    const isFromRouter = log.address.toLowerCase() === ROUTER_ADDR.toLowerCase();
-    
-    // 2. InferenceRequested(bytes32, ...) has taskId as the first indexed param (topics[1])
-    const hasIndexedTaskId = log.topics && log.topics.length >= 2;
+        if(!taskId) throw new Error("ID not found in receipt");
 
-    if (isFromRouter && hasIndexedTaskId) {
-        // This is your valid Task ID
-        taskId = log.topics[1]; 
-        console.log("Verified Task ID Found:", taskId);
-        break; 
-    }
-}
-
-if (!taskId) throw new Error("AIVM Anchor failed: No Task ID found in logs.");
-
-        const newTask = { prompt, taskId, ready: false, url: null };
-        userTasks.push(newTask);
-        localStorage.setItem('lcai_art_tasks', JSON.stringify(userTasks));
-        renderLog();
-        pollTask(userTasks.length - 1);
-        status.innerText = "Step 3: Anchored! Waiting for GPU results...";
+        // STEP 2: STORE TASK (The Activity Log)
+        const taskIndex = saveTaskToLog(prompt, taskId);
+        
+        // STEP 3: START RETRIEVAL
+        pollTask(taskIndex);
+        status.innerText = "Task Anchored! Waiting for GPU results...";
+        
     } catch (e) { 
-        status.innerText = "Inference Failed. Check console for details.";
-        status.style.color = "#ff4444";
+        status.innerText = "Inference Failed. Check LCAI balance.";
         console.error(e);
     }
 };
 
-async function pollTask(index) {
-    const task = userTasks[index];
-    try {
-        const resp = await fetch(`${CHAT_API}/chat/status?taskId=${task.taskId}`);
-        const data = await resp.json();
-        if(data.ready && data.url) {
-            task.ready = true;
-            task.url = data.url;
-            localStorage.setItem('lcai_art_tasks', JSON.stringify(userTasks));
-            renderLog();
-            if(document.getElementById('artView').offsetParent) viewArt(index);
-        } else { setTimeout(() => pollTask(index), 5000); }
-    } catch (e) { setTimeout(() => pollTask(index), 5000); }
+function renderLog() {
+    const list = document.getElementById('logItems');
+    list.innerHTML = '';
+    userTasks.forEach((t, i) => {
+        const div = document.createElement('div');
+        div.className = `log-entry ${t.ready ? 'ready' : 'pending'}`;
+        // Users can click this at any time to retrieve by ID
+        div.onclick = () => viewArt(i);
+        div.innerHTML = `<b>#${i+1}</b> ${t.prompt.substring(0,18)}...<br><small>${t.ready ? '✓ READY' : '⟳ IN QUEUE'}</small>`;
+        list.prepend(div);
+    });
 }
-
-function switchTab(tab) {
-    if (document.getElementById('tab-' + tab).classList.contains('disabled')) return;
-    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-    document.getElementById('tab-' + tab).classList.add('active');
-    document.querySelectorAll('main > .card').forEach(c => c.classList.add('gated'));
-    document.getElementById(tab + 'View').classList.remove('gated');
-}
-
-document.getElementById('connectBtn').onclick = init;
     </script>
 </body>
 </html>
+
 
 

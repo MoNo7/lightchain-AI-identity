@@ -19,7 +19,7 @@
         .result-window { margin-top: 20px; padding: 15px; background: #fdfdfd; border: 2px dashed #cbd5e0; border-radius: 8px; min-height: 80px; font-size: 0.9rem; }
         input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 8px; box-sizing: border-box; }
         .pulsing-text { animation: pulse 1.5s infinite; color: var(--warning); font-weight: bold; }
-        .status-box { padding: 10px; margin-top: 10px; border-radius: 6px; font-size: 0.75rem; display: block; border: 1px solid #eee; background: #f9f9f9; }
+        .status-box { padding: 10px; margin-top: 10px; border-radius: 6px; font-size: 0.75rem; display: none; border: 1px solid #eee; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
     </style>
 </head>
@@ -37,8 +37,7 @@
                 </div>
                 <button id="connectBtn" class="primary-btn">Connect Wallet</button>
             </div>
-            
-            <div id="adminConsole" class="card" style="display:block; border-top: 4px solid var(--admin-blue);">
+            <div id="adminConsole" class="card" style="display:none; border-top: 4px solid var(--admin-blue);">
                 <h4 style="color:var(--admin-blue); margin: 0 0 10px 0;">Identity Management</h4>
                 <input type="text" id="lookupAddr" placeholder="Lookup 0x...">
                 <button id="lookupBtn" class="primary-btn" style="background: var(--admin-blue);">Query Status</button>
@@ -49,9 +48,8 @@
                     <button id="verifyBtn" class="small-btn" style="background:var(--success);">Verify</button>
                     <button id="revokeBtn" class="small-btn" style="background:var(--danger);">Revoke</button>
                 </div>
-                <div id="adminActionResult" class="status-box" style="display:none;"></div>
+                <div id="adminActionResult" class="status-box"></div>
             </div>
-
             <div id="ownerSection" class="card" style="display:none; border-top: 4px solid var(--owner);">
                 <h4 style="color:var(--owner); margin:0;">Contract Owner</h4>
                 <div id="ownerAddrDisplay" style="font-size:0.6rem; color:#666; word-break:break-all; margin-top:10px;"></div>
@@ -59,18 +57,16 @@
                 <button id="withdrawBtn" class="primary-btn" style="background:var(--owner); padding: 5px; font-size:0.75rem;">Withdraw All</button>
             </div>
         </div>
-
         <div class="main-utility-area">
             <div id="oracleUI" style="display:none; width: 100%; max-width: 500px;">
                 <div class="card" style="text-align: center; border-top: 4px solid var(--success);">
-                    <h2>Magic 8-Ball AI</h2>
+                    <h2>AIVM Oracle</h2>
                     <input type="text" id="oracleQuestion" placeholder="Ask the cluster...">
-                    <button id="shakeBtn" class="primary-btn" style="background: var(--success);">Ask Oracle (0.15 LCAI)</button>
+                    <button id="shakeBtn" class="primary-btn" style="background: var(--success);">Request Inference</button>
                     <div class="result-window" id="resultText">Awaiting inference...</div>
                 </div>
             </div>
         </div>
-
         <div id="rightSidebar">
             <div class="card">
                 <h4 style="margin:0;">Cluster Logs</h4>
@@ -91,22 +87,22 @@
             "event OracleAnswer(address indexed user, string answer, bytes32 taskId)",
             "event OracleRequest(address indexed user, string question, bytes32 taskId)"
         ];
-
-        const IDENTITY_ABI = [
-            "function getIdentity(address) view returns (string, string, bool)",
-            "function isAdmin(address) view returns (bool)",
-            "function verify(address _user)", 
-            "function revoke(address _user)"
-        ];
+        const IDENTITY_ABI = ["function getIdentity(address) view returns (string, string, bool)", "function isAdmin(address) view returns (bool)", "function verifyIdentity(address)", "function revokeVerification(address)"];
         
         let signer, ballContract, identityContract, provider;
 
         function logToSidebar(msg) {
             const feed = document.getElementById('txFeed');
             const entry = document.createElement('div');
-            entry.style.borderBottom = "1px solid #eee"; entry.style.padding = "5px 0";
+            entry.style.borderBottom = "1px solid #eee";
+            entry.style.padding = "5px 0";
             entry.innerHTML = `<span style="color:#666">[${new Date().toLocaleTimeString()}]</span> ${msg}`;
             feed.prepend(entry);
+        }
+
+        function parseBlockchainError(e) {
+            if (e.message && e.message.includes("DIAGNOSTIC:")) return e.message.match(/DIAGNOSTIC: (.*?)(?:"|'|$)/)[1];
+            return e.reason || "Blockchain Reverted. Ensure contract & wallet are verified.";
         }
 
         async function hardSync() {
@@ -120,10 +116,10 @@
                 provider.getBalance(BALL_CONTRACT_ADDR)
             ]);
             document.getElementById('tokenBalance').innerText = parseFloat(ethers.formatEther(balance)).toFixed(4);
-            document.getElementById('userNameDisplay').innerText = profile[0] || "Anonymous";
+            document.getElementById('userNameDisplay').innerText = profile[0] || "Unknown User";
             document.getElementById('verifyTag').innerText = profile[2] ? "VERIFIED" : "UNVERIFIED";
             document.getElementById('verifyTag').style.color = profile[2] ? "var(--success)" : "var(--danger)";
-            
+            if (isRegAdmin) document.getElementById('adminConsole').style.display = 'block';
             if (ballAdmin.toLowerCase() === address.toLowerCase()) {
                 document.getElementById('ownerSection').style.display = 'block';
                 document.getElementById('ownerAddrDisplay').innerText = `Contract: ${BALL_CONTRACT_ADDR}`;
@@ -133,18 +129,21 @@
         }
 
         async function connectWallet() {
-            if (!window.ethereum) return alert("Install MetaMask");
             provider = new ethers.BrowserProvider(window.ethereum);
             signer = await provider.getSigner();
             ballContract = new ethers.Contract(BALL_CONTRACT_ADDR, BALL_ABI, signer);
             identityContract = new ethers.Contract(IDENTITY_CONTRACT, IDENTITY_ABI, signer);
 
-            ballContract.on("OracleRequest", (user, q, taskId) => { logToSidebar(`Request: ${q.substring(0,15)}...`); });
-            ballContract.on("OracleAnswer", async (user, answer) => {
+            ballContract.on("OracleRequest", (user, q, taskId) => {
+                logToSidebar(`New Request: ${q.substring(0,20)}... (ID: ${taskId.substring(0,10)})`);
+            });
+
+            ballContract.on("OracleAnswer", async (user, answer, taskId) => {
                 const myAddr = await signer.getAddress();
                 if (user.toLowerCase() === myAddr.toLowerCase()) {
                     document.getElementById('resultText').innerText = answer;
-                    logToSidebar("Oracle Answered!");
+                    document.getElementById('resultText').classList.remove('pulsing-text');
+                    logToSidebar(`Oracle Answered Task ${taskId.substring(0,10)}`);
                     await hardSync();
                 }
             });
@@ -155,41 +154,22 @@
             await hardSync();
         }
 
-        document.getElementById('lookupBtn').onclick = async () => {
-            const addr = document.getElementById('lookupAddr').value;
-            const resBox = document.getElementById('lookupResults');
-            if (!ethers.isAddress(addr)) return alert("Invalid Address");
-            try {
-                const data = await identityContract.getIdentity(addr);
-                resBox.style.display = 'block';
-                resBox.innerHTML = `<strong>Name:</strong> ${data[0]}<br><strong>Status:</strong> ${data[2] ? 'Verified' : 'Unverified'}`;
-            } catch (e) { alert("Lookup failed"); }
-        };
-
-        document.getElementById('verifyBtn').onclick = async () => {
-            const addr = document.getElementById('verifyAddr').value;
-            const statusBox = document.getElementById('adminActionResult');
-            try {
-                statusBox.style.display = 'block'; statusBox.innerText = "Processing Verification...";
-                const tx = await identityContract.verify(addr);
-                await tx.wait();
-                statusBox.innerText = "Success: User Verified";
-            } catch (e) { statusBox.innerText = "Error: " + (e.reason || "Only Admins can verify"); }
-        };
-
         document.getElementById('shakeBtn').onclick = async () => {
             const q = document.getElementById('oracleQuestion').value;
             const box = document.getElementById('resultText');
+            if (!q) return;
+            box.innerHTML = '<span class="pulsing-text">Consulting the Cluster...</span>';
             try {
-                box.innerHTML = '<span class="pulsing-text">Consulting Cluster...</span>';
                 const tx = await ballContract.getPrediction(q, { value: ethers.parseEther("0.15") });
+                logToSidebar(`Tx Sent: ${tx.hash.substring(0,10)}...`);
                 await tx.wait();
-                logToSidebar("Transaction Confirmed. Waiting for AI...");
-            } catch (e) { box.innerText = "Error: " + (e.reason || "Reverted"); }
+                box.innerHTML = '<span class="pulsing-text">Request Accepted. Awaiting AI...</span>';
+            } catch (e) {
+                box.innerHTML = `<span style="color:var(--danger)">Error: ${parseBlockchainError(e)}</span>`;
+            }
         };
 
         window.onload = () => { document.getElementById('connectBtn').onclick = connectWallet; };
     </script>
 </body>
 </html>
-

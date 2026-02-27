@@ -85,161 +85,209 @@
     </main>
 
     <script>
-        const SBT_ADDR = "0xa344e0f391e8DCfd6195D89b910C5Beb27525c4F";
-        const ROUTER_ADDR = "0x0269683E61b210d56b3D692603336fEB27B8a83a";
-        const CHAT_API = "https://chat2.lightchain.ai/api/v1"; 
+ const SBT_ADDR = "0xa344e0f391e8DCfd6195D89b910C5Beb27525c4F";
+const ROUTER_ADDR = "0x0269683E61b210d56b3D692603336fEB27B8a83a";
+const CHAT_API = "https://chat2.lightchain.ai/api/v1"; 
 
-        let signer, userTasks = JSON.parse(localStorage.getItem('lcai_art_tasks') || '[]');
+let signer, userTasks = JSON.parse(localStorage.getItem('lcai_art_tasks') || '[]');
 
-        async function init() {
-            if (window.ethereum) {
-                const provider = new ethers.BrowserProvider(window.ethereum);
-                signer = await provider.getSigner();
-                const address = await signer.getAddress();
-                document.getElementById('connectBtn').innerText = address.substring(0,6) + "..." + address.slice(-4);
-                document.getElementById('displaySbtAddr').innerText = `SBT: ${SBT_ADDR}`;
-                renderLog();
-                checkVerification();
-                updateHealth();
-                userTasks.forEach((t, i) => { if(!t.ready && t.taskId) pollTask(i); });
-            }
+async function init() {
+    if (window.ethereum) {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        signer = await provider.getSigner();
+        const address = await signer.getAddress();
+        document.getElementById('connectBtn').innerText = address.substring(0,6) + "..." + address.slice(-4);
+        document.getElementById('displaySbtAddr').innerText = `SBT: ${SBT_ADDR}`;
+        
+        renderLog();
+        checkVerification();
+        updateHealth();
+        
+        // Resume polling for any incomplete tasks
+        userTasks.forEach((t, i) => { if(!t.ready && t.taskId) pollTask(i); });
+    }
+}
+
+async function updateHealth() {
+    try {
+        const resp = await fetch(`${CHAT_API}/chat/health`);
+        const el = document.getElementById('gpuStatus');
+        el.innerHTML = resp.ok ? `<span class="status-dot status-online"></span> Cluster: Online` : `<span class="status-dot status-offline"></span> Cluster: Busy`;
+    } catch (e) { console.error("Health check failed"); }
+    setTimeout(updateHealth, 30000);
+}
+
+async function checkVerification() {
+    try {
+        const sbt = new ethers.Contract(SBT_ADDR, ["function hasSBT(address) view returns (bool)"], signer);
+        const isVerified = await sbt.hasSBT(await signer.getAddress());
+        if (isVerified) {
+            document.getElementById('sbtBadge').style.display = "inline-block";
+            document.getElementById('sbtBadge').innerText = "ZK-VERIFIED";
+            document.getElementById('gateView').classList.add('gated');
+            document.getElementById('tab-art').classList.remove('disabled');
+            document.getElementById('tab-identity').classList.remove('disabled');
+            switchTab('art');
+        } else {
+            document.getElementById('verifyBtn').disabled = false;
         }
+    } catch (e) { console.error("SBT Check Error:", e); }
+}
 
-        async function updateHealth() {
-            try {
-                const resp = await fetch(`${CHAT_API}/chat/health`);
-                const el = document.getElementById('gpuStatus');
-                el.innerHTML = resp.ok ? `<span class="status-dot status-online"></span> Cluster: Online` : `<span class="status-dot status-offline"></span> Cluster: Busy`;
-            } catch (e) { console.error("Health check failed"); }
-            setTimeout(updateHealth, 30000);
-        }
+function renderLog() {
+    const list = document.getElementById('logItems');
+    list.innerHTML = '';
+    userTasks.forEach((t, i) => {
+        const div = document.createElement('div');
+        div.className = `log-entry ${t.ready ? 'ready' : 'pending'}`;
+        div.innerHTML = `<b>#${i+1}</b> ${t.prompt.substring(0,18)}...<br><small>${t.ready ? '✓ READY' : '⟳ IN QUEUE'}</small>`;
+        div.onclick = () => viewArt(i);
+        list.prepend(div);
+    });
+}
 
-        async function checkVerification() {
-            try {
-                const sbt = new ethers.Contract(SBT_ADDR, ["function hasSBT(address) view returns (bool)"], signer);
-                const isVerified = await sbt.hasSBT(await signer.getAddress());
-                if (isVerified) {
-                    document.getElementById('sbtBadge').style.display = "inline-block";
-                    document.getElementById('sbtBadge').innerText = "ZK-VERIFIED";
-                    document.getElementById('gateView').classList.add('gated');
-                    document.getElementById('tab-art').classList.remove('disabled');
-                    document.getElementById('tab-identity').classList.remove('disabled');
-                    switchTab('art');
-                } else {
-                    document.getElementById('verifyBtn').disabled = false;
-                }
-            } catch (e) { console.error(e); }
-        }
+function viewArt(index) {
+    const task = userTasks[index];
+    const content = document.getElementById('viewerContent');
+    const status = document.getElementById('viewerStatus');
+    const dlBtn = document.getElementById('downloadBtn');
+    
+    if(task.ready) {
+        status.style.display = "none";
+        content.innerHTML = `<img id="currArt" src="${task.url}" alt="AI Result" style="max-width:100%; border-radius:8px;">`;
+        dlBtn.classList.remove('gated');
+    } else {
+        content.innerHTML = "";
+        status.style.display = "block";
+        status.innerText = `Task Anchored. Processing ID: ${task.taskId.substring(0,15)}...`;
+        dlBtn.classList.add('gated');
+    }
+}
 
-        function renderLog() {
-            const list = document.getElementById('logItems');
-            list.innerHTML = '';
-            userTasks.forEach((t, i) => {
-                const div = document.createElement('div');
-                div.className = `log-entry ${t.ready ? 'ready' : 'pending'}`;
-                div.innerHTML = `<b>#${i+1}</b> ${t.prompt.substring(0,18)}...<br><small>${t.ready ? '✓ READY' : '⟳ IN QUEUE'}</small>`;
-                div.onclick = () => viewArt(i);
-                list.prepend(div);
-            });
-        }
-
-        function viewArt(index) {
-            const task = userTasks[index];
-            const content = document.getElementById('viewerContent');
-            const status = document.getElementById('viewerStatus');
-            const dlBtn = document.getElementById('downloadBtn');
-            if(task.ready) {
-                status.style.display = "none";
-                content.innerHTML = `<img id="currArt" src="${task.url}" alt="Result">`;
-                dlBtn.classList.remove('gated');
-            } else {
-                content.innerHTML = "";
-                status.style.display = "block";
-                status.innerText = `Task Anchored. Processing ID: ${task.taskId.substring(0,12)}...`;
-                dlBtn.classList.add('gated');
-            }
-        }
-
-        function downloadArt() {
-            const img = document.getElementById('currArt');
-            if(!img) return;
+function downloadArt() {
+    const img = document.getElementById('currArt');
+    if(!img) return;
+    
+    // Fetch the image as a blob to force a clean download bypassing CORS display issues
+    fetch(img.src)
+        .then(response => response.blob())
+        .then(blob => {
+            const blobUrl = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = img.src;
+            a.href = blobUrl;
             a.download = `LCAI-Art-${Date.now()}.png`;
+            document.body.appendChild(a);
             a.click();
-        }
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(blobUrl);
+        }).catch(e => console.error("Download failed", e));
+}
 
 document.getElementById('generateArtBtn').onclick = async () => {
     const prompt = document.getElementById('artPrompt').value;
     if(!prompt) return alert("Enter a prompt");
+    
     const status = document.getElementById('viewerStatus');
+    const dlBtn = document.getElementById('downloadBtn');
+    const content = document.getElementById('viewerContent');
+    
+    // Reset viewer UI
+    content.innerHTML = "";
+    dlBtn.classList.add('gated');
+    status.style.display = "block";
     status.style.color = "var(--primary)";
-    status.innerText = "Anchoring Task...";
+    status.innerText = "Step 1: Signing anchoring transaction...";
     
     try {
         const router = new ethers.Contract(ROUTER_ADDR, [
-            "function requestInferenceV2(uint256 m, string p) external payable returns (bytes32)",
-            "event InferenceRequested(bytes32 indexed taskId, address indexed requester, uint256 modelId)"
+            "function requestInferenceV2(uint256 m, string p) external payable"
         ], signer);
         
         const tx = await router.requestInferenceV2(2, prompt, { value: ethers.parseEther("0.1") });
+        status.innerText = "Step 2: Confirming on Lightchain Network...";
         const receipt = await tx.wait();
         
-        // ROBUST LOG EXTRACTION: Use the Contract Interface to parse the logs
+        // -------------------------------------------------------------------
+        // THE FIX: RAW EVM LOG SCRAPER (No ABI dependencies)
+        // -------------------------------------------------------------------
         let taskId = null;
         for (const log of receipt.logs) {
-            try {
-                // This will safely attempt to decode the log using the ABI provided above
-                const parsedLog = router.interface.parseLog(log);
-                if (parsedLog && parsedLog.name === "InferenceRequested") {
-                    taskId = parsedLog.args.taskId; // Automatically maps the correct argument!
+            // Only look at logs emitted by the AIVM Router
+            if (log.address.toLowerCase() === ROUTER_ADDR.toLowerCase()) {
+                // If the event has topics, the TaskID is usually topic[1] (if indexed)
+                if (log.topics && log.topics.length > 1) {
+                    taskId = log.topics[1];
+                    break;
+                } 
+                // Fallback: If unindexed, the TaskID is the first 32 bytes of the data payload
+                else if (log.data && log.data.length >= 66) {
+                    taskId = log.data.substring(0, 66); 
                     break;
                 }
-            } catch (err) {
-                // Ignore errors from logs that don't match (like the 0.1 LCAI Transfer event)
-                continue;
             }
         }
 
-        if(!taskId) throw new Error("TaskID extraction failed - Event not found in receipt");
+        if(!taskId) throw new Error("Could not locate Task ID in raw transaction logs.");
 
+        // Register Task & Start Polling
         const newTask = { prompt, taskId, ready: false, url: null };
         userTasks.push(newTask);
         localStorage.setItem('lcai_art_tasks', JSON.stringify(userTasks));
+        
         renderLog();
+        status.innerText = `Step 3: Anchored! (ID: ${taskId.substring(0,10)}...) Waiting for GPU...`;
+        
+        // Start waiting for the answer
         pollTask(userTasks.length - 1);
-        status.innerText = "Task Anchored. GPU cluster processing...";
+
     } catch (e) { 
-        status.innerText = "Inference Failed. Check LCAI balance or logs.";
+        status.innerText = "Inference Failed. Check console for details.";
         status.style.color = "#ff4444";
-        console.error("Inference Error:", e);
+        console.error("Chain Error:", e);
     }
 };
 
-        async function pollTask(index) {
-            const task = userTasks[index];
-            try {
-                const resp = await fetch(`${CHAT_API}/chat/status?taskId=${task.taskId}`);
-                const data = await resp.json();
-                if(data.ready && data.url) {
-                    task.ready = true;
-                    task.url = data.url;
-                    localStorage.setItem('lcai_art_tasks', JSON.stringify(userTasks));
-                    renderLog();
-                    if(document.getElementById('artView').offsetParent) viewArt(index);
-                } else { setTimeout(() => pollTask(index), 5000); }
-            } catch (e) { setTimeout(() => pollTask(index), 5000); }
+async function pollTask(index) {
+    const task = userTasks[index];
+    try {
+        const resp = await fetch(`${CHAT_API}/chat/status?taskId=${task.taskId}`);
+        if (!resp.ok) throw new Error("API not ready");
+        
+        const data = await resp.json();
+        
+        if(data.ready && data.url) {
+            // Task is successful! Update state.
+            task.ready = true;
+            task.url = data.url;
+            localStorage.setItem('lcai_art_tasks', JSON.stringify(userTasks));
+            
+            renderLog();
+            
+            // Auto-view the art if the user is still looking at the same task
+            if(document.getElementById('artView').offsetParent) {
+                viewArt(index);
+            }
+        } else { 
+            // Keep waiting
+            setTimeout(() => pollTask(index), 4000); 
         }
+    } catch (e) { 
+        // If API fails or returns 404/not ready, just poll again in 4s
+        setTimeout(() => pollTask(index), 4000); 
+    }
+}
 
-        function switchTab(tab) {
-            if (document.getElementById('tab-' + tab).classList.contains('disabled')) return;
-            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-            document.getElementById('tab-' + tab).classList.add('active');
-            document.querySelectorAll('main > .card').forEach(c => c.classList.add('gated'));
-            document.getElementById(tab + 'View').classList.remove('gated');
-        }
-        document.getElementById('connectBtn').onclick = init;
+function switchTab(tab) {
+    if (document.getElementById('tab-' + tab).classList.contains('disabled')) return;
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    document.querySelectorAll('main > .card').forEach(c => c.classList.add('gated'));
+    document.getElementById(tab + 'View').classList.remove('gated');
+}
+
+document.getElementById('connectBtn').onclick = init;
     </script>
 </body>
 </html>
+
 

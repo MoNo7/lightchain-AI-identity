@@ -155,41 +155,54 @@
 
 document.getElementById('generateArtBtn').onclick = async () => {
     const prompt = document.getElementById('artPrompt').value;
-    if(!prompt) return;
-    
+    if(!prompt) return;  
+    const loader = document.getElementById('viewerStatus');
+    loader.innerText = "Step 1: Anchoring Task on AIVM Router...";    
     try {
-        const router = new ethers.Contract(ROUTER_ADDR, ["function requestInferenceV2(uint256 m, string p) external payable returns (bytes32)"], signer);
-        
-        // 1. REAL ANCHOR: This creates a unique Task ID on Lightchain Testnet
+        const router = new ethers.Contract(ROUTER_ADDR, ["function requestInferenceV2(uint256 m, string p) external payable returns (bytes32)"], signer);        
+        // 1. ANCHOR: Send the 0.1 LCAI fee
         const tx = await router.requestInferenceV2(2, prompt, { value: ethers.parseEther("0.1") });
-        const receipt = await tx.wait();
-        
-        // Extract Task ID from the event logs
+        const receipt = await tx.wait();        
+        // 2. EXTRACT: Get the real Task ID from the logs
+        // The first log topic[1] of the request event is our unique ID
         const taskId = receipt.logs[0].topics[1]; 
-
         const newTask = { prompt, taskId, ready: false, url: null };
         userTasks.push(newTask);
         localStorage.setItem('lcai_art_tasks', JSON.stringify(userTasks));
         renderLog();
-        
-        // 2. REAL FETCH: Poll the API for the actual generated image
+      
+        loader.innerText = "Step 2: Task Anchored. Waiting for GPU Cluster...";
+        // 3. SECURE POLLING: Retry until the API acknowledges the task
+        let attempts = 0;
         const pollResult = async () => {
-            const resp = await fetch(`${CHAT_API}/chat/status?taskId=${taskId}`);
-            const data = await resp.json();
-            
-            if(data.ready && data.url) {
-                newTask.ready = true;
-                newTask.url = data.url; // The real unique URL from the GPU cluster
-                localStorage.setItem('lcai_art_tasks', JSON.stringify(userTasks));
-                renderLog();
-            } else {
-                setTimeout(pollResult, 3000); // Retry every 3 seconds
+            try {
+                const resp = await fetch(`${CHAT_API}/chat/status?taskId=${taskId}`);
+                if (!resp.ok) throw new Error("API not ready");              
+                const data = await resp.json();
+                
+                if(data.ready && data.url) {
+                    newTask.ready = true;
+                    newTask.url = data.url; 
+                    localStorage.setItem('lcai_art_tasks', JSON.stringify(userTasks));
+                    renderLog();
+                    viewArt(userTasks.length - 1); // Auto-show the result
+                } else {
+                    attempts++;
+                    if (attempts < 20) { // Poll for up to 60 seconds
+                        setTimeout(pollResult, 3000);
+                    } else {
+                        loader.innerText = "Timeout: Task is still in PoI queue.";
+                    }
+                }
+            } catch (err) {
+                // If API is 404/Error, just wait and try again instead of failing
+                setTimeout(pollResult, 3000);
             }
         };
         pollResult();
-
     } catch (e) { 
-        alert("Inference Anchoring Failed. Ensure you have LCAI for the 0.1 fee."); 
+        console.error("Inference Error:", e);
+        loader.innerText = "Inference Failed. Check gas/funds.";
     }
 };
         function switchTab(tab) {
@@ -209,4 +222,5 @@ document.getElementById('generateArtBtn').onclick = async () => {
     </script>
 </body>
 </html>
+
 

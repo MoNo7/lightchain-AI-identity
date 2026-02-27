@@ -145,7 +145,7 @@ document.getElementById('generateArtBtn').onclick = async () => {
     try {
         // 1. REAL ANCHORING: Request inference via the AIVM Router
         // Using the AIVMInferenceV2 contract address from the LCAI Smart Contract repo
-        const routerAddr = "0x0269683E61b210d56b3D692603336fEB27B8a83a"; // Replace with your Magic8Ball or AIVM Router address
+        const routerAddr = "0x0269683E61b210d56b3D692603336fEB27B8a83a";
         const router = new ethers.Contract(routerAddr, ["function requestInferenceV2(uint256 modelId, string prompt) payable returns (bytes32)"], signer);
         
         const tx = await router.requestInferenceV2(2, prompt, { value: ethers.parseEther("0.1") });
@@ -188,5 +188,6 @@ document.getElementById('generateArtBtn').onclick = async () => {
     </script>
 </body>
 </html>
+
 
 

@@ -7,11 +7,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <style>
         :root { 
-            --primary: #00d1ff; /* Electric Blue */
-            --bg: #050505; 
-            --sidebar: #0d0d0e; 
-            --card: #141417; 
-            --text: #e0e0e0; 
+            --primary: #00d1ff; --bg: #050505; --sidebar: #0d0d0e; --card: #141417; --text: #e0e0e0; 
             --glow: 0 0 15px rgba(0, 209, 255, 0.4); 
         }
         body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; display: flex; height: 100vh; overflow: hidden; }
@@ -27,11 +23,19 @@
         .sbt-badge { padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 800; border: 1px solid var(--primary); box-shadow: var(--glow); color: var(--primary); background: rgba(0, 209, 255, 0.05); }
         .card { background: var(--card); border: 1px solid #222; padding: 30px; border-radius: 16px; width: 100%; max-width: 800px; align-self: center; }
         .btn { background: var(--primary); color: #000; border: none; padding: 14px 28px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        .btn:disabled { background: #333; color: #666; cursor: not-allowed; }
         .gated { display: none; }
         input { width: 100%; padding: 12px; background: #000; border: 1px solid #333; color: white; margin-bottom: 20px; border-radius: 8px; box-sizing: border-box; }
-        #artResult { margin-top: 20px; border-radius: 12px; border: 1px dashed #333; height: 300px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        #artResult img { max-width: 100%; max-height: 100%; }
+        
+        /* Art Log Styles */
+        #artLayout { display: flex; gap: 20px; }
+        #artWorkArea { flex: 2; }
+        #artLog { flex: 1; background: #000; border: 1px solid #222; border-radius: 12px; padding: 15px; max-height: 500px; overflow-y: auto; }
+        .log-entry { font-size: 12px; padding: 10px; border-bottom: 1px solid #222; cursor: pointer; transition: 0.2s; border-radius: 4px; }
+        .log-entry:hover { background: #111; }
+        .log-entry.pending { color: #888; border-left: 2px solid #555; }
+        .log-entry.ready { color: var(--primary); border-left: 2px solid var(--primary); font-weight: bold; }
+        #artViewer { margin-top: 20px; border: 1px dashed #333; border-radius: 12px; min-height: 350px; display: flex; align-items: center; justify-content: center; background: #080808; position: relative;}
+        #artViewer img { max-width: 100%; border-radius: 8px; box-shadow: var(--glow); }
     </style>
 </head>
 <body>
@@ -51,26 +55,33 @@
 
         <div id="gateView" class="card">
             <h2>ZK-KYC Required</h2>
-            <p style="color:#888;">Verification is required to unlock the AI Creative Suite.</p>
+            <p style="color:#888;">Complete verification to access the AI Art Cluster.</p>
             <button id="verifyBtn" class="btn" disabled>Verify via zkPass & Mint SBT</button>
             <p id="status" style="text-align:center; margin-top:20px;">Connect wallet to begin.</p>
         </div>
 
         <div id="artView" class="card gated">
             <h2>AI Art Generator</h2>
-            <p style="color:#888;">Prompt the AIVM cluster to generate images.</p>
-            <input type="text" id="artPrompt" placeholder="A cybernetic lion in electric blue, 8k resolution...">
-            <button id="generateArtBtn" class="btn" style="width: auto;">Generate Art</button>
-            <div id="artResult">
-                <span id="artLoading" style="color:#444;">Artwork will appear here...</span>
+            <div id="artLayout">
+                <div id="artWorkArea">
+                    <input type="text" id="artPrompt" placeholder="Describe your masterpiece...">
+                    <button id="generateArtBtn" class="btn" style="width: auto;">Generate Art</button>
+                    <div id="artViewer">
+                        <span id="viewerStatus" style="color:#444;">Select a completed task from the log</span>
+                    </div>
+                </div>
+                <div id="artLog">
+                    <div style="font-size: 11px; color: #555; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px;">Inference History</div>
+                    <div id="logItems"></div>
+                </div>
             </div>
         </div>
 
         <div id="oracleView" class="card gated">
             <h2>AIVM Oracle</h2>
-            <p style="color:#888;">Query the decentralized intelligence layer.</p>
-            <input type="text" id="oracleInput" placeholder="What is the year?">
-            <button class="btn" style="width:auto;" onclick="alert('Inference sent!')">Submit Request</button>
+            <p style="color:#888;">Standard decentralized intelligence queries.</p>
+            <input type="text" placeholder="Ask the cluster...">
+            <button class="btn" style="width:auto;">Submit Request</button>
         </div>
 
         <div id="identityView" class="card gated">
@@ -84,8 +95,9 @@
 
     <script>
         const SBT_ADDR = "0xa344e0f391e8DCfd6195D89b910C5Beb27525c4F";
+        const ROUTER_ADDR = "0x0269683E61b210d56b3D692603336fEB27B8a83a";
         const CHAT_API = "https://chat2.lightchain.ai/api/v1"; 
-        let signer;
+        let signer, userTasks = JSON.parse(localStorage.getItem('lcai_art_tasks') || '[]');
 
         async function init() {
             if (window.ethereum) {
@@ -94,6 +106,7 @@
                 const address = await signer.getAddress();
                 document.getElementById('connectBtn').innerText = address.substring(0,6) + "..." + address.slice(-4);
                 document.getElementById('displaySbtAddr').innerText = `SBT: ${SBT_ADDR}`;
+                renderLog();
                 await checkVerification();
             }
         }
@@ -101,10 +114,8 @@
         async function checkVerification() {
             try {
                 const sbt = new ethers.Contract(SBT_ADDR, ["function hasSBT(address) view returns (bool)"], signer);
-                const userAddr = await signer.getAddress();
-                const isVerified = await sbt.hasSBT(userAddr);
+                const isVerified = await sbt.hasSBT(await signer.getAddress());
                 const badge = document.getElementById('sbtBadge');
-                
                 badge.style.display = "inline-block";
                 if (isVerified) {
                     badge.innerText = "ZK-VERIFIED";
@@ -115,88 +126,72 @@
                 } else {
                     badge.innerText = "UNVERIFIED";
                     badge.style.color = "#ff4444";
-                    badge.style.borderColor = "#ff4444";
                     document.getElementById('verifyBtn').disabled = false;
                 }
             } catch (e) { console.error(e); }
         }
 
+        function renderLog() {
+            const list = document.getElementById('logItems');
+            list.innerHTML = '';
+            userTasks.forEach((t, i) => {
+                const div = document.createElement('div');
+                div.className = `log-entry ${t.ready ? 'ready' : 'pending'}`;
+                div.innerHTML = `<b>#${i+1}</b> ${t.prompt.substring(0,20)}...<br><small>${t.ready ? '✓ READY' : '⟳ PROCESSING'}</small>`;
+                div.onclick = () => viewArt(i);
+                list.prepend(div);
+            });
+        }
+
+        function viewArt(index) {
+            const task = userTasks[index];
+            const viewer = document.getElementById('artViewer');
+            if(task.ready) {
+                viewer.innerHTML = `<img src="${task.url}" alt="AI Art">`;
+            } else {
+                viewer.innerHTML = `<span style="color:var(--primary)">Still anchoring... Check back in a few seconds.</span>`;
+            }
+        }
+
+        document.getElementById('generateArtBtn').onclick = async () => {
+            const prompt = document.getElementById('artPrompt').value;
+            if(!prompt) return;
+            
+            try {
+                const router = new ethers.Contract(ROUTER_ADDR, ["function requestInferenceV2(uint256 m, string p) external payable returns (bytes32)"], signer);
+                const tx = await router.requestInferenceV2(2, prompt, { value: ethers.parseEther("0.1") });
+                
+                const newTask = { prompt, tx: tx.hash, ready: false, url: null };
+                userTasks.push(newTask);
+                localStorage.setItem('lcai_art_tasks', JSON.stringify(userTasks));
+                renderLog();
+                
+                await tx.wait();
+                // Simulation of API result fetching
+                setTimeout(() => {
+                    newTask.ready = true;
+                    newTask.url = "https://images.unsplash.com/photo-1614728263952-84ea256f9679?auto=format&fit=crop&w=800&q=80"; // Mock response
+                    localStorage.setItem('lcai_art_tasks', JSON.stringify(userTasks));
+                    renderLog();
+                }, 5000);
+
+            } catch (e) { alert("Inference Anchoring Failed."); }
+        };
+
         function switchTab(tab) {
-            const tabEl = document.getElementById('tab-' + tab);
-            if (tabEl.classList.contains('disabled')) return;
-
+            if (document.getElementById('tab-' + tab).classList.contains('disabled')) return;
             document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-            tabEl.classList.add('active');
-
-            document.getElementById('oracleView').classList.add('gated');
-            document.getElementById('artView').classList.add('gated');
-            document.getElementById('identityView').classList.add('gated');
+            document.getElementById('tab-' + tab).classList.add('active');
+            document.querySelectorAll('main > .card').forEach(c => c.classList.add('gated'));
             document.getElementById(tab + 'View').classList.remove('gated');
         }
 
-        // --- AI ART GENERATION LOGIC ---
-document.getElementById('generateArtBtn').onclick = async () => {
-    const prompt = document.getElementById('artPrompt').value;
-    if(!prompt) return alert("Please enter a prompt");
-    
-    const loader = document.getElementById('artLoading');
-    loader.innerText = "Step 1: Anchoring Task on AIVM Router...";
-    
-    try {
-        const routerAddr = "0x0269683E61b210d56b3D692603336fEB27B8a83a";
-        
-        // Using the AIVMInferenceV2 interface found in the Lightchain Smart Contract repo
-        const router = new ethers.Contract(
-            routerAddr, 
-            ["function requestInferenceV2(uint256 modelId, string prompt) external payable returns (bytes32)"], 
-            signer
-        );
-        
-        // Model ID 2 is typically reserved for Stable Diffusion on the Lightchain testnet
-        const tx = await router.requestInferenceV2(2, `Generate art: ${prompt}`, { 
-            value: ethers.parseEther("0.1") 
-        });
-        
-        loader.innerText = "Transaction pending... checking mempool.";
-        await tx.wait();
-        
-        loader.innerText = "Step 2: AIVM Cluster generating image (Waiting for PoI)...";
-
-        // REAL API CALL: Requesting the actual pixels from the Chat API
-        const response = await fetch(`${CHAT_API}/chat/send`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                message: `Generate image: ${prompt}`,
-                user_address: await signer.getAddress(),
-                model: "stable-diffusion-xl"
-            })
-        });
-        
-        const data = await response.json();
-        if(data.image_url) {
-            document.getElementById('artResult').innerHTML = `<img src="${data.image_url}" style="border: 2px solid var(--primary); box-shadow: var(--glow); border-radius: 8px;">`;
-        } else {
-            loader.innerText = "Task Anchored. Check the [Lightchain Explorer](https://testnet.lightscan.app/address/0x4D36B31d4BFB957A5D816B0f420a9e755EFc6a2c) for PoI status.";
-        }
-    } catch (e) {
-        console.error(e);
-        loader.innerText = "Inference Failed. Do you have 0.1 LCAI for the fee?";
-    }
-};
-
-        document.getElementById('verifyBtn').onclick = async () => {
-            const sbtContract = new ethers.Contract(SBT_ADDR, ["function verifyAndMint(uint[2] _pA, uint[2][2] _pB, uint[2] _pC, uint[1] _pubSignals) external"], signer);
-            const tx = await sbtContract.verifyAndMint(["0","0"],[["0","0"],["0","0"]],["0","0"],[Math.floor(Math.random()*100000).toString()]);
-            await tx.wait();
-            await checkVerification();
-        };
-
         document.getElementById('connectBtn').onclick = init;
+        document.getElementById('verifyBtn').onclick = async () => {
+            const sbt = new ethers.Contract(SBT_ADDR, ["function verifyAndMint(uint[2] a, uint[2][2] b, uint[2] c, uint[1] s) external"], signer);
+            await (await sbt.verifyAndMint(["0","0"],[["0","0"],["0","0"]],["0","0"],[Math.floor(Math.random()*99999).toString()])).wait();
+            init();
+        };
     </script>
 </body>
 </html>
-
-
-
-

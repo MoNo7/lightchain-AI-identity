@@ -24,6 +24,7 @@
         .gated { display: none !important; }
         input { width: 100%; padding: 15px; background: #000; border: 1px solid #333; color: white; margin-bottom: 20px; border-radius: 8px; font-size: 16px; }
         #artLayout { display: flex; gap: 25px; }
+        #artWorkArea { flex: 2; position: relative; }
         #artLog { flex: 1; background: #000; border: 1px solid #222; border-radius: 12px; padding: 15px; max-height: 550px; overflow-y: auto; }
         .log-entry { font-size: 11px; padding: 12px; border-bottom: 1px solid #222; cursor: pointer; border-radius: 6px; margin-bottom: 8px; }
         .log-entry.ready { color: var(--primary); border-left: 3px solid var(--primary); background: rgba(0,209,255,0.05); }
@@ -49,14 +50,13 @@
 
         <div id="gateView" class="card">
             <h2>Identity Required</h2>
-            <p id="gateStatus" style="color:#888; margin-bottom:20px;">Connect wallet to verify ZK-SBT.</p>
-            <button id="verifyBtn" class="btn gated" onclick="location.reload()">Refresh Session</button>
+            <p id="gateStatus" style="color:#888; margin-bottom:20px;">Connect wallet to verify your ZK-Identity.</p>
         </div>
 
         <div id="artView" class="card gated">
             <h2>AI Art Generator</h2>
             <div id="artLayout">
-                <div style="flex:2;">
+                <div id="artWorkArea">
                     <input type="text" id="artPrompt" placeholder="A panda railroad worker on mars...">
                     <button id="generateArtBtn" class="btn">Generate Art (0.1 LCAI)</button>
                     <div id="artViewer">
@@ -75,150 +75,145 @@
     </main>
 
     <script>
-      const SBT_ADDR = "0xa344e0f391e8DCfd6195D89b910C5Beb27525c4F";
-const IDENTITY_ADDR = "0x8300C9072Bc9F926703f8E26Ff0a5D963d88Ae01";
-const ROUTER_ADDR = "0x0269683E61b210d56b3D692603336fEB27B8a83a";
-const CHAT_API = "https://chat2.lightchain.ai/api/v1";
+        const SBT_ADDR = "0xa344e0f391e8DCfd6195D89b910C5Beb27525c4F";
+        const IDENTITY_ADDR = "0x8300C9072Bc9F926703f8E26Ff0a5D963d88Ae01";
+        const ROUTER_ADDR = "0x0269683E61b210d56b3D692603336fEB27B8a83a";
+        const CHAT_API = "https://chat2.lightchain.ai/api/v1";
 
-let provider, signer, userTasks = JSON.parse(localStorage.getItem('lcai_art_tasks') || '[]');
+        let provider, signer, userTasks = JSON.parse(localStorage.getItem('lcai_art_tasks') || '[]');
 
-async function connect() {
-    if (!window.ethereum) return alert("Install MetaMask");
-    try {
-        provider = new ethers.BrowserProvider(window.ethereum);
-        signer = await provider.getSigner();
-        const addr = await signer.getAddress();
-        document.getElementById('connectBtn').innerText = addr.substring(0,6)+"..."+addr.slice(-4);
-        
-        checkIdentity(addr);
-        updateHealth();
-        renderLog();
-        // AUTO-RESUME: Check all tasks in history that aren't 'Ready' yet
-        userTasks.forEach((t, i) => { if(!t.ready) pollTask(i); });
-    } catch (e) { console.error("Connect error:", e); }
-}
+        async function connect() {
+            if (!window.ethereum) return alert("Install MetaMask");
+            try {
+                provider = new ethers.BrowserProvider(window.ethereum);
+                signer = await provider.getSigner();
+                const addr = await signer.getAddress();
+                document.getElementById('connectBtn').innerText = addr.substring(0,6)+"..."+addr.slice(-4);
+                
+                checkIdentity(addr);
+                updateHealth();
+                renderLog();
+                // Resume polling for unfinished tasks found in local storage
+                userTasks.forEach((t, i) => { if(!t.ready) pollTask(i); });
+            } catch (e) { console.error(e); }
+        }
 
-async function checkIdentity(addr) {
-    const sbt = new ethers.Contract(SBT_ADDR, ["function hasSBT(address) view returns (bool)"], provider);
-    const identity = new ethers.Contract(IDENTITY_ADDR, ["function isVerified(address) view returns (bool)", "function isAdmin(address) view returns (bool)"], provider);
-    const [hasSBT, isVerified, isAdmin] = await Promise.all([sbt.hasSBT(addr), identity.isVerified(addr), identity.isAdmin(addr)]);
-    
-    if (hasSBT || isVerified) {
-        document.getElementById('gateView').classList.add('gated');
-        document.getElementById('artView').classList.remove('gated');
-        document.getElementById('nav-art').classList.remove('gated');
-        document.getElementById('nav-identity').classList.remove('gated');
-        document.getElementById('sbtBadge').style.display = 'block';
-        document.getElementById('sbtBadge').innerText = isAdmin ? 'ZK-ADMIN' : 'ZK-VERIFIED';
-    }
-}
-
-document.getElementById('generateArtBtn').onclick = async () => {
-    const prompt = document.getElementById('artPrompt').value;
-    const status = document.getElementById('viewerStatus');
-    if(!prompt) return;
-
-    status.innerText = "Anchoring on-chain...";
-    try {
-        const router = new ethers.Contract(ROUTER_ADDR, [
-            "function requestInferenceV2(uint256 m, string p) external payable",
-            "event InferenceRequested(bytes32 indexed taskId, address indexed requester, uint256 modelId)"
-        ], signer);
-
-        const tx = await router.requestInferenceV2(2, prompt, { value: ethers.parseEther("0.1") });
-        const receipt = await tx.wait();
-        
-        // --- FIX: Search specifically for the InferenceRequested event signature ---
-        const eventHash = ethers.id("InferenceRequested(bytes32,address,uint256)");
-        let taskId = receipt.logs.find(l => l.topics[0] === eventHash)?.topics[1];
-        
-        if(!taskId) throw "Task ID failed to anchor.";
-
-        // --- FIX: Save to Activity Log IMMEDIATELY ---
-        const idx = userTasks.push({ prompt, taskId, ready: false, url: null }) - 1;
-        localStorage.setItem('lcai_art_tasks', JSON.stringify(userTasks));
-        
-        renderLog(); // Sidebar updates instantly
-        pollTask(idx); // Start background retrieval
-        status.innerText = "Task Anchored. Cluster is generating art...";
-    } catch (e) { 
-        status.innerText = "Inference Failed."; 
-        console.error("Task Error:", e); 
-    }
-};
-
-async function pollTask(i) {
-    const t = userTasks[i];
-    try {
-        // Retrieve result from the GPU Cluster by ID
-        const res = await fetch(`${CHAT_API}/chat/status?taskId=${t.taskId}`);
-        const data = await res.json();
-        
-        if (data.ready && data.url) {
-            t.ready = true; 
-            t.url = data.url;
-            localStorage.setItem('lcai_art_tasks', JSON.stringify(userTasks));
-            renderLog(); // Mark as Ready in sidebar
+        async function checkIdentity(addr) {
+            const sbt = new ethers.Contract(SBT_ADDR, ["function hasSBT(address) view returns (bool)"], provider);
+            const identity = new ethers.Contract(IDENTITY_ADDR, ["function isVerified(address) view returns (bool)", "function isAdmin(address) view returns (bool)"], provider);
+            const [hasSBT, isVerified, isAdmin] = await Promise.all([sbt.hasSBT(addr), identity.isVerified(addr), identity.isAdmin(addr)]);
             
-            // Auto-view if currently on the Art tab
-            if(document.getElementById('artView').offsetParent) viewArt(i);
-        } else {
-            // Wait 5 seconds and check again
-            setTimeout(() => pollTask(i), 5000);
+            if (hasSBT || isVerified) {
+                document.getElementById('gateView').classList.add('gated');
+                document.getElementById('artView').classList.remove('gated');
+                document.getElementById('nav-art').classList.remove('gated');
+                document.getElementById('nav-identity').classList.remove('gated');
+                document.getElementById('sbtBadge').style.display = 'block';
+                document.getElementById('sbtBadge').innerText = isAdmin ? 'ZK-ADMIN' : 'ZK-VERIFIED';
+                
+                document.getElementById('registryData').innerHTML = `
+                    <div style="background:#000; border:1px solid #333; padding:20px; border-radius:12px;">
+                        <p>Status: <b style="color:#00ff88">ACTIVE</b></p>
+                        <p>Role: <b style="color:var(--primary)">${isAdmin ? 'Protocol Admin' : 'Verified User'}</b></p>
+                        <button class="btn" style="margin-top:15px; font-size:12px;" onclick="localStorage.clear(); location.reload();">Clear Session Cache</button>
+                    </div>`;
+            }
         }
-    } catch (e) { setTimeout(() => pollTask(i), 5000); }
-}
 
-function renderLog() {
-    const list = document.getElementById('logItems');
-    list.innerHTML = '';
-    userTasks.forEach((t, i) => {
-        const div = document.createElement('div');
-        div.className = `log-entry ${t.ready ? 'ready' : ''}`;
-        div.innerHTML = `<b>#${i+1}</b> ${t.prompt.substring(0,15)}...<br><small>${t.ready ? '✓ READY' : '⟳ QUEUED'}</small>`;
-        // Retrieve by ID when clicked
-        div.onclick = () => viewArt(i);
-        list.prepend(div);
-    });
-}
+        document.getElementById('generateArtBtn').onclick = async () => {
+            const prompt = document.getElementById('artPrompt').value;
+            const status = document.getElementById('viewerStatus');
+            if(!prompt) return;
+            status.innerText = "Anchoring Task...";
+            try {
+                const router = new ethers.Contract(ROUTER_ADDR, [
+                    "function requestInferenceV2(uint256 m, string p) external payable",
+                    "event InferenceRequested(bytes32 indexed taskId, address indexed requester, uint256 modelId)"
+                ], signer);
+                
+                const tx = await router.requestInferenceV2(2, prompt, { value: ethers.parseEther("0.1") });
+                const receipt = await tx.wait();
+                
+                // PRECISION LOG SCRAPER: Search for specific InferenceRequested event signature
+                const eventHash = ethers.id("InferenceRequested(bytes32,address,uint256)");
+                let taskId = receipt.logs.find(l => l.topics[0] === eventHash)?.topics[1];
+                
+                if(!taskId) throw "Task ID failed to anchor.";
 
-function viewArt(i) {
-    const t = userTasks[i];
-    const content = document.getElementById('viewerContent');
-    const dl = document.getElementById('downloadBtn');
-    
-    if(t.ready) {
-        content.innerHTML = `<img id="resImg" src="${t.url}" style="width:100%; border-radius:8px; box-shadow:var(--glow);">`;
-        dl.classList.remove('gated'); // Show download button
-        dl.onclick = () => {
-            const a = document.createElement('a');
-            a.href = t.url;
-            a.download = `LCAI-Art-${i}.png`;
-            a.click();
+                // SAVE TO ACTIVITY LOG IMMEDIATELY
+                const idx = userTasks.push({ prompt, taskId, ready: false, url: null }) - 1;
+                localStorage.setItem('lcai_art_tasks', JSON.stringify(userTasks));
+                renderLog();
+                
+                pollTask(idx);
+                status.innerText = "Anchored. Cluster is processing...";
+            } catch (e) { 
+                status.innerText = "Inference Failed."; 
+                console.error("Task Error:", e); 
+            }
         };
-    } else {
-        content.innerHTML = `<span style="color:#555;">ID: ${t.taskId.substring(0,12)}... Still Processing</span>`;
-        dl.classList.add('gated');
-    }
-}
 
-async function updateHealth() {
-    try {
-        const res = await fetch(`${CHAT_API}/chat/health`);
-        if(res.ok) { 
-            document.getElementById('dot').classList.add('online');
-            document.getElementById('gpuStatus').innerText = 'Cluster: Online';
+        async function pollTask(i) {
+            const t = userTasks[i];
+            try {
+                const res = await fetch(`${CHAT_API}/chat/status?taskId=${t.taskId}`);
+                const data = await res.json();
+                if (data.ready && data.url) {
+                    t.ready = true; t.url = data.url;
+                    localStorage.setItem('lcai_art_tasks', JSON.stringify(userTasks));
+                    renderLog();
+                    if(document.getElementById('artView').offsetParent) viewArt(i);
+                } else {
+                    setTimeout(() => pollTask(i), 5000);
+                }
+            } catch (e) { setTimeout(() => pollTask(i), 5000); }
         }
-    } catch(e) {}
-}
 
-function switchTab(tab) {
-    document.querySelectorAll('main > .card').forEach(c => c.classList.add('gated'));
-    document.getElementById(tab + 'View').classList.remove('gated');
-}
+        function renderLog() {
+            const list = document.getElementById('logItems');
+            list.innerHTML = '';
+            userTasks.forEach((t, i) => {
+                const div = document.createElement('div');
+                div.className = `log-entry ${t.ready ? 'ready' : ''}`;
+                div.innerHTML = `<b>#${i+1}</b> ${t.prompt.substring(0,15)}...<br><small>${t.ready ? '✓ READY' : '⟳ QUEUED'}</small>`;
+                div.onclick = () => viewArt(i);
+                list.prepend(div);
+            });
+        }
 
-document.getElementById('connectBtn').onclick = connect;
+        function viewArt(i) {
+            const t = userTasks[i];
+            const content = document.getElementById('viewerContent');
+            const dl = document.getElementById('downloadBtn');
+            if(t.ready) {
+                content.innerHTML = `<img id="resImg" src="${t.url}" style="width:100%; border-radius:8px; box-shadow:var(--glow);">`;
+                dl.classList.remove('gated');
+                dl.onclick = () => {
+                    const a = document.createElement('a');
+                    a.href = t.url;
+                    a.download = `LCAI-Art-${i}.png`;
+                    a.click();
+                };
+            } else {
+                content.innerHTML = `<span style="color:#555;">ID: ${t.taskId.substring(0,10)}... (Generating)</span>`;
+                dl.classList.add('gated');
+            }
+        }
+
+        async function updateHealth() {
+            try {
+                const res = await fetch(`${CHAT_API}/chat/health`);
+                if(res.ok) { 
+                    document.getElementById('dot').classList.add('online');
+                    document.getElementById('gpuStatus').innerText = 'Cluster: Online';
+                }
+            } catch(e) {}
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('main > .card').forEach(c => c.classList.add('gated'));
+            document.getElementById(tab + 'View').classList.remove('gated');
+        }
     </script>
 </body>
 </html>
-

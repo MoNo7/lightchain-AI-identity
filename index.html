@@ -70,14 +70,13 @@
 
     <script>
         const ID_ADDR = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34";
-        const ART_ADDR = "0x387e7676294455dB037BF06953ddA33E1bC64716"; 
-        
-        const ABI = [
-            "function generateArt(string _prompt) payable",
-            "function isZkVerified(address) view returns (bool)",
-            "function latestArt(address) view returns (string)",
-            "event ArtCompleted(address indexed user, string imageUrl, bytes32 taskId)"
-        ];
+const ART_ADDR = "PASTE_YOUR_NEW_DEPLOYED_ADDRESS_HERE"; 
+const ABI = [
+    "function generateArt(string _prompt) payable",
+    "function latestArt(address) view returns (string)",
+    "function isZkVerified(address) view returns (bool)",
+    "event ArtCompleted(address indexed user, string imageUrl, bytes32 taskId)"
+];
         const ID_ABI = ["function getIdentity(address) view returns (string, string, bool)"];
 
         let signer, contract, idContract, provider;
@@ -89,15 +88,15 @@
             document.getElementById('txFeed').prepend(entry);
         }
 
-        async function connectWallet() {
-            if (!window.ethereum) return alert("Install MetaMask");
-            try {
-                provider = new ethers.BrowserProvider(window.ethereum);
-                await provider.send("eth_requestAccounts", []);
-                signer = await provider.getSigner();
-                const addr = await signer.getAddress();
-                
-                contract = new ethers.Contract(ART_ADDR, ABI, signer);
+async function connectWallet() {
+    if (!window.ethereum) return;
+    provider = new ethers.BrowserProvider(window.ethereum);
+    // FORCE POPUP
+    await provider.send("eth_requestAccounts", []);
+    signer = await provider.getSigner();
+    const addr = await signer.getAddress();
+    
+    contract = new ethers.Contract(ART_ADDR, ABI, signer);
                 idContract = new ethers.Contract(ID_ADDR, ID_ABI, signer);
 
                 const [id, bal, zkVer] = await Promise.all([
@@ -105,7 +104,10 @@
                     provider.getBalance(addr),
                     contract.isZkVerified(addr)
                 ]);
+    
 
+
+    log("Wallet Active: " + addr.substring(0,10));
                 document.getElementById('tokenBalance').innerText = parseFloat(ethers.formatEther(bal)).toFixed(4);
                 document.getElementById('userNameDisplay').innerText = id[0] || "User: " + addr.substring(0,6);
                 
@@ -115,6 +117,7 @@
                 tag.style.background = isVerified ? "#d4edda" : "#f8d7da";
                 tag.style.color = isVerified ? "#155724" : "#721c24";
 
+                // UI Activation
                 document.getElementById('connectBtn').style.display = 'none';
                 document.getElementById('userProfile').style.display = 'block';
                 document.getElementById('adminMenu').style.display = 'block';
@@ -122,12 +125,12 @@
 
                 log("Connected: " + addr.substring(0,10));
 
-                contract.on("ArtCompleted", (user, imageUrl) => {
-                    if (user.toLowerCase() === addr.toLowerCase()) {
-                        document.getElementById('displayArea').innerHTML = `<img src="${imageUrl}" style="max-width:100%; border-radius:8px;">`;
-                        log("Art Received!");
-                    }
-                });
+contract.on("ArtCompleted", (user, url) => {
+        if(user.toLowerCase() === addr.toLowerCase()) {
+            document.getElementById('displayArea').innerHTML = `<img src="${url}" style="width:100%">`;
+            log("Art inference complete!");
+        }
+    });
             } catch (err) { log("Connect failed"); }
         }
 
@@ -165,3 +168,4 @@
     </script>
 </body>
 </html>
+

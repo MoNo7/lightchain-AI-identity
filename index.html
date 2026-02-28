@@ -55,8 +55,8 @@
     </div>
     <script>
         // Update these with your new deployed addresses
-        const ART_ADDR = "0xe124b0dE725eF4760AAaC30048729484183A4aAe";
-        const ZK_ADDR = "0x46d72B9dA09b83299F0DB69201860121Ba144a9c";
+        const ART_ADDR = "0x8560106c90C4e53D6fcf53bcEFdf4Ac8Ba1300cA";
+        const ZK_ADDR = "0x1ef239d3D68b596D10AB58Dd0DA728Aa91E1C3Dc";
 
         const ABI = ["function generateArt(string p) payable","function owner() view returns (address)","function totalRevenue() view returns (uint256)","function setVerification(address u, bool s)","function withdrawRevenue()","function manualVerified(address) view returns (bool)"];
         const ZK_ABI = ["function tokenURI(uint256) view returns (string)", "function hasSBT(address) view returns (bool)","function mintIdentity() external"];
@@ -124,6 +124,7 @@ async function init() {
     </script>
 </body>
 </html>
+
 
 
 

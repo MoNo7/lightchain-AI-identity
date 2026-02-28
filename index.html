@@ -2,200 +2,193 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Lightchain AI | Art Studio & Portal</title>
+    <title>Lightchain AI | Admin & Art Portal</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <style>
-        :root { --primary: #007bff; --admin-blue: #0056b3; --bg: #f0f2f5; --text: #1c1e21; --success: #28a745; --owner: #6f42c1; --warning: #f0ad4e; --danger: #dc3545; }
+        :root { --primary: #007bff; --admin: #6f42c1; --bg: #f0f2f5; --text: #1c1e21; --success: #28a745; --danger: #dc3545; --warning: #f39c12; }
         body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); color: var(--text); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         #topNav { height: 60px; background: #fff; border-bottom: 1px solid #e1e4e8; display: flex; align-items: center; justify-content: space-between; padding: 0 25px; flex-shrink: 0; }
-        .token-display { background: #f8f9fa; padding: 8px 15px; border-radius: 20px; border: 1px solid #e1e4e8; font-weight: 700; font-size: 0.85rem; color: var(--success); }
+        .token-display { background: #f8f9fa; padding: 8px 15px; border-radius: 20px; border: 1px solid #e1e4e8; font-weight: 700; color: var(--success); }
         .content-wrapper { display: flex; flex: 1; overflow: hidden; }
-        #leftSidebar, #rightSidebar { width: 320px; background: #fff; padding: 20px; overflow-y: auto; border-right: 1px solid #e1e4e8; box-sizing: border-box; }
-        #rightSidebar { border-right: none; border-left: 1px solid #e1e4e8; }
-        .main-utility-area { flex: 1; padding: 30px; display: flex; flex-direction: column; align-items: center; background: #f8f9fa; overflow-y: auto; }
+        #leftSidebar { width: 340px; background: #fff; padding: 20px; overflow-y: auto; border-right: 1px solid #e1e4e8; }
+        .main-area { flex: 1; padding: 30px; display: flex; flex-direction: column; align-items: center; background: #f8f9fa; overflow-y: auto; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid #e1e4e8; width: 100%; box-sizing: border-box; }
-        .primary-btn { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: 600; margin-top: 10px; transition: opacity 0.2s; }
-        .primary-btn:hover { opacity: 0.9; }
-        .primary-btn:disabled { background: #ccc; cursor: not-allowed; }
-        .result-window { margin-top: 20px; padding: 15px; background: #fdfdfd; border: 2px dashed #cbd5e0; border-radius: 8px; min-height: 150px; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column; }
+        .primary-btn { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: 600; margin-top: 10px; }
+        .admin-btn { background: var(--admin); color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; width: 100%; font-size: 0.85rem; margin-top: 5px; }
+        .result-window { margin-top: 20px; padding: 15px; background: #1a1a1a; color: #0f0; border-radius: 8px; min-height: 200px; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column; border: 2px solid #333; }
         input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 8px; box-sizing: border-box; }
-        .pulsing-text { animation: pulse 1.5s infinite; color: var(--warning); font-weight: bold; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        .status-pill { font-size: 0.7rem; font-weight: bold; padding: 4px 8px; border-radius: 10px; display: inline-block; margin-top: 5px; }
+        .log-entry { font-size: 0.7rem; color: #666; border-bottom: 1px solid #eee; padding: 4px 0; }
+        .pulsing { animation: pulse 1.5s infinite; color: var(--warning); }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
     </style>
 </head>
 <body>
     <div id="topNav">
-        <h1 style="font-size: 1.1rem; color: #0056b3; margin: 0;">Identity & Art Portal</h1>
+        <h1 style="font-size: 1.1rem; color: var(--admin); margin: 0;">Lightchain AIVM Studio</h1>
         <div class="token-display"><span id="tokenBalance">0.0000</span> LCAI</div>
     </div>
+
     <div class="content-wrapper">
         <div id="leftSidebar">
             <div class="card" style="text-align: center;">
-                <div id="userProfile" style="display:none; margin-bottom:15px;">
-                    <div id="userNameDisplay" style="font-size: 1.1rem; font-weight:800; color: #0056b3;"></div>
-                    <div id="verifyTag" style="font-size: 0.65rem; font-weight: bold;">CONNECTED</div>
+                <div id="userProfile" style="display:none;">
+                    <div id="userNameDisplay" style="font-weight:800; color: var(--primary);">Connecting...</div>
+                    <div id="verifyTag" class="status-pill"></div>
                 </div>
                 <button id="connectBtn" class="primary-btn">Connect Wallet</button>
             </div>
-            
-            <div id="zkPassSection" class="card" style="display:none; border-top: 4px solid var(--owner);">
-                <h4 style="color:var(--owner); margin: 0 0 10px 0;">zkPass Verification</h4>
-                <p style="font-size: 0.8rem; color: #666;">Verify your zero-knowledge credentials to unlock AI image generation.</p>
-                <div id="zkStatusBadge" style="padding: 8px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; text-align: center; background: #f8d7da; color: #721c24; margin-bottom: 10px;">Unverified</div>
-                <button id="verifyZkBtn" class="primary-btn" style="background: var(--owner);">Generate & Verify ZK Proof</button>
+
+            <div id="adminMenu" class="card" style="display:none; border-top: 4px solid var(--admin);">
+                <h4 style="margin: 0 0 10px 0; color: var(--admin);">Identity & Recovery</h4>
+                <p style="font-size: 0.75rem; color: #666;">Use zkPass to recover or verify access.</p>
+                
+                <button id="zkRecoverBtn" class="admin-btn">Verify zkPass Identity</button>
+                <div id="zkStatus" style="font-size: 0.7rem; margin-top: 5px; font-family: monospace;"></div>
+
+                <hr style="border:0; border-top: 1px solid #eee; margin: 15px 0;">
+                
+                <h4 style="margin: 0 0 10px 0; color: var(--admin);">Art Recovery</h4>
+                <input type="text" id="recoverAddr" placeholder="Lookup Address (0x...)">
+                <button id="recoverArtBtn" class="admin-btn" style="background: var(--success);">Recover Previous Art</button>
+            </div>
+
+            <div class="card">
+                <h4 style="margin:0;">Recent Logs</h4>
+                <div id="txFeed" style="max-height: 200px; overflow-y:auto;"></div>
             </div>
         </div>
 
-        <div class="main-utility-area">
+        <div class="main-area">
             <div id="artUI" style="display:none; width: 100%; max-width: 600px;">
                 <div class="card" style="border-top: 4px solid var(--success);">
-                    <h2 style="margin-top: 0;">AIVM Art Studio (SDXL)</h2>
-                    <p style="font-size: 0.85rem; color: #666; margin-bottom: 15px;">Enter a prompt to generate an image via the Lightchain AI Cluster.</p>
-                    <input type="text" id="artPrompt" placeholder="e.g., A futuristic cyberpunk city at sunset, highly detailed...">
-                    <button id="generateArtBtn" class="primary-btn" style="background: var(--success);" disabled>Generate Art (0.25 LCAI)</button>
+                    <h2 style="margin-top: 0;">AIVM Image Generator</h2>
+                    <input type="text" id="promptInput" placeholder="Describe your masterpiece...">
+                    <button id="generateBtn" class="primary-btn" style="background: var(--success);">Generate (0.25 LCAI)</button>
                     
-                    <div class="result-window" id="artResultWindow">
-                        <span style="color: #999;">Awaiting inference command...</span>
+                    <div id="displayArea" class="result-window">
+                        <span style="color: #666;">Images will appear here...</span>
                     </div>
                 </div>
-            </div>
-        </div>
-        <div id="rightSidebar">
-            <div class="card">
-                <h4 style="margin:0;">Cluster Logs</h4>
-                <div id="txFeed" style="font-size: 0.75rem; margin-top:10px; max-height: 400px; overflow-y:auto; word-break: break-all;"></div>
             </div>
         </div>
     </div>
 
     <script>
-        const IDENTITY_CONTRACT = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34";
-        const ART_CONTRACT_ADDR = "0xd17F12ef2C5d95e135094100a14D3d7569505d89"; 
-        const IDENTITY_ABI = ["function getIdentity(address) view returns (string, string, bool)"];
-        const ART_ABI = [
+        const ID_ADDR = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34";
+        const ART_ADDR = "0xd17F12ef2C5d95e135094100a14D3d7569505d89"; // Latest AIArtStudio
+        
+        const ABI = [
             "function generateArt(string _prompt) payable",
             "function verifyZkPass(bytes proof)",
             "function isZkVerified(address) view returns (bool)",
-            "event ArtRequested(address indexed user, string prompt, bytes32 taskId)",
-            "event ArtCompleted(address indexed user, string imageUrl, bytes32 taskId)",
-            "event ZkPassVerified(address indexed user)"
+            "function latestArt(address) view returns (string)",
+            "event ArtCompleted(address indexed user, string imageUrl, bytes32 taskId)"
         ];
-        
-        let signer, artContract, identityContract, provider;
+        const ID_ABI = ["function getIdentity(address) view returns (string, string, bool)"];
 
-        function logToSidebar(msg) {
-            const feed = document.getElementById('txFeed');
+        let signer, contract, idContract, provider;
+
+        function log(msg) {
             const entry = document.createElement('div');
-            entry.style.borderBottom = "1px solid #eee"; entry.style.padding = "5px 0";
-            entry.innerHTML = `<span style="color:#666">[${new Date().toLocaleTimeString()}]</span> ${msg}`;
-            feed.prepend(entry);
+            entry.className = 'log-entry';
+            entry.innerHTML = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            document.getElementById('txFeed').prepend(entry);
         }
 
-        async function hardSync() {
-            const address = await signer.getAddress();
-            const [profile, balance, zkVerified] = await Promise.all([
-                identityContract.getIdentity(address),
-                provider.getBalance(address),
-                artContract.isZkVerified(address)
-            ]);
-            
-            // Update Identity Profile
-            document.getElementById('tokenBalance').innerText = parseFloat(ethers.formatEther(balance)).toFixed(4);
-            document.getElementById('userNameDisplay').innerText = profile[0] || "Anonymous User";
-            document.getElementById('verifyTag').innerText = profile[2] ? "GLOBAL ID VERIFIED" : "ID UNVERIFIED";
-            document.getElementById('verifyTag').style.color = profile[2] ? "var(--success)" : "var(--danger)";
-            
-            // Update ZK Status
-            const zkBadge = document.getElementById('zkStatusBadge');
-            const genBtn = document.getElementById('generateArtBtn');
-            if (zkVerified) {
-                zkBadge.innerText = "ZK Pass Verified";
-                zkBadge.style.background = "#d4edda";
-                zkBadge.style.color = "#155724";
-                document.getElementById('verifyZkBtn').style.display = "none";
-                genBtn.disabled = false;
-                genBtn.innerText = "Generate Art (0.25 LCAI)";
-            } else {
-                genBtn.disabled = true;
-                genBtn.innerText = "Requires ZK Pass Verification";
-            }
-        }
-
-        async function connectWallet() {
-            if (!window.ethereum) return alert("Install MetaMask");
+        async function connect() {
             provider = new ethers.BrowserProvider(window.ethereum);
             signer = await provider.getSigner();
-            const myAddr = await signer.getAddress();
+            const addr = await signer.getAddress();
             
-            artContract = new ethers.Contract(ART_CONTRACT_ADDR, ART_ABI, signer);
-            identityContract = new ethers.Contract(IDENTITY_CONTRACT, IDENTITY_ABI, signer);
+            contract = new ethers.Contract(ART_ADDR, ABI, signer);
+            idContract = new ethers.Contract(ID_ADDR, ID_ABI, signer);
 
-            // Set up Listeners
-            artContract.on("ArtRequested", (user, p, taskId) => { 
-                if(user.toLowerCase() === myAddr.toLowerCase()) {
-                    logToSidebar(`Inference Requested: ${taskId.substring(0,10)}...`); 
-                }
-            });
+            const [id, bal, zkVer] = await Promise.all([
+                idContract.getIdentity(addr),
+                provider.getBalance(addr),
+                contract.isZkVerified(addr)
+            ]);
+
+            document.getElementById('tokenBalance').innerText = parseFloat(ethers.formatEther(bal)).toFixed(4);
+            document.getElementById('userNameDisplay').innerText = id[0] || "User: " + addr.substring(0,6);
             
-            artContract.on("ZkPassVerified", (user) => {
-                if(user.toLowerCase() === myAddr.toLowerCase()) {
-                    logToSidebar("zkPass verification confirmed on-chain.");
-                    hardSync();
-                }
-            });
-
-            artContract.on("ArtCompleted", async (user, imageUrl, taskId) => {
-                if (user.toLowerCase() === myAddr.toLowerCase()) {
-                    logToSidebar(`AIVM Callback Received! Task: ${taskId.substring(0,10)}`);
-                    const box = document.getElementById('artResultWindow');
-                    box.innerHTML = `
-                        <div style="color: var(--success); font-weight: bold; margin-bottom: 10px;">Inference Complete!</div>
-                        <img src="${imageUrl}" alt="AI Generated Art" style="max-width: 100%; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
-                    `;
-                    await hardSync();
-                }
-            });
+            const tag = document.getElementById('verifyTag');
+            tag.innerText = id[2] ? "ID VERIFIED" : "ID UNVERIFIED";
+            tag.style.background = id[2] ? "#d4edda" : "#f8d7da";
+            tag.style.color = id[2] ? "#155724" : "#721c24";
 
             document.getElementById('connectBtn').style.display = 'none';
             document.getElementById('userProfile').style.display = 'block';
-            document.getElementById('zkPassSection').style.display = 'block';
+            document.getElementById('adminMenu').style.display = 'block';
             document.getElementById('artUI').style.display = 'block';
-            await hardSync();
+
+            log("Wallet Connected");
+            if (zkVer) log("zkPass active");
         }
 
-        // Handle ZK Verification
-        document.getElementById('verifyZkBtn').onclick = async () => {
+        // --- ART RECOVERY FEATURE ---
+        document.getElementById('recoverArtBtn').onclick = async () => {
+            const addr = document.getElementById('recoverAddr').value;
+            if (!ethers.isAddress(addr)) return alert("Invalid Address");
+            
+            const display = document.getElementById('displayArea');
+            display.innerHTML = '<span class="pulsing">Fetching on-chain history...</span>';
+            
             try {
-                logToSidebar("Generating local ZK proof...");
-                // Create a mock proof for testnet purposes
-                const mockProof = ethers.keccak256(ethers.toUtf8Bytes(Date.now().toString()));
-                
-                const tx = await artContract.verifyZkPass(mockProof);
-                logToSidebar(`Submitting ZK proof to network...`);
-                await tx.wait();
-            } catch (e) {
-                alert("Error verifying ZK Pass: " + (e.reason || e.message));
-            }
+                const url = await contract.latestArt(addr);
+                if (!url || url === "") {
+                    display.innerHTML = "<span>No previous art found for this address.</span>";
+                } else {
+                    display.innerHTML = `<img src="${url}" style="max-width:100%; border-radius:8px; border:2px solid #333;">`;
+                    log("Recovered historical art for " + addr.substring(0,6));
+                }
+            } catch (e) { display.innerHTML = "<span>Error recovering art.</span>"; }
         };
 
-        // Handle Art Generation
-        document.getElementById('generateArtBtn').onclick = async () => {
-            const prompt = document.getElementById('artPrompt').value;
-            if (!prompt) return alert("Please enter a prompt.");
-            const box = document.getElementById('artResultWindow');
+        // --- ZKPASS RECOVERY / VERIFICATION ---
+        document.getElementById('zkRecoverBtn').onclick = async () => {
+            const status = document.getElementById('zkStatus');
+            status.innerHTML = "<span class='pulsing'>Generating zkProof...</span>";
+            
             try {
-                box.innerHTML = '<span class="pulsing-text">Anchoring request to Lightchain...</span>';
-                const tx = await artContract.generateArt(prompt, { value: ethers.parseEther("0.25") });
+                // Simulate ZK proof generation
+                const proof = ethers.keccak256(ethers.toUtf8Bytes("Lightchain_Recovery_" + Date.now()));
+                const tx = await contract.verifyZkPass(proof);
+                log("zkProof Submitted...");
                 await tx.wait();
-                box.innerHTML = '<span class="pulsing-text">Transaction confirmed. Waiting for AIVM Cluster inference (approx 30-60s)...</span>';
+                status.innerHTML = "<span style='color:green;'>zkPass Verified On-Chain!</span>";
+                log("Identity Recovered via zkPass");
+            } catch (e) { status.innerHTML = "<span style='color:red;'>Verification Failed</span>"; }
+        };
+
+        // --- GENERATE ART ---
+        document.getElementById('generateBtn').onclick = async () => {
+            const p = document.getElementById('promptInput').value;
+            const display = document.getElementById('displayArea');
+            if (!p) return;
+
+            try {
+                display.innerHTML = '<span class="pulsing">Anchoring to Cluster...</span>';
+                const tx = await contract.generateArt(p, { value: ethers.parseEther("0.25") });
+                log("Transaction Broadcast");
+                await tx.wait();
+                display.innerHTML = '<span class="pulsing">Transaction Confirmed. Awaiting AI Callback...</span>';
             } catch (e) { 
-                box.innerHTML = `<span style="color: var(--danger);">Error: ${e.reason || e.message}</span>`; 
+                display.innerHTML = `<span>Error: ${e.reason || "Ensure zkPass is verified"}</span>`; 
             }
         };
 
-        window.onload = () => { document.getElementById('connectBtn').onclick = connectWallet; };
+        // Listener for AI Callback
+        contract.on("ArtCompleted", async (user, imageUrl) => {
+            const myAddr = await signer.getAddress();
+            if (user.toLowerCase() === myAddr.toLowerCase()) {
+                document.getElementById('displayArea').innerHTML = `<img src="${imageUrl}" style="max-width:100%; border-radius:8px;">`;
+                log("AI Inference Complete!");
+            }
+        });
+
+        document.getElementById('connectBtn').onclick = connect;
     </script>
 </body>
 </html>
-
-

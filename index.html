@@ -56,7 +56,7 @@
     <script>
         // Update these with your new deployed addresses
         const ART_ADDR = "0xe124b0dE725eF4760AAaC30048729484183A4aAe";
-        const ZK_ADDR = "0xdB20408B589363B8A82Fcc008d50715c5958320c";
+        const ZK_ADDR = "0x46d72B9dA09b83299F0DB69201860121Ba144a9c";
 
         const ABI = ["function generateArt(string p) payable","function owner() view returns (address)","function totalRevenue() view returns (uint256)","function setVerification(address u, bool s)","function withdrawRevenue()","function manualVerified(address) view returns (bool)"];
         const ZK_ABI = ["function tokenURI(uint256) view returns (string)", "function hasSBT(address) view returns (bool)","function mintIdentity() external"];
@@ -64,7 +64,7 @@
         function log(msg) { const f = document.getElementById('logFeed'); f.innerHTML += `<div>> ${msg}</div>`; f.scrollTop = f.scrollHeight; }
 
 
-        async function init() {
+async function init() {
             try {
                 log("Initializing Cluster Connection...");
                 provider = new ethers.BrowserProvider(window.ethereum);
@@ -72,47 +72,42 @@
                 signer = await provider.getSigner();
                 const addr = await signer.getAddress();
                 
+                // IMPORTANT: Ensure these match your actual deployed addresses
                 contract = new ethers.Contract(ART_ADDR, ABI, signer);
                 zkContract = new ethers.Contract(ZK_ADDR, ZK_ABI, signer);
 
-                // This fetches everything simultaneously to avoid the hang
-                const [owner, rev, bal, hasSBT] = await Promise.all([
+                const [owner, rev, hasSBT] = await Promise.all([
                     contract.owner(),
                     contract.totalRevenue(),
-                    provider.getBalance(addr),
                     zkContract.hasSBT(addr)
                 ]);
 
-                document.getElementById('addrDisplay').innerText = addr;
-                document.getElementById('balDisplay').innerText = parseFloat(ethers.formatEther(bal)).toFixed(4);
-                document.getElementById('revDisplay').innerText = ethers.formatEther(rev);
-                
-                // Switch UI State
-                document.getElementById('walletBox').style.display = 'block';
-                document.getElementById('connectBtn').style.display = 'none';
-                document.getElementById('zkCard').style.display = 'block';
-                
+                // Update Header UI
+                document.getElementById('statusText').innerText = "Connected: SDXL-Turbo Cluster";
+                document.getElementById('statusText').style.color = "#22c55e";
+                log("Model: Stable Diffusion XL (Active)");
+                log("Cluster Status: Idle / Ready");
+
                 if (hasSBT) {
                     const uri = await zkContract.tokenURI(1);
                     const json = JSON.parse(atob(uri.split(',')[1]));
-                    document.getElementById('nftDisplay').innerHTML = `<img src="${json.image}" style="width:100%; border-radius:10px;">`;
+                    document.getElementById('nftDisplay').innerHTML = `<img src="${json.image}" style="width:100%; border-radius:12px;">`;
                     document.getElementById('zkStatus').innerText = "ZK IDENTITY VERIFIED ✓";
-                    log("Identity Loaded.");
                 } else {
                     document.getElementById('zkVerifyBtn').style.display = 'block';
-                    log("Identity Required.");
                 }
 
                 if (owner.toLowerCase() === addr.toLowerCase()) {
                     document.getElementById('adminCard').style.display = 'block';
+                    document.getElementById('revDisplay').innerText = ethers.formatEther(rev);
                 }
-                
-                log("Cluster Active & Synced.");
+
                 document.getElementById('genBtn').disabled = false;
+                log("AIVM Studio Fully Synced.");
 
             } catch (e) {
-                log("Error syncing cluster: " + e.message);
-                console.error(e);
+                log("Sync Error: Check Contract Addresses");
+                document.getElementById('statusText').innerText = "Connection Error";
             }
         }
         
@@ -129,5 +124,6 @@
     </script>
 </body>
 </html>
+
 
 

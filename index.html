@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Lightchain AI | Admin & Art Portal</title>
+    <title>Lightchain AI | Art Portal</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <style>
         :root { --primary: #007bff; --admin: #6f42c1; --bg: #f0f2f5; --text: #1c1e21; --success: #28a745; --danger: #dc3545; --warning: #f39c12; }
@@ -40,13 +40,15 @@
             </div>
 
             <div id="adminMenu" class="card" style="display:none; border-top: 4px solid var(--admin);">
-                <h4 style="margin: 0 0 10px 0; color: var(--admin);">Admin & Recovery</h4>
-                <button id="zkRecoverBtn" class="admin-btn">Verify zkPass Identity</button>
+                <h4 style="margin: 0 0 10px 0; color: var(--admin);">Identity Status</h4>
+                <div id="verificationPrompt" style="display: block;">
+                    <p style="font-size: 0.75rem; color: #666;">Verification required to unlock AI Art generation.</p>
+                    <button id="zkRecoverBtn" class="admin-btn">Verify zkPass Identity</button>
+                </div>
+                <div id="verifiedNotice" style="display: none;">
+                    <p style="font-size: 0.75rem; color: var(--success); font-weight: bold;">✓ Verification Active</p>
+                </div>
                 <div id="zkStatus" style="font-size: 0.7rem; margin-top: 5px; font-family: monospace;"></div>
-                <hr style="border:0; border-top: 1px solid #eee; margin: 15px 0;">
-                <h4 style="margin: 0 0 10px 0; color: var(--admin);">Art History Recovery</h4>
-                <input type="text" id="recoverAddr" placeholder="Lookup Address (0x...)">
-                <button id="recoverArtBtn" class="admin-btn" style="background: var(--success);">Recover On-Chain Art</button>
             </div>
 
             <div class="card">
@@ -59,7 +61,7 @@
             <div id="artUI" style="display:none; width: 100%; max-width: 600px;">
                 <div class="card" style="border-top: 4px solid var(--success);">
                     <h2 style="margin-top: 0;">AI Image Generator</h2>
-                    <input type="text" id="promptInput" placeholder="Describe your image...">
+                    <input type="text" id="promptInput" placeholder="Describe your image (e.g. Space Panda)...">
                     <button id="generateBtn" class="primary-btn" style="background: var(--success);">Generate Art (0.25 LCAI)</button>
                     <div id="displayArea" class="result-window">
                         <span style="color: #666;">AI Art will be rendered here.</span>
@@ -71,7 +73,7 @@
 
     <script>
         const ID_ADDR = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34";
-        let ART_ADDR = "0x203E34e4C93827162EF75b0e6F687010E072b6db"; 
+        const ART_ADDR = "0xE97cF8359E9a529C0A99d8306fe4259794a417BD"; 
         
         const ABI = [
             "function generateArt(string _prompt) payable",
@@ -111,26 +113,31 @@
                 document.getElementById('tokenBalance').innerText = parseFloat(ethers.formatEther(bal)).toFixed(4);
                 document.getElementById('userNameDisplay').innerText = id[0] || "User: " + addr.substring(0,6);
                 
+                const isVerified = id[2] || zkVer;
                 const tag = document.getElementById('verifyTag');
-                tag.innerText = id[2] ? "MI-MO VERIFIED" : "ID UNVERIFIED";
-                tag.style.background = id[2] ? "#d4edda" : "#f8d7da";
-                tag.style.color = id[2] ? "#155724" : "#721c24";
+                tag.innerText = isVerified ? "MI-MO VERIFIED" : "ID UNVERIFIED";
+                tag.style.background = isVerified ? "#d4edda" : "#f8d7da";
+                tag.style.color = isVerified ? "#155724" : "#721c24";
+
+                if (isVerified) {
+                    document.getElementById('verificationPrompt').style.display = 'none';
+                    document.getElementById('verifiedNotice').style.display = 'block';
+                }
 
                 document.getElementById('connectBtn').style.display = 'none';
                 document.getElementById('userProfile').style.display = 'block';
                 document.getElementById('adminMenu').style.display = 'block';
                 document.getElementById('artUI').style.display = 'block';
 
-                log("Wallet Connected: " + addr.substring(0,10));
-                if (zkVer) log("zkPass is active");
+                log("Connected: " + addr.substring(0,10));
 
                 contract.on("ArtCompleted", (user, imageUrl) => {
                     if (user.toLowerCase() === addr.toLowerCase()) {
                         document.getElementById('displayArea').innerHTML = `<img src="${imageUrl}" style="max-width:100%; border-radius:8px;">`;
-                        log("AI Art Received!");
+                        log("Art Received!");
                     }
                 });
-            } catch (err) { alert("Connection error"); }
+            } catch (err) { log("Connect failed"); }
         }
 
         document.getElementById('generateBtn').onclick = async () => {
@@ -139,41 +146,28 @@
             if (!p) return alert("Enter prompt");
 
             try {
-                display.innerHTML = '<span class="pulsing">Anchoring to AI Cluster (0.25 LCAI)...</span>';
-                // FORCE THE VALUE TRANSFER
+                display.innerHTML = '<span class="pulsing">Consulting AIVM Cluster...</span>';
                 const tx = await contract.generateArt(p, { value: ethers.parseEther("0.25") });
-                log("Inference Request Sent");
+                log("Tx Broadcast: " + tx.hash.substring(0,10));
                 await tx.wait();
-                display.innerHTML = '<span class="pulsing">Request Accepted. Awaiting AIVM Callback...</span>';
+                display.innerHTML = '<span class="pulsing">Confirmed. Awaiting AI Response...</span>';
             } catch (e) {
-                display.innerHTML = `<span>Error: ${e.reason || "Transaction failed. Check zkPass."}</span>`;
+                display.innerHTML = `<span>Error: ${e.reason || "Reverted. Ensure you are verified."}</span>`;
             }
         };
 
-        // ... Keep other handlers (zkRecoverBtn, recoverArtBtn) the same ...
         document.getElementById('zkRecoverBtn').onclick = async () => {
             const status = document.getElementById('zkStatus');
-            status.innerHTML = "<span class='pulsing'>Generating zkProof...</span>";
+            status.innerHTML = "<span class='pulsing'>Verifying zkPass...</span>";
             try {
                 const proof = ethers.keccak256(ethers.toUtf8Bytes("Lightchain_ZK_" + Date.now()));
                 const tx = await contract.verifyZkPass(proof);
-                log("zkProof Sent to Lightchain...");
                 await tx.wait();
-                status.innerHTML = "<span style='color:green;'>zkPass Verified Successfully!</span>";
-                log("Identity Recovered via zkPass");
-            } catch (e) { status.innerHTML = "<span style='color:red;'>Verification Failed</span>"; }
-        };
-
-        document.getElementById('recoverArtBtn').onclick = async () => {
-            const addr = document.getElementById('recoverAddr').value;
-            if (!ethers.isAddress(addr)) return alert("Enter valid address");
-            const display = document.getElementById('displayArea');
-            display.innerHTML = '<span class="pulsing">Querying Blockchain...</span>';
-            try {
-                const url = await contract.latestArt(addr);
-                if (!url || url === "") { display.innerHTML = "<span>No previous art found.</span>"; } 
-                else { display.innerHTML = `<img src="${url}" style="max-width:100%; border-radius:8px;">`; }
-            } catch (e) { display.innerHTML = "<span>Recovery failed.</span>"; }
+                status.innerHTML = "<span style='color:green;'>Verified!</span>";
+                document.getElementById('verificationPrompt').style.display = 'none';
+                document.getElementById('verifiedNotice').style.display = 'block';
+                log("zkPass Identity Verified");
+            } catch (e) { status.innerHTML = "<span style='color:red;'>Failed</span>"; }
         };
 
         document.getElementById('connectBtn').onclick = connectWallet;

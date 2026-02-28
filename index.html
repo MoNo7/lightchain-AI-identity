@@ -65,11 +65,12 @@
     <script>
         const ID_ADDR = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34";
        const ART_ADDR = "0x652A27B0c1Cd08269e74B204941fdBC4f8840d92";
-        const ABI = [
-            "function generateArt(string p) payable",
-            "function latestArt(address a) view returns (string)",
-            "event ArtCompleted(address indexed u, string url)"
-        ];
+const ABI = [
+    "function generateArt(string p) payable",
+    "function latestArt(address a) view returns (string)",
+    "function isZkVerified(address) view returns (bool)",
+    "event ArtCompleted(address indexed u, string url)"
+];
 
         let signer, contract, provider;
 
@@ -111,21 +112,24 @@
             } catch (e) { addLog("Connection failed. Unlock MetaMask."); }
         }
 
-        document.getElementById('genBtn').onclick = async () => {
-            const prompt = document.getElementById('promptInput').value;
-            if(!prompt) return;
-            const out = document.getElementById('output');
-            
-            try {
-                out.innerHTML = '<div style="color:var(--warning);">Anchoring request to Lightchain...</div>';
-                const tx = await contract.generateArt(prompt, { value: ethers.parseEther("0.25") });
-                addLog(`Inference Task Hash: ${tx.hash.substring(0,12)}...`);
-                await tx.wait();
-                out.innerHTML = '<div style="color:var(--primary);">Request Accepted. Awaiting Cluster Node response...</div>';
-            } catch (e) {
-                out.innerHTML = `<div style="color:var(--danger);">Inference Error: ${e.reason || "Router Rejection"}</div>`;
-            }
-        };
+document.getElementById('genBtn').onclick = async () => {
+    const prompt = document.getElementById('promptInput').value;
+    const out = document.getElementById('output');
+    try {
+        out.innerHTML = '<div style="color:var(--warning);">Anchoring request to Lightchain...</div>';
+        // Explicitly pass 0.25 LCAI
+        const tx = await contract.generateArt(prompt, { 
+            value: ethers.parseEther("0.25"),
+            gasLimit: 500000 // Higher gas limit to prevent simulation failure
+        });
+        await tx.wait();
+        out.innerHTML = '<div style="color:var(--primary);">Request Accepted. Awaiting Cluster Node response...</div>';
+    } catch (e) {
+        // This will now catch the specific reason if MetaMask provides it
+        console.error(e);
+        out.innerHTML = `<div style="color:var(--danger);">Inference Error: ${e.reason || "Router Rejection (Identity/Fee)"}</div>`;
+    }
+};
 
         document.getElementById('recoverBtn').onclick = async () => {
             const addr = await signer.getAddress();
@@ -141,4 +145,5 @@
     </script>
 </body>
 </html>
+
 

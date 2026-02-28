@@ -8,27 +8,23 @@
     <style>
         :root {
             --primary: #00ff80;
-            --primary-dim: rgba(0, 255, 128, 0.1);
-            --danger: #ff4444;
-            --success: #00ff80;
-            --warning: #ffbb33;
             --bg: #0a0a0f;
             --card: #14141f;
             --border: #2d2d3d;
             --text: #ffffff;
             --text-dim: #a0a0b0;
+            --danger: #ff4444;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            font-family: 'Segoe UI', sans-serif; 
             background: var(--bg); 
             color: var(--text);
-            line-height: 1.6;
             overflow: hidden;
         }
 
-        /* HEADER & TOP BAR */
+        /* TOP BAR */
         .nav { 
             height: 60px; 
             background: var(--card); 
@@ -39,79 +35,64 @@
             padding: 0 20px;
         }
         .nav-left { font-size: 1.1rem; font-weight: bold; color: var(--primary); }
-        .nav-right { display: flex; align-items: center; gap: 15px; }
-
-        .status-badge {
+        
+        .wallet-container {
             display: flex;
             align-items: center;
-            gap: 8px;
-            background: #020617;
-            padding: 6px 12px;
-            border-radius: 20px;
-            border: 1px solid var(--border);
-            font-size: 0.8rem;
+            gap: 10px;
+            background: var(--border);
+            padding: 4px 12px;
+            border-radius: 8px;
+            border: 1px solid #3d3d4d;
         }
-        .dot { height: 8px; width: 8px; border-radius: 50%; background: var(--danger); transition: all 0.3s; }
-        .dot.active { background: var(--success); box-shadow: 0 0 10px var(--success); }
-        
-        .wallet-badge { 
-            background: var(--border); 
-            padding: 6px 12px; 
-            border-radius: 6px; 
-            font-family: monospace; 
-            font-size: 0.85rem;
-        }
+        .status-dot { height: 8px; width: 8px; border-radius: 50%; background: var(--danger); }
+        .status-dot.active { background: var(--primary); box-shadow: 0 0 8px var(--primary); }
+        .wallet-id { font-family: monospace; font-size: 0.85rem; }
 
-        /* LAYOUT */
+        /* CONTENT */
         .content { display: flex; height: calc(100vh - 60px); padding: 20px; gap: 20px; }
-        .sidebar { width: 320px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; padding-right: 5px; }
+        .sidebar { width: 320px; display: flex; flex-direction: column; gap: 20px; }
         .main-area { flex: 1; display: flex; flex-direction: column; gap: 20px; }
 
-        /* COMPONENTS */
         .card { background: var(--card); border-radius: 12px; padding: 20px; border: 1px solid var(--border); }
-        .card h4 { margin-bottom: 15px; color: var(--text-dim); font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; }
+        .card h4 { margin-bottom: 15px; color: var(--text-dim); font-size: 0.8rem; text-transform: uppercase; }
 
         .btn { 
             width: 100%; border: none; padding: 12px; border-radius: 8px; cursor: pointer; 
-            font-weight: bold; transition: all 0.2s; margin-bottom: 10px;
+            font-weight: bold; margin-bottom: 10px;
         }
         .btn-primary { background: var(--primary); color: #000; }
-        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
         .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
-        .btn-outline:hover { background: var(--border); }
 
         textarea { 
             width: 100%; height: 100px; background: #020617; border: 1px solid var(--border); 
-            border-radius: 8px; color: white; padding: 12px; margin-bottom: 15px; resize: none;
+            border-radius: 8px; color: white; padding: 12px; margin-bottom: 15px;
         }
 
         .log-box { 
             flex: 1; background: #020617; border-radius: 8px; padding: 15px; 
-            font-family: monospace; font-size: 0.8rem; color: #94a3b8; overflow-y: auto;
+            font-family: monospace; font-size: 0.75rem; color: #94a3b8; overflow-y: auto;
         }
 
-        .output-display {
-            flex: 1; background: #020617; border-radius: 12px; border: 2px dashed var(--border);
-            display: flex; align-items: center; justify-content: center; position: relative;
+        .output-view {
+            flex: 1; border: 2px dashed var(--border); border-radius: 12px;
+            display: flex; align-items: center; justify-content: center; color: var(--text-dim);
         }
 
-        .cluster-stats { display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-dim); margin-top: 10px; }
-        .progress-bar { height: 4px; background: var(--border); border-radius: 2px; margin-top: 5px; }
-        .progress-fill { height: 100%; background: var(--primary); width: 65%; border-radius: 2px; }
-
-        .hidden { display: none !important; }
+        .progress-bar { height: 4px; background: var(--border); border-radius: 2px; margin-top: 10px; }
+        .progress-fill { height: 100%; background: var(--primary); width: 68%; }
+        
+        .hidden { display: none; }
     </style>
 </head>
 <body>
 
     <nav class="nav">
         <div class="nav-left">LightChain AI | Master Portal</div>
-        <div class="nav-right">
-            <div id="id-status-badge" class="status-badge">
-                <div id="status-dot" class="dot"></div>
-                <span id="status-text">Checking ZK-Pass...</span>
-            </div>
-            <div class="wallet-badge" id="wallet-address">Disconnected</div>
+        <div class="wallet-container">
+            <div id="top-status-dot" class="status-dot"></div>
+            <span id="top-status-text" style="font-size: 0.75rem; margin-right: 10px; color: var(--text-dim);">No Pass</span>
+            <div class="wallet-id" id="wallet-address">Disconnected</div>
         </div>
     </nav>
 
@@ -127,7 +108,7 @@
                 <h4>AIVM Inference</h4>
                 <textarea id="prompt-input" placeholder="Enter generation prompt..."></textarea>
                 <button class="btn btn-primary" id="generate-btn">Generate (0.25 LCAI)</button>
-                <div class="cluster-stats">
+                <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-dim); margin-top: 10px;">
                     <span>Cluster Load</span>
                     <span>68%</span>
                 </div>
@@ -141,122 +122,77 @@
         </div>
 
         <div class="main-area">
-            <div class="output-display" id="output-view">
-                <span style="color: var(--border)">Inference output will appear here</span>
-            </div>
+            <div class="output-view">Inference output will appear here</div>
         </div>
     </div>
 
     <script>
+        // Use the addresses from your Lightchain IDE deployment
         const CONFIG = {
-            SBT_ADDRESS: "0x3938E75C417688755601E8C6b62D7858c894A2D2", // Your deployed ZkKYCSBT address
-            AIVM_ADDRESS: "0x4D36B31d4BFB957A5D816B0f420a9e755EFc6a2c" // Example AIVM address
+            SBT_ADDRESS: "0x3938E75C417688755601E8C6b62D7858c894A2D2", 
+            AIVM_ADDRESS: "0x4D36B31d4BFB957A5D816B0f420a9e755EFc6a2c"
         };
 
-        const SBT_ABI = [
-            "function hasSBT(address) view returns (bool)",
-            "function mintIdentity() external"
-        ];
+        const SBT_ABI = ["function hasSBT(address) view returns (bool)", "function mintIdentity() external"];
 
         let provider, signer, userAddress, sbtContract;
 
         function addLog(msg) {
-            const logContent = document.getElementById('log-content');
-            logContent.innerHTML += `<div>> ${msg}</div>`;
-            logContent.scrollTop = logContent.scrollHeight;
+            const log = document.getElementById('log-content');
+            log.innerHTML += `<div>> ${msg}</div>`;
+            log.scrollTop = log.scrollHeight;
         }
 
-        async function updateIdentityStatus() {
-            if (!userAddress) return;
+        async function checkPass() {
             try {
-                const hasSBT = await sbtContract.hasSBT(userAddress);
-                const dot = document.getElementById('status-dot');
-                const text = document.getElementById('status-text');
+                const hasPass = await sbtContract.hasSBT(userAddress);
+                const dot = document.getElementById('top-status-dot');
+                const text = document.getElementById('top-status-text');
                 const mintBtn = document.getElementById('mint-btn');
 
-                if (hasSBT) {
+                if (hasPass) {
                     dot.classList.add('active');
-                    text.innerText = "ZK-Pass Verified";
+                    text.innerText = "ZK-Pass Active";
                     mintBtn.classList.add('hidden');
-                    addLog("Identity verified via Soulbound Token.");
+                    addLog("Identity verified.");
                 } else {
                     dot.classList.remove('active');
-                    text.innerText = "No ZK-Pass Detected";
+                    text.innerText = "Pass Required";
                     mintBtn.classList.remove('hidden');
-                    addLog("Warning: No ZK-Pass found for this wallet.");
+                    addLog("Warning: Identity Pass required for AI access.");
                 }
-            } catch (err) {
-                console.error(err);
-                addLog("Error syncing identity status.");
-            }
+            } catch (e) { addLog("Identity sync error."); }
         }
 
         document.getElementById('connect-btn').addEventListener('click', async () => {
             if (window.ethereum) {
-                try {
-                    provider = new ethers.BrowserProvider(window.ethereum);
-                    await provider.send("eth_requestAccounts", []);
-                    signer = await provider.getSigner();
-                    userAddress = await signer.getAddress();
-                    
-                    document.getElementById('wallet-address').innerText = 
-                        userAddress.substring(0,6) + "..." + userAddress.substring(38);
-                    document.getElementById('connect-btn').innerText = "Wallet Connected";
-                    
-                    sbtContract = new ethers.Contract(CONFIG.SBT_ADDRESS, SBT_ABI, signer);
-                    addLog("Wallet connected: " + userAddress);
-                    await updateIdentityStatus();
-                } catch (err) {
-                    addLog("Connection failed.");
-                }
-            } else {
-                addLog("Please install MetaMask.");
+                provider = new ethers.BrowserProvider(window.ethereum);
+                await provider.send("eth_requestAccounts", []);
+                signer = await provider.getSigner();
+                userAddress = await signer.getAddress();
+                
+                document.getElementById('wallet-address').innerText = userAddress.slice(0,6) + "..." + userAddress.slice(-4);
+                document.getElementById('connect-btn').innerText = "Wallet Sync On";
+                
+                sbtContract = new ethers.Contract(CONFIG.SBT_ADDRESS, SBT_ABI, signer);
+                addLog("Wallet connected: " + userAddress);
+                await checkPass();
             }
         });
 
         document.getElementById('mint-btn').addEventListener('click', async () => {
             try {
-                addLog("Initiating ZK-Pass minting...");
+                addLog("Minting ZK-Pass...");
                 const tx = await sbtContract.mintIdentity();
                 await tx.wait();
-                addLog("Mint successful!");
-                await updateIdentityStatus();
-            } catch (err) {
-                addLog("Minting failed: " + err.reason || err.message);
-            }
+                addLog("Pass minted successfully.");
+                await checkPass();
+            } catch (e) { addLog("Mint failed: " + (e.reason || "Check Balance")); }
         });
 
         document.getElementById('generate-btn').addEventListener('click', async () => {
-            const prompt = document.getElementById('prompt-input').value;
-            if (!prompt) {
-                addLog("Error: Prompt cannot be empty.");
-                return;
-            }
-            if (!userAddress) {
-                addLog("Error: Connect wallet first.");
-                return;
-            }
-
-            try {
-                const hasSBT = await sbtContract.hasSBT(userAddress);
-                if (!hasSBT) {
-                    addLog("Generation Failed: Identity ZK-Pass required.");
-                    return;
-                }
-
-                addLog("Submitting inference request: " + prompt.substring(0, 20) + "...");
-                // Note: Actual AIVM contract call would go here
-                // For now, simulating the process
-                document.getElementById('output-view').innerHTML = "<span>Processing AIVM Inference...</span>";
-                
-                setTimeout(() => {
-                    addLog("AIVM Inference completed.");
-                    document.getElementById('output-view').innerHTML = "<div style='color: var(--primary)'>Generation Successful (Simulated)</div>";
-                }, 2000);
-
-            } catch (err) {
-                addLog("Generation Failed: require(false) - Check balance/SBT.");
-            }
+            addLog("Checking AIVM permissions...");
+            // Link to your actual AIVM logic here
         });
     </script>
 </body>

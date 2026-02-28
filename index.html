@@ -5,7 +5,7 @@
     <title>Lightchain AI | Cluster Portal</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <style>
-        :root { --primary: #007bff; --admin: #6f42c1; --bg: #0f172a; --card: #1e293b; --text: #f1f5f9; --success: #22c55e; }
+        :root { --primary: #007bff; --admin: #6f42c1; --bg: #0f172a; --card: #1e293b; --text: #f1f5f9; --success: #22c55e; --warning: #f59e0b; --danger: #ef4444; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; flex-direction: column; height: 100vh; }
         #topNav { height: 70px; background: #1e293b; border-bottom: 1px solid #334155; display: flex; align-items: center; justify-content: space-between; padding: 0 30px; }
         .cluster-status { font-size: 0.75rem; padding: 5px 12px; border-radius: 20px; border: 1px solid #334155; display: flex; align-items: center; gap: 8px; }
@@ -14,16 +14,19 @@
         .content { display: flex; flex: 1; padding: 20px; gap: 20px; overflow: hidden; }
         .sidebar { width: 350px; display: flex; flex-direction: column; gap: 20px; }
         .card { background: var(--card); border-radius: 16px; padding: 24px; border: 1px solid #334155; }
-        .primary-btn { background: var(--primary); color: white; border: none; padding: 14px; border-radius: 10px; cursor: pointer; width: 100%; font-weight: 600; font-size: 1rem; }
+        .primary-btn { background: var(--primary); color: white; border: none; padding: 14px; border-radius: 10px; cursor: pointer; width: 100%; font-weight: 600; font-size: 1rem; transition: 0.2s; }
+        .primary-btn:hover { opacity: 0.9; }
         .primary-btn:disabled { background: #334155; cursor: not-allowed; }
-        .display-area { flex: 1; background: #020617; border-radius: 16px; border: 1px solid #334155; display: flex; align-items: center; justify-content: center; position: relative; }
-        input { width: 100%; background: #0f172a; border: 1px solid #334155; color: white; padding: 12px; border-radius: 8px; margin-bottom: 15px; }
-        #logFeed { font-size: 0.7rem; color: #94a3b8; font-family: monospace; overflow-y: auto; max-height: 150px; }
+        .display-area { flex: 1; background: #020617; border-radius: 16px; border: 1px solid #334155; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        input { width: 100%; background: #0f172a; border: 1px solid #334155; color: white; padding: 12px; border-radius: 8px; margin-bottom: 15px; box-sizing: border-box; }
+        #logFeed { font-size: 0.7rem; color: #94a3b8; font-family: monospace; overflow-y: auto; max-height: 200px; background: #020617; padding: 10px; border-radius: 8px; }
+        .pulsing { animation: pulse 1.5s infinite; color: var(--warning); }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
     </style>
 </head>
 <body>
     <div id="topNav">
-        <h2 style="margin:0; color:var(--primary);">AIVM Studio <span style="font-size:0.8rem; color:#64748b;">v2.6</span></h2>
+        <h2 style="margin:0; color:var(--primary);">AIVM Studio <span style="font-size:0.8rem; color:#64748b;">v2.8</span></h2>
         <div class="cluster-status">
             <div id="statusDot" class="status-dot"></div>
             <span id="statusText">Cluster Offline</span>
@@ -34,127 +37,137 @@
         <div class="sidebar">
             <div class="card">
                 <div id="walletInfo" style="display:none;">
-                    <div style="font-size: 0.8rem; color: #94a3b8;">Connected Wallet</div>
-                    <div id="userAddr" style="font-weight:700; margin-bottom: 10px;">0x...</div>
-                    <div style="font-size: 1.2rem; font-weight: 800; color: var(--success);"><span id="userBal">0.00</span> LCAI</div>
+                    <div style="font-size: 0.8rem; color: #94a3b8;">User Profile</div>
+                    <div id="userAddr" style="font-weight:700; margin-bottom: 5px; color: var(--primary);">0x...</div>
+                    <div style="font-size: 1.1rem; font-weight: 800; color: var(--success);"><span id="userBal">0.00</span> LCAI</div>
                 </div>
-                <button id="connectBtn" class="primary-btn">Connect to Lightchain</button>
+                <button id="connectBtn" class="primary-btn">Connect Wallet</button>
             </div>
 
             <div class="card" id="adminCard" style="opacity: 0.5;">
-                <h4 style="margin:0 0 10px 0;">Cluster Recovery</h4>
-                <button id="recoverBtn" class="primary-btn" style="background:#475569; font-size:0.8rem;" disabled>Fetch Last On-Chain Art</button>
-                <div id="logFeed" style="margin-top:15px;">> Awaiting connection...</div>
+                <h4 style="margin:0 0 10px 0;">On-Chain Assets</h4>
+                <button id="recoverBtn" class="primary-btn" style="background:#475569; font-size:0.85rem;" disabled>Fetch Last AI Image</button>
+                <div id="logFeed" style="margin-top:15px;">> System initialized...</div>
             </div>
         </div>
 
         <div class="main-area" style="flex:1; display:flex; flex-direction:column; gap:20px;">
             <div class="card" style="flex:0;">
-                <input type="text" id="promptInput" placeholder="Enter Art Prompt (e.g. 'Cyberpunk Samurai in neon rain')">
-                <button id="genBtn" class="primary-btn" style="background:var(--success);" disabled>Generate Art (0.25 LCAI)</button>
+                <input type="text" id="promptInput" placeholder="Describe your art (e.g. 'Golden dragon on a mountain')">
+                <button id="genBtn" class="primary-btn" style="background:var(--success);" disabled>Request Inference (0.25 LCAI)</button>
             </div>
             <div class="display-area" id="output">
-                <div style="color:#475569; text-align:center;">
-                    <p>AIVM Output Terminal</p>
-                    <p style="font-size:0.8rem;">Initialize wallet to begin inference</p>
+                <div id="statusPlaceholder" style="color:#475569; text-align:center;">
+                    <p>AIVM Terminal Ready</p>
+                    <p style="font-size:0.8rem;">Connect wallet to anchor requests</p>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        const ID_ADDR = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34";
-       const ART_ADDR = "0x5526FdD4eA8456D2aC1006be867CAa0057643AB4";
-const ABI = [
-    "function generateArt(string p) payable",
-    "function latestArt(address a) view returns (string)",
-    "function isZkVerified(address) view returns (bool)",
-    "event ArtCompleted(address indexed u, string url)"
-];
+        const ART_ADDR = "0x4406Ff8B7C72f3913EC16488afC0b6e5ABc6bc50"; 
+        
+        const ABI = [
+            "function generateArt(string p) payable",
+            "function latestArt(address a) view returns (string)",
+            "event ArtCompleted(address indexed u, string url)"
+        ];
 
         let signer, contract, provider;
 
-        function addLog(msg) {
+        function addLog(msg, color = "#94a3b8") {
             const f = document.getElementById('logFeed');
-            f.innerHTML += `<div>> ${msg}</div>`;
+            const entry = document.createElement('div');
+            entry.style.color = color;
+            entry.innerHTML = `> ${msg}`;
+            f.appendChild(entry);
             f.scrollTop = f.scrollHeight;
         }
 
         async function init() {
+            if (!window.ethereum) return alert("MetaMask not found!");
             try {
                 provider = new ethers.BrowserProvider(window.ethereum);
-                const accounts = await provider.send("eth_requestAccounts", []);
+                await provider.send("eth_requestAccounts", []);
                 signer = await provider.getSigner();
                 const addr = await signer.getAddress();
                 
                 contract = new ethers.Contract(ART_ADDR, ABI, signer);
                 const bal = await provider.getBalance(addr);
 
-                document.getElementById('userAddr').innerText = addr.substring(0,10) + "...";
-                document.getElementById('userBal').innerText = parseFloat(ethers.formatEther(bal)).toFixed(2);
+                document.getElementById('userAddr').innerText = addr.substring(0,12) + "...";
+                document.getElementById('userBal').innerText = parseFloat(ethers.formatEther(bal)).toFixed(4);
                 document.getElementById('walletInfo').style.display = 'block';
                 document.getElementById('connectBtn').style.display = 'none';
                 document.getElementById('adminCard').style.opacity = '1';
                 document.getElementById('genBtn').disabled = false;
                 document.getElementById('recoverBtn').disabled = false;
 
-                // Set Heartbeat Status
                 document.getElementById('statusDot').classList.add('status-online');
-                document.getElementById('statusText').innerText = "Cluster Connected (SDXL-v2)";
-                addLog("Handshake complete with AIVM Router.");
+                document.getElementById('statusText').innerText = "Cluster Handshake Active";
+                addLog("Wallet connected. Cluster online.", "#22c55e");
 
                 contract.on("ArtCompleted", (user, url) => {
                     if(user.toLowerCase() === addr.toLowerCase()) {
-                        document.getElementById('output').innerHTML = `<img src="${url}" style="max-width:90%; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.5);">`;
-                        addLog("Inference complete. Art rendered.");
+                        document.getElementById('output').innerHTML = `<img src="${url}" style="max-width:100%; border-radius:12px; box-shadow: 0 10px 40px rgba(0,0,0,0.5);">`;
+                        addLog("Inference complete. Art recovered.", "#22c55e");
                     }
                 });
-            } catch (e) { addLog("Connection failed. Unlock MetaMask."); }
+            } catch (e) { addLog("Connection error: " + e.message, "#ef4444"); }
         }
 
-document.getElementById('genBtn').onclick = async () => {
-    const prompt = document.getElementById('promptInput').value;
-    const out = document.getElementById('output');
-    if (!prompt) return;
+        document.getElementById('genBtn').onclick = async () => {
+            const prompt = document.getElementById('promptInput').value;
+            const out = document.getElementById('output');
+            if(!prompt) return alert("Enter a prompt!");
 
-    try {
-        out.innerHTML = '<div class="pulsing">Anchoring to Lightchain Cluster...</div>';
-        
-        // We add a manual gasLimit to ensure the Router doesn't run out of gas mid-call
-        const tx = await contract.generateArt(prompt, { 
-            value: ethers.parseEther("0.25"),
-            gasLimit: 600000 
-        });
-        
-        addLog(`Task Broadcast: ${tx.hash.substring(0,10)}...`);
-        await tx.wait();
-        
-        out.innerHTML = '<div style="color:var(--primary);">Request Accepted! Awaiting AI Cluster Worker (30-60s)...</div>';
-        addLog("AIVM Task ID locked. Waiting for callback.");
-    } catch (e) {
-        console.error("Full Error Object:", e);
-        // This will help us see if it's a 'Fee' issue or an 'Identity' issue
-        out.innerHTML = `<div style="color:var(--danger);">Inference Error: ${e.reason || "Router Logic Revert"}</div>`;
-        addLog("Error: Transaction reverted by Router.");
-    }
-};
+            try {
+                out.innerHTML = '<div class="pulsing">Simulating Handshake Logic...</div>';
+                
+                // STEP 1: Simulate the call to catch Router Reverts early
+                try {
+                    await contract.generateArt.staticCall(prompt, { value: ethers.parseEther("0.25") });
+                } catch (simError) {
+                    console.error(simError);
+                    throw new Error("Router Revert: Check Model ID or Studio Identity Name");
+                }
+
+                // STEP 2: Actual Transaction
+                out.innerHTML = '<div class="pulsing">Anchoring Request to Lightchain...</div>';
+                const tx = await contract.generateArt(prompt, { 
+                    value: ethers.parseEther("0.25"),
+                    gasLimit: 600000 
+                });
+                
+                addLog(`Tx Broadcast: ${tx.hash.substring(0,15)}...`);
+                await tx.wait();
+                
+                out.innerHTML = '<div style="color:var(--primary); text-align:center;">Request Accepted!<br>Awaiting AI Cluster response (30-60s)</div>';
+                addLog("AIVM Task ID locked. Waiting for node callback.", "#f59e0b");
+                
+            } catch (e) {
+                const msg = e.reason || e.message || "Unknown Router Error";
+                out.innerHTML = `<div style="color:var(--danger); text-align:center;">Inference Failed:<br>${msg}</div>`;
+                addLog("Error: " + msg, "#ef4444");
+            }
+        };
 
         document.getElementById('recoverBtn').onclick = async () => {
             const addr = await signer.getAddress();
-            addLog("Querying blockchain state for previous assets...");
-            const url = await contract.latestArt(addr);
-            if(url) {
-                document.getElementById('output').innerHTML = `<img src="${url}" style="max-width:90%; border-radius:12px;">`;
-                addLog("Recovery successful.");
-            } else { addLog("No assets found for this identity."); }
+            addLog("Querying blockchain state...");
+            try {
+                const url = await contract.latestArt(addr);
+                if(url && url !== "") {
+                    document.getElementById('output').innerHTML = `<img src="${url}" style="max-width:100%; border-radius:12px;">`;
+                    addLog("Latest art fetched from chain.", "#22c55e");
+                } else {
+                    addLog("No art found for this wallet.", "#f59e0b");
+                }
+            } catch (e) { addLog("Recovery failed.", "#ef4444"); }
         };
 
         document.getElementById('connectBtn').onclick = init;
     </script>
 </body>
 </html>
-
-
-
-
-

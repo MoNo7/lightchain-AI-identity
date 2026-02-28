@@ -73,7 +73,7 @@
 
     <script>
         const ID_ADDR = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34";
-        const ART_ADDR = "0xE97cF8359E9a529C0A99d8306fe4259794a417BD"; 
+        const ART_ADDR = "0x8f51795dA4Ddb9102c182E9b82B40340D7324403"; 
         
         const ABI = [
             "function generateArt(string _prompt) payable",
@@ -140,21 +140,23 @@
             } catch (err) { log("Connect failed"); }
         }
 
-        document.getElementById('generateBtn').onclick = async () => {
-            const p = document.getElementById('promptInput').value;
-            const display = document.getElementById('displayArea');
-            if (!p) return alert("Enter prompt");
-
-            try {
-                display.innerHTML = '<span class="pulsing">Consulting AIVM Cluster...</span>';
-                const tx = await contract.generateArt(p, { value: ethers.parseEther("0.25") });
-                log("Tx Broadcast: " + tx.hash.substring(0,10));
-                await tx.wait();
-                display.innerHTML = '<span class="pulsing">Confirmed. Awaiting AI Response...</span>';
-            } catch (e) {
-                display.innerHTML = `<span>Error: ${e.reason || "Reverted. Ensure you are verified."}</span>`;
-            }
-        };
+document.getElementById('generateBtn').onclick = async () => {
+    const p = document.getElementById('promptInput').value;
+    if (!p) return alert("Enter prompt");
+    const display = document.getElementById('displayArea');
+    
+    try {
+        display.innerHTML = '<span class="pulsing">Requesting Art (0.25 LCAI)...</span>';
+        // This line MUST include the value object
+        const tx = await contract.generateArt(p, { 
+            value: ethers.parseUnits("0.25", "ether") 
+        });
+        await tx.wait();
+        display.innerHTML = '<span class="pulsing">Waiting for AIVM Cluster...</span>';
+    } catch (e) {
+        display.innerHTML = `<span>Error: ${e.reason || "Check Wallet Balance"}</span>`;
+    }
+};
 
         document.getElementById('zkRecoverBtn').onclick = async () => {
             const status = document.getElementById('zkStatus');
@@ -174,3 +176,4 @@
     </script>
 </body>
 </html>
+

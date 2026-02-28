@@ -124,37 +124,46 @@
             }
         }
 
-        document.getElementById('generateArtBtn').onclick = async () => {
-            const prompt = document.getElementById('artPrompt').value;
-            const status = document.getElementById('viewerStatus');
-            if(!prompt) return;
-            status.innerText = "Anchoring Task...";
-            try {
-                const router = new ethers.Contract(ROUTER_ADDR, [
-                    "function requestInferenceV2(uint256 m, string p) external payable",
-                    "event InferenceRequested(bytes32 indexed taskId, address indexed requester, uint256 modelId)"
-                ], signer);
-                
-                const tx = await router.requestInferenceV2(2, prompt, { value: ethers.parseEther("0.1") });
-                const receipt = await tx.wait();
-                
-                const eventHash = ethers.id("InferenceRequested(bytes32,address,uint256)");
-                let taskId = receipt.logs.find(l => l.topics[0] === eventHash)?.topics[1];
-                
-                if(!taskId) throw "Task ID failed to anchor.";
+       document.getElementById('generateArtBtn').onclick = async () => {
+    const prompt = document.getElementById('artPrompt').value;
+    const status = document.getElementById('viewerStatus');
+    
+    try {
+        const router = new ethers.Contract(ROUTER_ADDR, [
+            "function requestInferenceV2(uint256 m, string p) external payable",
+            "event InferenceRequested(bytes32 indexed taskId, address indexed requester, uint256 modelId)"
+        ], signer);
 
-                // ADD TO LOG AND RENDER IMMEDIATELY
-                const idx = userTasks.push({ prompt, taskId, ready: false, url: null }) - 1;
-                localStorage.setItem('lcai_art_tasks', JSON.stringify(userTasks));
-                renderLog();
-                
-                pollTask(idx);
-                status.innerText = "Task Anchored. Generating...";
-            } catch (e) { 
-                status.innerText = "Inference Failed."; 
-                console.error(e); 
-            }
-        };
+        // 1. BROADCAST: The moment the user signs in MetaMask
+        const tx = await router.requestInferenceV2(2, prompt, { value: ethers.parseEther("0.1") });
+        
+        // 2. IMMEDIATE LOGGING: Do not wait for tx.wait() to finish
+        const tempIdx = userTasks.push({ 
+            prompt, 
+            taskId: "Pending...", 
+            ready: false, 
+            txHash: tx.hash 
+        }) - 1;
+        
+        renderLog(); // This makes the item appear in the sidebar instantly
+        status.innerText = "Transaction Broadcasted...";
+
+        // 3. ANCHORING: Now wait for the block confirmation
+        const receipt = await tx.wait();
+        const eventHash = ethers.id("InferenceRequested(bytes32,address,uint256)");
+        let actualTaskId = receipt.logs.find(l => l.topics[0] === eventHash)?.topics[1];
+
+        if(actualTaskId) {
+            userTasks[tempIdx].taskId = actualTaskId;
+            localStorage.setItem('lcai_art_tasks', JSON.stringify(userTasks));
+            pollTask(tempIdx);
+            status.innerText = "Task Anchored. Generating...";
+        }
+    } catch (e) {
+        status.innerText = "Inference Failed.";
+        console.error(e);
+    }
+};
 
         async function pollTask(i) {
             const t = userTasks[i];
@@ -243,3 +252,4 @@
     </script>
 </body>
 </html>
+

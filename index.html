@@ -40,13 +40,10 @@
             </div>
 
             <div id="adminMenu" class="card" style="display:none; border-top: 4px solid var(--admin);">
-                <h4 style="margin: 0 0 10px 0; color: var(--admin);">Identity Status</h4>
-                <div id="verificationPrompt" style="display: block;">
-                    <p style="font-size: 0.75rem; color: #666;">Verification required to unlock AI Art generation.</p>
-                    <button id="zkRecoverBtn" class="admin-btn">Verify zkPass Identity</button>
-                </div>
-                <div id="verifiedNotice" style="display: none;">
+                <h4 style="margin: 0 0 10px 0; color: var(--admin);">Identity & Recovery</h4>
+                <div id="verifiedNotice">
                     <p style="font-size: 0.75rem; color: var(--success); font-weight: bold;">✓ Verification Active</p>
+                    <button id="recoverArtBtn" class="admin-btn" style="background: var(--success);">Recover On-Chain Art</button>
                 </div>
                 <div id="zkStatus" style="font-size: 0.7rem; margin-top: 5px; font-family: monospace;"></div>
             </div>
@@ -73,11 +70,10 @@
 
     <script>
         const ID_ADDR = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34";
-        const ART_ADDR = "0x8f51795dA4Ddb9102c182E9b82B40340D7324403"; 
+        const ART_ADDR = "0x387e7676294455dB037BF06953ddA33E1bC64716"; 
         
         const ABI = [
             "function generateArt(string _prompt) payable",
-            "function verifyZkPass(bytes proof)",
             "function isZkVerified(address) view returns (bool)",
             "function latestArt(address) view returns (string)",
             "event ArtCompleted(address indexed user, string imageUrl, bytes32 taskId)"
@@ -119,11 +115,6 @@
                 tag.style.background = isVerified ? "#d4edda" : "#f8d7da";
                 tag.style.color = isVerified ? "#155724" : "#721c24";
 
-                if (isVerified) {
-                    document.getElementById('verificationPrompt').style.display = 'none';
-                    document.getElementById('verifiedNotice').style.display = 'block';
-                }
-
                 document.getElementById('connectBtn').style.display = 'none';
                 document.getElementById('userProfile').style.display = 'block';
                 document.getElementById('adminMenu').style.display = 'block';
@@ -140,41 +131,37 @@
             } catch (err) { log("Connect failed"); }
         }
 
-document.getElementById('generateBtn').onclick = async () => {
-    const p = document.getElementById('promptInput').value;
-    if (!p) return alert("Enter prompt");
-    const display = document.getElementById('displayArea');
-    
-    try {
-        display.innerHTML = '<span class="pulsing">Requesting Art (0.25 LCAI)...</span>';
-        // This line MUST include the value object
-        const tx = await contract.generateArt(p, { 
-            value: ethers.parseUnits("0.25", "ether") 
-        });
-        await tx.wait();
-        display.innerHTML = '<span class="pulsing">Waiting for AIVM Cluster...</span>';
-    } catch (e) {
-        display.innerHTML = `<span>Error: ${e.reason || "Check Wallet Balance"}</span>`;
-    }
-};
-
-        document.getElementById('zkRecoverBtn').onclick = async () => {
-            const status = document.getElementById('zkStatus');
-            status.innerHTML = "<span class='pulsing'>Verifying zkPass...</span>";
+        document.getElementById('generateBtn').onclick = async () => {
+            const p = document.getElementById('promptInput').value;
+            const display = document.getElementById('displayArea');
+            if (!p) return alert("Enter prompt");
             try {
-                const proof = ethers.keccak256(ethers.toUtf8Bytes("Lightchain_ZK_" + Date.now()));
-                const tx = await contract.verifyZkPass(proof);
+                display.innerHTML = '<span class="pulsing">Requesting Art (0.25 LCAI)...</span>';
+                const tx = await contract.generateArt(p, { value: ethers.parseUnits("0.25", "ether") });
                 await tx.wait();
-                status.innerHTML = "<span style='color:green;'>Verified!</span>";
-                document.getElementById('verificationPrompt').style.display = 'none';
-                document.getElementById('verifiedNotice').style.display = 'block';
-                log("zkPass Identity Verified");
-            } catch (e) { status.innerHTML = "<span style='color:red;'>Failed</span>"; }
+                display.innerHTML = '<span class="pulsing">Waiting for AIVM Cluster...</span>';
+            } catch (e) {
+                display.innerHTML = `<span>Error: ${e.reason || "Check Cluster Logs"}</span>`;
+            }
+        };
+
+        // ART RECOVERY BUTTON
+        document.getElementById('recoverArtBtn').onclick = async () => {
+            const addr = await signer.getAddress();
+            const display = document.getElementById('displayArea');
+            display.innerHTML = '<span class="pulsing">Recovering from blockchain...</span>';
+            try {
+                const url = await contract.latestArt(addr);
+                if (url) {
+                    display.innerHTML = `<img src="${url}" style="max-width:100%; border-radius:8px;">`;
+                    log("Art Recovered Successfully");
+                } else {
+                    display.innerHTML = "<span>No previous art found.</span>";
+                }
+            } catch (e) { log("Recovery failed"); }
         };
 
         document.getElementById('connectBtn').onclick = connectWallet;
     </script>
 </body>
 </html>
-
-

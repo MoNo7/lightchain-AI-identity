@@ -2,216 +2,129 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lightchain AI | Privacy Portal</title>
+    <title>Lightchain AI | Final Fix Portal</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <style>
-        :root { --primary: #00d1ff; --bg: #050505; --sidebar: #0d0d0e; --card: #141417; --text: #e0e0e0; --glow: 0 0 15px rgba(0, 209, 255, 0.4); }
-        body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; display: flex; height: 100vh; overflow: hidden; }
-        aside { width: 260px; background: var(--sidebar); border-right: 1px solid #222; display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; }
-        .logo { font-size: 20px; font-weight: bold; margin-bottom: 30px; }
-        .logo span { color: var(--primary); }
-        .nav-item { padding: 12px 15px; border-radius: 8px; cursor: pointer; margin-bottom: 10px; transition: 0.3s; color: #888; }
-        .nav-item.active { background: rgba(0, 209, 255, 0.1); color: var(--primary); border-left: 3px solid var(--primary); }
-        .status-container { margin-top: auto; padding: 15px; background: #000; border: 1px solid #222; border-radius: 12px; font-size: 11px; }
-        .status-dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; background: #ff4444; }
+        :root { --primary: #00d1ff; --bg: #050505; --sidebar: #0d0d0e; --card: #141417; --text: #e0e0e0; }
+        body { background: var(--bg); color: var(--text); font-family: sans-serif; margin: 0; display: flex; height: 100vh; overflow: hidden; }
+        aside { width: 260px; background: var(--sidebar); border-right: 1px solid #222; padding: 20px; display: flex; flex-direction: column; }
+        .nav-item { padding: 12px; cursor: pointer; color: #888; border-radius: 8px; margin-bottom: 5px; }
+        .nav-item.active { background: rgba(0, 209, 255, 0.1); color: var(--primary); }
+        .status-dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; background: #ff4444; margin-right: 5px; }
         .online { background: #00ff88; box-shadow: 0 0 8px #00ff88; }
-        main { flex: 1; padding: 40px; overflow-y: auto; display: flex; flex-direction: column; }
-        header { display: flex; justify-content: flex-end; align-items: center; gap: 15px; margin-bottom: 40px; }
-        .sbt-badge { padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 800; border: 1px solid var(--primary); color: var(--primary); background: rgba(0, 209, 255, 0.05); display: none; }
-        .card { background: var(--card); border: 1px solid #222; padding: 30px; border-radius: 16px; width: 100%; max-width: 900px; align-self: center; }
-        .btn { background: var(--primary); color: #000; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        .gated { display: none !important; }
-        input { width: 100%; padding: 15px; background: #000; border: 1px solid #333; color: white; margin-bottom: 20px; border-radius: 8px; font-size: 16px; }
-        #artLayout { display: flex; gap: 25px; }
-        #artWorkArea { flex: 2; position: relative; }
-        #artLog { flex: 1; background: #000; border: 1px solid #222; border-radius: 12px; padding: 15px; max-height: 550px; overflow-y: auto; }
-        .log-entry { font-size: 11px; padding: 12px; border-bottom: 1px solid #222; cursor: pointer; border-radius: 6px; margin-bottom: 8px; }
-        .log-entry.ready { color: var(--primary); border-left: 3px solid var(--primary); background: rgba(0,209,255,0.05); }
-        #artViewer { margin-top: 20px; border: 1px dashed #333; border-radius: 12px; min-height: 400px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #080808; padding: 20px; }
-        #artViewer img { max-width: 100%; max-height: 350px; border-radius: 8px; box-shadow: var(--glow); margin-bottom: 15px; }
+        main { flex: 1; padding: 40px; overflow-y: auto; }
+        .card { background: var(--card); border: 1px solid #222; padding: 25px; border-radius: 12px; }
+        .btn { background: var(--primary); color: #000; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        #artLog { margin-top: 20px; background: #000; padding: 10px; border-radius: 8px; max-height: 300px; overflow-y: auto; }
+        .log-entry { font-size: 11px; padding: 8px; border-bottom: 1px solid #222; cursor: pointer; }
     </style>
 </head>
 <body>
     <aside>
-        <div class="logo">LCAI <span>Identity</span></div>
-        <div id="nav-art" class="nav-item active gated" onclick="switchTab('art')">AI Art</div>
-        <div id="nav-identity" class="nav-item gated" onclick="switchTab('identity')">Registry</div>
-        <div class="status-container">
-            <div id="gpuStatus"><span class="status-dot" id="dot"></span> Cluster: Offline</div>
+        <div style="font-weight:bold; margin-bottom:20px;">LCAI Identity</div>
+        <div class="nav-item active">AI Art Generator</div>
+        <div style="margin-top:auto; font-size:11px;">
+            <div id="gpuHealth"><span class="status-dot" id="dot"></span> Cluster: Offline</div>
+            <div id="gpuLoad" style="color:#555">Load: Checking...</div>
         </div>
     </aside>
 
     <main>
-        <header>
-            <span id="sbtBadge" class="sbt-badge"></span>
+        <header style="display:flex; justify-content:flex-end; margin-bottom:20px;">
             <button id="connectBtn" class="btn" onclick="connect()">Connect Wallet</button>
         </header>
 
-        <div id="gateView" class="card">
-            <h2>Identity Required</h2>
-            <p id="gateStatus" style="color:#888; margin-bottom:20px;">Connect wallet to verify your ZK-Identity.</p>
-        </div>
-
-        <div id="artView" class="card gated">
-            <h2>AI Art Generator</h2>
-            <div id="artLayout">
-                <div id="artWorkArea">
-                    <input type="text" id="artPrompt" placeholder="Describe your masterpiece...">
-                    <button id="generateArtBtn" class="btn">Generate Art (0.1 LCAI)</button>
-                    <div id="artViewer">
-                        <div id="viewerContent"><span id="viewerStatus" style="color:#555;">Ready.</span></div>
-                        <button id="downloadBtn" class="btn gated" style="margin-top:10px;">Download Art</button>
-                    </div>
-                </div>
-                <div id="artLog"><div id="logItems"></div></div>
-            </div>
-        </div>
-
-        <div id="identityView" class="card gated">
-            <h2>Identity Registry</h2>
-            <div id="registryData"></div>
+        <div class="card" id="artUI" style="display:none">
+            <input type="text" id="artPrompt" placeholder="Panda on Mars..." style="width:80%; padding:10px; background:#000; border:1px solid #333; color:#fff;">
+            <button id="genBtn" class="btn">Generate Art</button>
+            <p id="status" style="color:#888; font-size:12px;">Ready.</p>
+            <div id="artLog"></div>
+            <div id="viewer" style="margin-top:20px; text-align:center;"></div>
         </div>
     </main>
 
     <script>
-        const IDENTITY_ADDR = "0x8300C9072Bc9F926703f8E26Ff0a5D963d88Ae01";
-        const ROUTER_ADDR = "0x0269683E61b210d56b3D692603336fEB27B8a83a";
-        const CHAT_API = "https://chat2.lightchain.ai/api/v1";
-
-        let provider, signer, userTasks = JSON.parse(localStorage.getItem('lcai_art_tasks') || '[]');
+        const ROUTER = "0x0269683E61b210d56b3D692603336fEB27B8a83a";
+        const API = "https://chat2.lightchain.ai/api/v1";
+        let provider, signer, userTasks = JSON.parse(localStorage.getItem('lcai_tasks') || '[]');
 
         async function connect() {
-            if (!window.ethereum) return alert("Install MetaMask");
-            try {
-                provider = new ethers.BrowserProvider(window.ethereum);
-                signer = await provider.getSigner();
-                const addr = await signer.getAddress();
-                document.getElementById('connectBtn').innerText = addr.substring(0,6)+"..."+addr.slice(-4);
-                
-                checkIdentity(addr);
-                updateHealth();
-                
-                // Deep Scan for previous successful TaskIDs
-                await recoverPastTasks(addr);
-                
-                renderLog();
-                userTasks.forEach((t, i) => { if(!t.ready) pollTask(i); });
-            } catch (e) { console.error(e); }
-        }
-
-        async function checkIdentity(addr) {
-            const identity = new ethers.Contract(IDENTITY_ADDR, ["function isVerified(address) view returns (bool)", "function isAdmin(address) view returns (bool)"], provider);
-            const [isVerified, isAdmin] = await Promise.all([identity.isVerified(addr), identity.isAdmin(addr)]);
-            if (isVerified || isAdmin) {
-                document.getElementById('gateView').classList.add('gated');
-                document.getElementById('artView').classList.remove('gated');
-                document.getElementById('nav-art').classList.remove('gated');
-                document.getElementById('nav-identity').classList.remove('gated');
-                document.getElementById('sbtBadge').style.display = 'block';
-                document.getElementById('sbtBadge').innerText = isAdmin ? 'ZK-ADMIN' : 'ZK-VERIFIED';
-            }
-        }
-
-        document.getElementById('generateArtBtn').onclick = async () => {
-            const prompt = document.getElementById('artPrompt').value;
-            const status = document.getElementById('viewerStatus');
-            if(!prompt) return;
-            status.innerText = "Anchoring Task...";
-            try {
-                const router = new ethers.Contract(ROUTER_ADDR, ["function requestInferenceV2(uint256 m, string p) external payable"], signer);
-                const tx = await router.requestInferenceV2(2, prompt, { value: ethers.parseEther("0.1") });
-                
-                const tempIdx = userTasks.push({ prompt, taskId: "Pending...", ready: false, url: null, tx: tx.hash }) - 1;
-                renderLog();
-
-                const receipt = await tx.wait();
-                // Find TaskID in raw logs (Topic 1 of any Router event)
-                const log = receipt.logs.find(l => l.address.toLowerCase() === ROUTER_ADDR.toLowerCase() && l.topics.length > 1);
-                
-                if(log) {
-                    userTasks[tempIdx].taskId = log.topics[1];
-                    localStorage.setItem('lcai_art_tasks', JSON.stringify(userTasks));
-                    renderLog();
-                    pollTask(tempIdx);
-                    status.innerText = "Processing on GPU Cluster...";
-                }
-            } catch (e) { status.innerText = "Error - Check Console"; console.error(e); }
-        };
-
-        async function recoverPastTasks(addr) {
-            const eventHash = ethers.id("InferenceRequested(bytes32,address,uint256)");
-            const filter = { address: ROUTER_ADDR, topics: [eventHash, null, ethers.zeroPadValue(addr, 32)], fromBlock: 1620000 };
-            try {
-                const logs = await provider.getLogs(filter);
-                logs.forEach(log => {
-                    const taskId = log.topics[1];
-                    if (!userTasks.find(t => t.taskId === taskId)) {
-                        userTasks.push({ prompt: "Past Generation", taskId, ready: false, url: null });
-                    }
-                });
-                localStorage.setItem('lcai_art_tasks', JSON.stringify(userTasks));
-            } catch (e) { console.warn("Recovery failed", e); }
-        }
-
-        async function pollTask(i) {
-            const t = userTasks[i];
-            if (!t.taskId || t.taskId === "Pending...") return;
-            try {
-                const res = await fetch(`${CHAT_API}/chat/status?taskId=${t.taskId}`);
-                const data = await res.json();
-                if (data.ready && data.url) {
-                    t.ready = true; t.url = data.url;
-                    localStorage.setItem('lcai_art_tasks', JSON.stringify(userTasks));
-                    renderLog();
-                } else setTimeout(() => pollTask(i), 5000);
-            } catch (e) { setTimeout(() => pollTask(i), 5000); }
-        }
-
-        function renderLog() {
-            const list = document.getElementById('logItems');
-            list.innerHTML = '';
-            userTasks.forEach((t, i) => {
-                const div = document.createElement('div');
-                div.className = `log-entry ${t.ready ? 'ready' : ''}`;
-                div.innerHTML = `<b>#${i+1}</b> ${t.prompt.substring(0,15)}...<br><small>${t.ready ? 'READY' : 'QUEUED'}</small>`;
-                div.onclick = () => viewArt(i);
-                list.prepend(div);
-            });
-        }
-
-        function viewArt(i) {
-            const t = userTasks[i];
-            const content = document.getElementById('viewerContent');
-            const dl = document.getElementById('downloadBtn');
-            const status = document.getElementById('viewerStatus');
-            if(t.ready) {
-                status.style.display = "none";
-                content.innerHTML = `<img src="${t.url}" style="width:100%; border-radius:8px; box-shadow:var(--glow);">`;
-                dl.classList.remove('gated');
-                dl.onclick = () => { const a=document.createElement('a'); a.href=t.url; a.download="LCAI-Art.png"; a.click(); };
-            } else {
-                status.style.display = "block";
-                status.innerText = `ID: ${t.taskId.substring(0,12)}... Processing`;
-                content.innerHTML = "";
-                dl.classList.add('gated');
-            }
+            provider = new ethers.BrowserProvider(window.ethereum);
+            signer = await provider.getSigner();
+            const addr = await signer.getAddress();
+            document.getElementById('connectBtn').innerText = addr.substring(0,6)+"...";
+            document.getElementById('artUI').style.display = 'block';
+            updateHealth();
+            renderLog();
+            userTasks.forEach((t, i) => { if(!t.ready) pollTask(i); });
         }
 
         async function updateHealth() {
             try {
-                const res = await fetch(`${CHAT_API}/chat/health`);
+                const res = await fetch(`${API}/chat/health`);
                 const data = await res.json();
-                if(res.ok) { 
-                    document.getElementById('dot').classList.add('online');
-                    document.getElementById('gpuStatus').innerHTML = `Cluster: Online <br><small style="color:#888">Load: ${data.load || 'Normal'}%</small>`;
-                }
+                document.getElementById('dot').classList.add('online');
+                document.getElementById('gpuHealth').innerText = "Cluster: Online";
+                document.getElementById('gpuLoad').innerText = `Global Load: ${data.load || 'Normal'}%`;
             } catch(e) {}
         }
 
-        function switchTab(tab) {
-            document.querySelectorAll('main > .card').forEach(c => c.classList.add('gated'));
-            document.getElementById(tab + 'View').classList.remove('gated');
+        document.getElementById('genBtn').onclick = async () => {
+            const prompt = document.getElementById('artPrompt').value;
+            const status = document.getElementById('status');
+            status.innerText = "Signing Transaction...";
+            try {
+                const router = new ethers.Contract(ROUTER, ["function requestInferenceV2(uint256 m, string p) external payable"], signer);
+                const tx = await router.requestInferenceV2(2, prompt, { value: ethers.parseEther("0.1") });
+                
+                // PUSH TO LOG IMMEDIATELY
+                const idx = userTasks.push({ prompt, taskId: "Searching...", ready: false, tx: tx.hash }) - 1;
+                renderLog();
+                
+                const receipt = await tx.wait();
+                // SEARCH ALL LOGS FOR ANY 32-BYTE TOPIC
+                const log = receipt.logs.find(l => l.address.toLowerCase() === ROUTER.toLowerCase() && l.topics.length > 1);
+                
+                if(log) {
+                    userTasks[idx].taskId = log.topics[1];
+                    localStorage.setItem('lcai_tasks', JSON.stringify(userTasks));
+                    renderLog();
+                    pollTask(idx);
+                } else {
+                    status.innerText = "Log Error. Try Recovery page.";
+                }
+            } catch (e) { status.innerText = "Failed."; console.error(e); }
+        };
+
+        async function pollTask(i) {
+            const t = userTasks[i];
+            if(t.taskId === "Searching...") return;
+            try {
+                const res = await fetch(`${API}/chat/status?taskId=${t.taskId}`);
+                const data = await res.json();
+                if(data.ready && data.url) {
+                    t.ready = true; t.url = data.url;
+                    localStorage.setItem('lcai_tasks', JSON.stringify(userTasks));
+                    renderLog();
+                } else setTimeout(() => pollTask(i), 5000);
+            } catch(e) { setTimeout(() => pollTask(i), 10000); }
+        }
+
+        function renderLog() {
+            const log = document.getElementById('artLog');
+            log.innerHTML = userTasks.map((t, i) => `
+                <div class="log-entry" onclick="viewArt(${i})">
+                    <b>#${i+1}</b> ${t.prompt.slice(0,10)}... [${t.ready ? 'READY' : 'QUEUED'}]
+                </div>
+            `).join('');
+        }
+
+        function viewArt(i) {
+            const t = userTasks[i];
+            const viewer = document.getElementById('viewer');
+            if(t.ready) {
+                viewer.innerHTML = `<img src="${t.url}" style="width:100%; border-radius:10px;"><br><a href="${t.url}" download class="btn">Download</a>`;
+            } else viewer.innerHTML = `<p>ID: ${t.taskId.slice(0,10)}... is still processing.</p>`;
         }
     </script>
 </body>

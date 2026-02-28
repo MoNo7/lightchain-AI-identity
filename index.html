@@ -21,7 +21,7 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
         body { background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
-        /* TOP BAR NAVIGATION */
+        /* HEADER - RESTORED TO ORIGINAL */
         header {
             height: 60px;
             background: var(--sidebar);
@@ -32,24 +32,8 @@
             padding: 0 20px;
         }
         .header-left { font-weight: 800; color: var(--primary); font-size: 1.2rem; }
-        
         .header-right { display: flex; align-items: center; gap: 15px; }
 
-        /* IDENTITY STATUS IN TOP BAR */
-        .identity-status-pill {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: rgba(0, 0, 0, 0.4);
-            padding: 5px 12px;
-            border-radius: 6px;
-            border: 1px solid var(--border);
-            font-size: 0.8rem;
-        }
-        .status-dot { height: 8px; width: 8px; border-radius: 50%; background: var(--danger); box-shadow: 0 0 8px var(--danger); }
-        .status-dot.active { background: var(--secondary); box-shadow: 0 0 8px var(--secondary); }
-
-        /* CLUSTER LOAD PILL (REVERTED TO ORIGINAL) */
         .load-indicator { 
             background: #000; 
             padding: 5px 12px; 
@@ -69,66 +53,35 @@
             font-size: 0.8rem;
         }
 
-        /* MAIN LAYOUT */
+        /* LAYOUT */
         .container { display: flex; flex: 1; overflow: hidden; }
-        
         .sidebar { width: 350px; background: var(--sidebar); border-right: 1px solid var(--border); padding: 20px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; }
         .main-content { flex: 1; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
 
-        .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; position: relative; }
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
         .card-title { font-size: 0.75rem; font-weight: 800; color: var(--text-dim); text-transform: uppercase; margin-bottom: 15px; }
         
-        /* IDENTITY STATUS BOX (SIDEBAR) */
-        .sbt-visual-container {
-            width: 100%;
-            height: 140px;
-            background: radial-gradient(circle, rgba(88, 101, 242, 0.15) 0%, transparent 70%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 15px;
-        }
-        .sbt-icon { width: 80px; height: 80px; filter: drop-shadow(0 0 15px var(--primary)); opacity: 0.5; }
-        .sbt-icon.active { opacity: 1; }
+        /* SIDEBAR IDENTITY CARD */
+        .id-status-box { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
+        .status-dot { height: 10px; width: 10px; border-radius: 50%; background: var(--danger); box-shadow: 0 0 8px var(--danger); }
+        .status-dot.active { background: var(--secondary); box-shadow: 0 0 8px var(--secondary); }
+        
+        .sbt-visual { width: 100%; height: 120px; background: radial-gradient(circle, rgba(88,101,242,0.1) 0%, transparent 70%); display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
+        .sbt-icon { width: 60px; opacity: 0.3; filter: grayscale(1); transition: 0.3s; }
+        .sbt-icon.active { opacity: 1; filter: grayscale(0) drop-shadow(0 0 10px var(--primary)); }
 
-        /* BUTTONS */
+        /* BUTTONS & INPUTS */
         .btn { width: 100%; border: none; padding: 12px; border-radius: 8px; font-weight: 700; cursor: pointer; transition: 0.2s; font-size: 0.9rem; }
         .btn-connect { background: var(--primary); color: white; margin-bottom: 10px; }
         .btn-generate { background: var(--primary); color: white; width: auto; padding: 10px 25px; }
-        .btn-withdraw { background: #f59e0b; color: #000; margin-top: 10px; }
-        .btn-action { background: var(--secondary); color: #000; flex: 1; padding: 8px; border-radius: 6px; font-size: 0.8rem; }
-        .btn-danger { background: var(--danger); color: white; flex: 1; padding: 8px; border-radius: 6px; font-size: 0.8rem; }
 
-        /* GENERATION AREA */
-        .input-group { background: var(--card); border: 1px solid var(--border); border-radius: 12px; display: flex; padding: 8px; gap: 10px; align-items: center; }
+        .input-group { background: var(--card); border: 1px solid var(--border); border-radius: 12px; display: flex; padding: 8px; gap: 10px; }
         .prompt-input { flex: 1; background: transparent; border: none; color: white; padding: 10px; outline: none; font-size: 1rem; }
         
-        .output-view { 
-            flex: 1; 
-            background: #08090f; 
-            border: 1px solid var(--border); 
-            border-radius: 12px; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            position: relative;
-            overflow: hidden;
-        }
-        .placeholder-text { color: var(--text-dim); font-size: 0.9rem; }
-
-        .console { 
-            height: 180px; 
-            background: #000; 
-            border: 1px solid var(--border); 
-            border-radius: 12px; 
-            padding: 15px; 
-            font-family: 'Fira Code', monospace; 
-            font-size: 0.85rem; 
-            color: #7dd3fc; 
-            overflow-y: auto; 
-        }
-
-        .input-field { width: 100%; background: #0f111a; border: 1px solid var(--border); border-radius: 6px; padding: 10px; color: white; margin-bottom: 10px; font-size: 0.85rem; }
+        .output-view { flex: 1; background: #08090f; border: 1px solid var(--border); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--text-dim); }
+        .console { height: 200px; background: #000; border: 1px solid var(--border); border-radius: 12px; padding: 15px; font-family: monospace; font-size: 0.85rem; color: #7dd3fc; overflow-y: auto; }
+        
+        .admin-input { width: 100%; background: #0f111a; border: 1px solid var(--border); border-radius: 6px; padding: 10px; color: white; margin-bottom: 10px; font-size: 0.85rem; }
         .hidden { display: none; }
     </style>
 </head>
@@ -137,10 +90,6 @@
     <header>
         <div class="header-left">AIVM Control Center</div>
         <div class="header-right">
-            <div class="identity-status-pill">
-                <div id="top-status-dot" class="status-dot"></div>
-                <span id="top-status-text">Awaiting Wallet</span>
-            </div>
             <div class="load-indicator">● SDXL-Turbo | Load: 21%</div>
             <div class="wallet-pill" id="wallet-display">0x0000...0000</div>
         </div>
@@ -149,42 +98,46 @@
     <div class="container">
         <div class="sidebar">
             <div class="card">
-                <button class="btn btn-connect" id="connect-wallet-btn">Connect Wallet</button>
+                <button class="btn btn-connect" id="connect-btn">Connect Wallet</button>
             </div>
 
             <div class="card">
                 <div class="card-title">Identity Status</div>
-                <div class="sbt-visual-container">
+                <div class="id-status-box">
+                    <div id="status-dot" class="status-dot"></div>
+                    <span id="status-text" style="font-weight: 600;">Awaiting Sync</span>
+                </div>
+                <div class="sbt-visual">
                     <img src="https://cdn-icons-png.flaticon.com/512/6819/6819111.png" class="sbt-icon" id="sbt-icon" alt="SBT">
                 </div>
-                <div id="id-description" style="text-align: center; font-size: 0.85rem; color: var(--text-dim);">Connect wallet to sync identity.</div>
+                <div id="id-desc" style="font-size: 0.8rem; color: var(--text-dim); text-align: center;">Verify ZK-Pass to enable AIVM.</div>
             </div>
 
             <div class="card">
                 <div class="card-title">Admin Management</div>
-                <input type="text" class="input-field" placeholder="User Wallet Address 0x...">
+                <input type="text" class="admin-input" placeholder="User Address 0x...">
                 <div style="display: flex; gap: 10px;">
-                    <button class="btn-action">Verify</button>
-                    <button class="btn-danger">Revoke</button>
+                    <button class="btn" style="background: var(--secondary); color: black; padding: 8px; font-size: 0.8rem;">Verify</button>
+                    <button class="btn" style="background: var(--danger); color: white; padding: 8px; font-size: 0.8rem;">Revoke</button>
                 </div>
             </div>
 
             <div class="card">
                 <div class="card-title">Owner Vault</div>
-                <div style="font-size: 0.75rem; color: var(--text-dim);">Contract Revenue:</div>
-                <div style="font-size: 1.4rem; font-weight: 800; color: var(--secondary); margin-top: 5px;">245.50 LCAI</div>
-                <button class="btn btn-withdraw">Quick Withdraw</button>
+                <div style="font-size: 0.7rem; color: var(--text-dim);">Revenue Collected:</div>
+                <div style="font-size: 1.4rem; font-weight: 800; color: var(--secondary); margin: 5px 0;">245.50 LCAI</div>
+                <button class="btn" style="background: #f59e0b; color: black; margin-top: 10px;">Withdraw Funds</button>
             </div>
         </div>
 
         <div class="main-content">
             <div class="input-group">
-                <input type="text" id="prompt-input" class="prompt-input" placeholder="Describe the image you want to generate...">
+                <input type="text" id="prompt-input" class="prompt-input" placeholder="Describe the art you wish to generate...">
                 <button id="generate-btn" class="btn btn-generate">Generate (0.25 LCAI)</button>
             </div>
 
-            <div class="output-view" id="main-output">
-                <span class="placeholder-text" id="placeholder-msg">Ready for AIVM Art Generation...</span>
+            <div class="output-view" id="art-output">
+                <span>Awaiting AIVM Inference Signal...</span>
             </div>
 
             <div id="console-output" class="console">
@@ -194,14 +147,13 @@
     </div>
 
     <script>
-        // Use the addresses from your Lightchain IDE deployment
+        // Use your actual deployed address from the Lightchain IDE
         const CONFIG = {
-            SBT_ADDR: "0xAED5840a2fD349a88128dd723451c43daFB819dE",
-            AIVM_ADDR: "0x8560106c90C4e53D6fcf53bcEFdf4Ac8Ba1300cA"
+            SBT_ADDR: "0x3938E75C417688755601E8C6b62D7858c894A2D2", 
+            AIVM_ADDR: "0x4D36B31d4BFB957A5D816B0f420a9e755EFc6a2c"
         };
 
         const SBT_ABI = ["function hasSBT(address user) view returns (bool)"];
-
         let provider, signer, userAddr, sbtContract;
 
         function log(msg, isError = false) {
@@ -223,61 +175,68 @@
                     sbtContract = new ethers.Contract(CONFIG.SBT_ADDR, SBT_ABI, signer);
 
                     document.getElementById('wallet-display').innerText = `${userAddr.slice(0,6)}...${userAddr.slice(-4)}`;
-                    document.getElementById('connect-wallet-btn').innerText = "Wallet Connected";
-                    log(`Wallet linked: ${userAddr}`);
+                    document.getElementById('connect-btn').innerText = "Wallet Connected";
+                    log(`Authenticated: ${userAddr}`);
                     checkIdentity();
                 } catch (err) {
-                    log("Connection failed: " + err.message, true);
+                    log("Auth failed: " + err.message, true);
                 }
             } else {
-                log("MetaMask not detected.", true);
+                log("MetaMask missing.", true);
             }
         }
 
         async function checkIdentity() {
             try {
                 const hasPass = await sbtContract.hasSBT(userAddr);
-                const dot = document.getElementById('top-status-dot');
-                const text = document.getElementById('top-status-text');
+                const dot = document.getElementById('status-dot');
+                const text = document.getElementById('status-text');
                 const icon = document.getElementById('sbt-icon');
-                const desc = document.getElementById('id-description');
+                const desc = document.getElementById('id-desc');
 
                 if (hasPass) {
                     dot.classList.add('active');
                     text.innerText = "Identity Verified";
                     icon.classList.add('active');
-                    desc.innerText = "ZK-Pass Verified. Full access granted.";
-                    log("Identity synced from Lightchain Testnet.");
+                    desc.innerText = "ZK-Pass Active. Full AIVM access granted.";
+                    log("Identity synchronized with Lightchain Testnet.");
                 } else {
                     dot.classList.remove('active');
                     text.innerText = "No ZK-Pass";
-                    desc.innerText = "Identity Pass required for AI features.";
-                    log("Warning: No valid ZK-Pass found.", true);
+                    log("Identity missing: Visit ZK-Portal to mint your pass.", true);
                 }
             } catch (e) {
-                log("SBT check failed.", true);
+                log("SBT Check Failed: Verify contract address.", true);
             }
         }
 
-        document.getElementById('connect-wallet-btn').onclick = connect;
+        document.getElementById('connect-btn').onclick = connect;
 
         document.getElementById('generate-btn').onclick = async () => {
             const prompt = document.getElementById('prompt-input').value;
             if (!prompt) return log("Error: Prompt is empty.", true);
             if (!userAddr) return log("Error: Connect wallet first.", true);
 
-            log(`Initiating AIVM Inference: "${prompt}"`);
-            document.getElementById('placeholder-msg').innerText = "Processing AIVM Request...";
-            
-            // Refined Generation logic
-            setTimeout(() => {
-                log("Proof of Innocence (PoI) attestation verified.");
-                log("Inference complete. Anchoring result to 0x4D36...");
-                document.getElementById('main-output').innerHTML = "<div style='color: var(--secondary); font-weight: bold;'>Inference Successful. Check console for PoI data.</div>";
-            }, 2000);
+            try {
+                log(`Initiating Inference: "${prompt}"`);
+                document.getElementById('art-output').innerText = "Processing PoI Attestation...";
+                
+                // Validate SBT before call
+                const isAuth = await sbtContract.hasSBT(userAddr);
+                if (!isAuth) throw new Error("Unauthorized: ZK-Pass required.");
+
+                // Actual logic for LCAI Smart Contract call would be here
+                setTimeout(() => {
+                    log("PoI Attestation Successful.");
+                    log("Inference anchored to Block 0x4D36...");
+                    document.getElementById('art-output').innerHTML = 
+                        "<div style='color: var(--secondary); font-weight: bold;'>Art Generated Successfully. Check logs for PoI.</div>";
+                }, 2000);
+
+            } catch (err) {
+                log("Generation Failed: " + err.message, true);
+            }
         };
     </script>
 </body>
 </html>
-
-

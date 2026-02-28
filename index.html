@@ -14,8 +14,7 @@
         .main-area { flex: 1; padding: 30px; display: flex; flex-direction: column; align-items: center; background: #f8f9fa; overflow-y: auto; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid #e1e4e8; width: 100%; box-sizing: border-box; }
         .primary-btn { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: 600; margin-top: 10px; }
-        .admin-btn { background: var(--admin); color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; width: 100%; font-size: 0.85rem; margin-top: 5px; transition: 0.2s; }
-        .admin-btn:hover { filter: brightness(1.1); }
+        .admin-btn { background: var(--admin); color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; width: 100%; font-size: 0.85rem; margin-top: 5px; }
         .result-window { margin-top: 20px; padding: 15px; background: #1a1a1a; color: #0f0; border-radius: 8px; min-height: 250px; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column; border: 2px solid #333; }
         input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 8px; box-sizing: border-box; }
         .status-pill { font-size: 0.7rem; font-weight: bold; padding: 4px 8px; border-radius: 10px; display: inline-block; margin-top: 5px; }
@@ -42,12 +41,9 @@
 
             <div id="adminMenu" class="card" style="display:none; border-top: 4px solid var(--admin);">
                 <h4 style="margin: 0 0 10px 0; color: var(--admin);">Admin & Recovery</h4>
-                <p style="font-size: 0.75rem; color: #666;">zkPass Proof generation for identity recovery.</p>
                 <button id="zkRecoverBtn" class="admin-btn">Verify zkPass Identity</button>
                 <div id="zkStatus" style="font-size: 0.7rem; margin-top: 5px; font-family: monospace;"></div>
-
                 <hr style="border:0; border-top: 1px solid #eee; margin: 15px 0;">
-                
                 <h4 style="margin: 0 0 10px 0; color: var(--admin);">Art History Recovery</h4>
                 <input type="text" id="recoverAddr" placeholder="Lookup Address (0x...)">
                 <button id="recoverArtBtn" class="admin-btn" style="background: var(--success);">Recover On-Chain Art</button>
@@ -63,9 +59,8 @@
             <div id="artUI" style="display:none; width: 100%; max-width: 600px;">
                 <div class="card" style="border-top: 4px solid var(--success);">
                     <h2 style="margin-top: 0;">AI Image Generator</h2>
-                    <input type="text" id="promptInput" placeholder="Describe your image (e.g. Cyberpunk Forest)...">
-                    <button id="generateBtn" class="primary-btn" style="background: var(--success);">Generate (0.25 LCAI)</button>
-                    
+                    <input type="text" id="promptInput" placeholder="Describe your image...">
+                    <button id="generateBtn" class="primary-btn" style="background: var(--success);">Generate Art (0.25 LCAI)</button>
                     <div id="displayArea" class="result-window">
                         <span style="color: #666;">AI Art will be rendered here.</span>
                     </div>
@@ -76,7 +71,7 @@
 
     <script>
         const ID_ADDR = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34";
-        const ART_ADDR = "0xd17F12ef2C5d95e135094100a14D3d7569505d89"; // Matches your IDE AIArtStudio deployment
+        let ART_ADDR = "0x203E34e4C93827162EF75b0e6F687010E072b6db"; 
         
         const ABI = [
             "function generateArt(string _prompt) payable",
@@ -97,13 +92,10 @@
         }
 
         async function connectWallet() {
-            if (!window.ethereum) return alert("Please install MetaMask!");
-            
+            if (!window.ethereum) return alert("Install MetaMask");
             try {
                 provider = new ethers.BrowserProvider(window.ethereum);
-                // EXPLICIT ACCOUNT REQUEST
                 await provider.send("eth_requestAccounts", []);
-                
                 signer = await provider.getSigner();
                 const addr = await signer.getAddress();
                 
@@ -132,40 +124,33 @@
                 log("Wallet Connected: " + addr.substring(0,10));
                 if (zkVer) log("zkPass is active");
 
-                // Initialize Callback Listener
                 contract.on("ArtCompleted", (user, imageUrl) => {
                     if (user.toLowerCase() === addr.toLowerCase()) {
                         document.getElementById('displayArea').innerHTML = `<img src="${imageUrl}" style="max-width:100%; border-radius:8px;">`;
-                        log("AI Art Generated Successfully!");
+                        log("AI Art Received!");
                     }
                 });
-
-            } catch (err) {
-                console.error(err);
-                alert("Connection failed. Check console for details.");
-            }
+            } catch (err) { alert("Connection error"); }
         }
 
-        // --- ON-CHAIN ART RECOVERY ---
-        document.getElementById('recoverArtBtn').onclick = async () => {
-            const addr = document.getElementById('recoverAddr').value;
-            if (!ethers.isAddress(addr)) return alert("Enter a valid 0x address");
-            
+        document.getElementById('generateBtn').onclick = async () => {
+            const p = document.getElementById('promptInput').value;
             const display = document.getElementById('displayArea');
-            display.innerHTML = '<span class="pulsing">Querying Blockchain for history...</span>';
-            
+            if (!p) return alert("Enter prompt");
+
             try {
-                const url = await contract.latestArt(addr);
-                if (!url || url === "") {
-                    display.innerHTML = "<span>No previous art found for this address.</span>";
-                } else {
-                    display.innerHTML = `<img src="${url}" style="max-width:100%; border-radius:8px; border:2px solid #333;">`;
-                    log("Art recovered from chain for " + addr.substring(0,6));
-                }
-            } catch (e) { display.innerHTML = "<span>Error querying chain.</span>"; }
+                display.innerHTML = '<span class="pulsing">Anchoring to AI Cluster (0.25 LCAI)...</span>';
+                // FORCE THE VALUE TRANSFER
+                const tx = await contract.generateArt(p, { value: ethers.parseEther("0.25") });
+                log("Inference Request Sent");
+                await tx.wait();
+                display.innerHTML = '<span class="pulsing">Request Accepted. Awaiting AIVM Callback...</span>';
+            } catch (e) {
+                display.innerHTML = `<span>Error: ${e.reason || "Transaction failed. Check zkPass."}</span>`;
+            }
         };
 
-        // --- ZKPASS IDENTITY VERIFICATION ---
+        // ... Keep other handlers (zkRecoverBtn, recoverArtBtn) the same ...
         document.getElementById('zkRecoverBtn').onclick = async () => {
             const status = document.getElementById('zkStatus');
             status.innerHTML = "<span class='pulsing'>Generating zkProof...</span>";
@@ -179,21 +164,16 @@
             } catch (e) { status.innerHTML = "<span style='color:red;'>Verification Failed</span>"; }
         };
 
-        // --- GENERATE AI ART ---
-        document.getElementById('generateBtn').onclick = async () => {
-            const p = document.getElementById('promptInput').value;
+        document.getElementById('recoverArtBtn').onclick = async () => {
+            const addr = document.getElementById('recoverAddr').value;
+            if (!ethers.isAddress(addr)) return alert("Enter valid address");
             const display = document.getElementById('displayArea');
-            if (!p) return alert("Please enter a prompt!");
-
+            display.innerHTML = '<span class="pulsing">Querying Blockchain...</span>';
             try {
-                display.innerHTML = '<span class="pulsing">Anchoring to AI Cluster (0.25 LCAI)...</span>';
-                const tx = await contract.generateArt(p, { value: ethers.parseEther("0.25") });
-                log("Inference Request Sent");
-                await tx.wait();
-                display.innerHTML = '<span class="pulsing">Request Accepted. Awaiting AIVM Callback...</span>';
-            } catch (e) { 
-                display.innerHTML = `<span>Error: ${e.reason || "Ensure zkPass is verified first."}</span>`; 
-            }
+                const url = await contract.latestArt(addr);
+                if (!url || url === "") { display.innerHTML = "<span>No previous art found.</span>"; } 
+                else { display.innerHTML = `<img src="${url}" style="max-width:100%; border-radius:8px;">`; }
+            } catch (e) { display.innerHTML = "<span>Recovery failed.</span>"; }
         };
 
         document.getElementById('connectBtn').onclick = connectWallet;

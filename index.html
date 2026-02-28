@@ -26,7 +26,7 @@
         .balance-txt { color: var(--secondary); font-weight: bold; border-right: 1px solid var(--border); padding-right: 10px; }
         .container { display: flex; flex: 1; overflow: hidden; }
         .sidebar { width: 350px; background: var(--sidebar); border-right: 1px solid var(--border); padding: 20px; display: flex; flex-direction: column; gap: 15px; }
-        .main-content { flex: 1; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+        .main-content { flex: 1; padding: 20px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; }
         .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
         .card-title { font-size: 0.7rem; font-weight: 800; color: var(--text-dim); text-transform: uppercase; margin-bottom: 12px; }
         .console { height: 250px; background: #000; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: monospace; font-size: 0.75rem; color: #7dd3fc; overflow-y: auto; }
@@ -40,7 +40,17 @@
         .input-group { background: var(--card); border: 1px solid var(--border); border-radius: 12px; display: flex; padding: 8px; gap: 10px; }
         .prompt-input { flex: 1; background: transparent; border: none; color: white; padding: 10px; outline: none; font-size: 1rem; }
         .btn-gen { background: var(--primary); color: white; border: none; padding: 10px 25px; border-radius: 8px; font-weight: 700; cursor: pointer; }
-        .output-view { flex: 1; background: #08090f; border: 1px solid var(--border); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--text-dim); }
+        .output-view { min-height: 400px; background: #08090f; border: 1px solid var(--border); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--text-dim); overflow: hidden; position: relative; }
+        
+        /* NEW GALLERY STYLES */
+        .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; margin-top: 10px; }
+        .gallery-item { background: var(--card); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; transition: 0.2s; position: relative; }
+        .gallery-item:hover { border-color: var(--primary); }
+        .gallery-img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; cursor: pointer; }
+        .gallery-controls { padding: 8px; display: flex; gap: 5px; background: rgba(0,0,0,0.5); }
+        .btn-gallery { flex: 1; border: none; padding: 4px; border-radius: 4px; font-size: 0.6rem; font-weight: 700; cursor: pointer; }
+        .btn-view { background: var(--primary); color: white; }
+        .btn-dl { background: var(--secondary); color: black; }
     </style>
 </head>
 <body>
@@ -86,135 +96,75 @@
                 <button id="generate-btn" class="btn-gen">Generate (0.25 LCAI)</button>
             </div>
             <div class="output-view" id="art-output">Awaiting AIVM Inference Signal...</div>
+            
+            <div class="card">
+                <div class="card-title">Previous Art History</div>
+                <div id="art-gallery" class="gallery-grid">
+                    </div>
+            </div>
         </div>
     </div>
-
     <script>
-        const CONFIG = {
-            SBT_ADDR: "0xd71462F0002Ee9373fCe05B568583Ed13e75f600", 
-            AIVM_ADDR: "0x5B2d46cb1e3451aA3d584f28E714892373D7c7C6" 
-        };
-
-        const ABI = [
-            "function hasSBT(address user) view returns (bool)",
-            "function isAdmin(address user) view returns (bool)",
-            "function owner() view returns (address)",
-            "function setVerification(address user, bool status) external",
-            "function generateArt(string calldata prompt) external payable",
-            "function withdraw() external",
-            "event ArtGenerated(address indexed user, string prompt, uint256 fee)"
-        ];
-
+        const CONFIG = {SBT_ADDR: "0xd71462F0002Ee9373fCe05B568583Ed13e75f600", AIVM_ADDR: "0x5B2d46cb1e3451aA3d584f28E714892373D7c7C6" };
+        const ABI = ["function hasSBT(address user) view returns (bool)", "function isAdmin(address user) view returns (bool)", "function owner() view returns (address)", "function setVerification(address user, bool status) external", "function generateArt(string calldata prompt) external payable", "function withdraw() external", "event ArtGenerated(address indexed user, string prompt, uint256 fee)" ];
         let provider, signer, userAddr, sbtContract, studioContract;
-
-        // SBT SVG Logic restored
         const sbtSvg = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="45" fill="none" stroke="#5865f2" stroke-width="5"/><path d="M30 50L45 65L70 35" stroke="#00ff80" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
-        function log(msg, isError = false) {
-            const out = document.getElementById('console-output');
-            const div = document.createElement('div');
-            div.style.color = isError ? "#ff4444" : "#7dd3fc";
-            div.innerText = `> ${msg}`;
-            out.appendChild(div);
-            out.scrollTop = out.scrollHeight;
+        function log(msg, isError = false) {const out = document.getElementById('console-output'); const div = document.createElement('div'); div.style.color = isError ? "#ff4444" : "#7dd3fc"; div.innerText = `> ${msg}`; out.appendChild(div); out.scrollTop = out.scrollHeight; }
+        
+        async function updateVault() {if (!provider) return; const bal = await provider.getBalance(CONFIG.AIVM_ADDR); document.getElementById('revenue-display').innerText = `${parseFloat(ethers.formatEther(bal)).toFixed(2)} LCAI`; }
+        
+        async function connect() {if (!window.ethereum) return log("MetaMask not found", true); try {provider = new ethers.BrowserProvider(window.ethereum); const accounts = await provider.send("eth_requestAccounts", []); userAddr = accounts[0]; signer = await provider.getSigner(); sbtContract = new ethers.Contract(CONFIG.SBT_ADDR, ABI, signer); studioContract = new ethers.Contract(CONFIG.AIVM_ADDR, ABI, signer); document.getElementById('address-display').innerText = `${userAddr.slice(0,6)}...${userAddr.slice(-4)}`; const bal = await provider.getBalance(userAddr); document.getElementById('balance-display').innerText = `${parseFloat(ethers.formatEther(bal)).toFixed(2)} LCAI`; document.getElementById('connect-btn').innerText = "Sync Active"; 
+
+        studioContract.on("ArtGenerated", (user, prompt) => {
+            log(`Live Event: New AIVM Generation Detected!`);
+            updateVault();
+            renderArt(prompt); 
+        });
+
+        log(`Authenticated: ${userAddr}`); checkIdentity(); updateVault(); } catch (err) { log("Connection failed.", true); } }
+        
+        async function checkIdentity() {try {const hasPass = await sbtContract.hasSBT(userAddr); const isAdmin = await sbtContract.isAdmin(userAddr); const owner = await studioContract.owner(); const container = document.getElementById('sbt-svg-container'); const desc = document.getElementById('nav-id-desc'); if (hasPass || isAdmin || userAddr.toLowerCase() === owner.toLowerCase()) {container.innerHTML = sbtSvg; container.classList.add('active'); desc.innerText = (userAddr.toLowerCase() === owner.toLowerCase()) ? "Contract Owner Verified" : "Master Admin Verified"; log("Access roles synchronized."); } else {desc.innerText = "No Pass Detected"; } } catch (e) { log("Identity Check Failed.", true); } }
+        
+        function renderArt(prompt) {
+            const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true`;
+            
+            // Render to Main View
+            document.getElementById('art-output').innerHTML = `<img src="${url}" style="width:100%; height:100%; object-fit:contain;" id="main-art-img">`;
+            
+            // Add to Gallery
+            const gallery = document.getElementById('art-gallery');
+            const item = document.createElement('div');
+            item.className = 'gallery-item';
+            item.innerHTML = `
+                <img src="${url}" class="gallery-img" onclick="swapToMain('${url}')">
+                <div class="gallery-controls">
+                    <button class="btn-gallery btn-view" onclick="swapToMain('${url}')">View</button>
+                    <button class="btn-gallery btn-dl" onclick="downloadImg('${url}')">DL</button>
+                </div>
+            `;
+            gallery.prepend(item);
         }
 
-        async function updateVault() {
-            if (!provider) return;
-            const bal = await provider.getBalance(CONFIG.AIVM_ADDR);
-            document.getElementById('revenue-display').innerText = `${parseFloat(ethers.formatEther(bal)).toFixed(2)} LCAI`;
-        }
-
-        async function connect() {
-            if (!window.ethereum) return log("MetaMask not found", true);
-            try {
-                provider = new ethers.BrowserProvider(window.ethereum);
-                const accounts = await provider.send("eth_requestAccounts", []);
-                userAddr = accounts[0];
-                signer = await provider.getSigner();
-                
-                sbtContract = new ethers.Contract(CONFIG.SBT_ADDR, ABI, signer);
-                studioContract = new ethers.Contract(CONFIG.AIVM_ADDR, ABI, signer);
-
-                document.getElementById('address-display').innerText = `${userAddr.slice(0,6)}...${userAddr.slice(-4)}`;
-                const bal = await provider.getBalance(userAddr);
-                document.getElementById('balance-display').innerText = `${parseFloat(ethers.formatEther(bal)).toFixed(2)} LCAI`;
-                document.getElementById('connect-btn').innerText = "Sync Active";
-                
-                // Live listener for the vault
-                studioContract.on("ArtGenerated", () => {
-                    log("Live Vault Update: New Revenue Detected!");
-                    updateVault();
-                });
-
-                log(`Authenticated: ${userAddr}`);
-                checkIdentity();
-                updateVault();
-            } catch (err) { log("Connection failed.", true); }
-        }
-
-        async function checkIdentity() {
-            try {
-                const hasPass = await sbtContract.hasSBT(userAddr);
-                const isAdmin = await sbtContract.isAdmin(userAddr);
-                const owner = await studioContract.owner();
-                const container = document.getElementById('sbt-svg-container');
-                const desc = document.getElementById('nav-id-desc');
-
-                if (hasPass || isAdmin || userAddr.toLowerCase() === owner.toLowerCase()) {
-                    container.innerHTML = sbtSvg;
-                    container.classList.add('active');
-                    desc.innerText = (userAddr.toLowerCase() === owner.toLowerCase()) ? "Contract Owner Verified" : "Master Admin Verified";
-                    log("Access roles synchronized.");
-                } else {
-                    desc.innerText = "No Pass Detected";
-                }
-            } catch (e) { log("Identity Check Failed.", true); }
-        }
-
-        document.getElementById('admin-query').onclick = async () => {
-            const addr = document.getElementById('admin-user-addr').value;
-            if(!ethers.isAddress(addr)) return log("Invalid Address", true);
-            try {
-                const isSBT = await sbtContract.hasSBT(addr);
-                const isAdm = await sbtContract.isAdmin(addr);
-                log(`Result: SBT=${isSBT} | Admin=${isAdm}`);
-            } catch (e) { log("Query Error.", true); }
+        window.swapToMain = (url) => {
+            document.getElementById('art-output').innerHTML = `<img src="${url}" style="width:100%; height:100%; object-fit:contain;" id="main-art-img">`;
         };
 
-        document.getElementById('admin-verify').onclick = async () => {
-            const addr = document.getElementById('admin-user-addr').value;
-            try {
-                const tx = await studioContract.setVerification(addr, true);
-                await tx.wait();
-                log("User verified.");
-            } catch (e) { log("Verify Denied.", true); }
+        window.downloadImg = async (url) => {
+            const response = await fetch(url);
+            const blob = await response.blob();
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `AIVM_${Date.now()}.jpg`;
+            link.click();
         };
 
-        document.getElementById('generate-btn').onclick = async () => {
-            const prompt = document.getElementById('prompt-input').value;
-            try {
-                log("Starting AIVM Inference...");
-                const tx = await studioContract.generateArt(prompt, { value: ethers.parseEther("0.25") });
-                await tx.wait();
-                log("Generation Success!");
-                document.getElementById('art-output').innerHTML = "<b style='color:var(--secondary)'>Inference Anchored</b>";
-            } catch (e) { log("Generation failed.", true); }
-        };
-
-        document.getElementById('withdraw-btn').onclick = async () => {
-            try {
-                log("Requesting owner.call withdrawal...");
-                const tx = await studioContract.withdraw();
-                await tx.wait();
-                log("Withdrawal complete.");
-                updateVault();
-            } catch (e) { log("Withdrawal failed.", true); }
-        };
-
+        document.getElementById('admin-query').onclick = async () => {const addr = document.getElementById('admin-user-addr').value; if(!ethers.isAddress(addr)) return log("Invalid Address", true); try {const isSBT = await sbtContract.hasSBT(addr); const isAdm = await sbtContract.isAdmin(addr); log(`Result: SBT=${isSBT} | Admin=${isAdm}`); } catch (e) { log("Query Error.", true); } };
+        document.getElementById('admin-verify').onclick = async () => {const addr = document.getElementById('admin-user-addr').value; try {const tx = await studioContract.setVerification(addr, true); await tx.wait(); log("User verified."); } catch (e) { log("Verify Denied.", true); } };
+        document.getElementById('generate-btn').onclick = async () => {const prompt = document.getElementById('prompt-input').value; if(!prompt) return log("Prompt required", true); try {log("Starting AIVM Inference..."); document.getElementById('art-output').innerHTML = "<b>Inference Processing...</b>"; const tx = await studioContract.generateArt(prompt, { value: ethers.parseEther("0.25") }); await tx.wait(); log("Generation Success!"); } catch (e) { log("Generation failed.", true); } };
+        document.getElementById('withdraw-btn').onclick = async () => {try {log("Requesting owner.call withdrawal..."); const tx = await studioContract.withdraw(); await tx.wait(); log("Withdrawal complete."); updateVault(); } catch (e) { log("Withdrawal failed.", true); } };
         document.getElementById('connect-btn').onclick = connect;
         log("System Online. Awaiting Handshake...");
     </script>
 </body>
 </html>
-

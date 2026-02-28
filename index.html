@@ -5,120 +5,172 @@
     <title>Lightchain AI | Admin Portal</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <style>
-        :root { --primary: #007bff; --admin: #8b5cf6; --bg: #0f172a; --card: #1e293b; --text: #f1f5f9; --success: #22c55e; --danger: #ef4444; }
+        :root { --primary: #007bff; --admin: #8b5cf6; --bg: #0f172a; --card: #1e293b; --text: #f1f5f9; --success: #22c55e; --danger: #ef4444; --warning: #f59e0b; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-        #topNav { height: 70px; background: #1e293b; border-bottom: 1px solid #334155; display: flex; align-items: center; justify-content: space-between; padding: 0 30px; }
+        #topNav { height: 70px; background: #1e293b; border-bottom: 1px solid #334155; display: flex; align-items: center; justify-content: space-between; padding: 0 30px; flex-shrink: 0; }
         .content { display: flex; flex: 1; padding: 20px; gap: 20px; overflow: hidden; }
-        .sidebar { width: 350px; display: flex; flex-direction: column; gap: 20px; }
-        .card { background: var(--card); border-radius: 16px; padding: 20px; border: 1px solid #334155; }
-        .primary-btn { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: 600; margin-top: 10px; }
-        .admin-section { border-top: 2px solid var(--admin); padding-top: 15px; margin-top: 15px; display: none; }
-        .display-area { flex: 1; background: #020617; border-radius: 16px; border: 1px solid #334155; display: flex; align-items: center; justify-content: center; }
-        input { width: 100%; background: #0f172a; border: 1px solid #334155; color: white; padding: 10px; border-radius: 8px; margin-bottom: 10px; box-sizing: border-box; }
-        .rev-text { color: var(--success); font-weight: 800; font-size: 1.2rem; }
+        .sidebar { width: 360px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; }
+        .card { background: var(--card); border-radius: 12px; padding: 18px; border: 1px solid #334155; }
+        .primary-btn { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: 600; margin-top: 8px; }
+        .display-area { flex: 1; background: #020617; border-radius: 16px; border: 1px solid #334155; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        input { width: 100%; background: #0f172a; border: 1px solid #334155; color: white; padding: 10px; border-radius: 8px; margin-bottom: 8px; box-sizing: border-box; }
+        .rev-text { color: var(--success); font-weight: 800; font-size: 1.4rem; margin: 5px 0; }
+        #logFeed { font-size: 0.75rem; color: #94a3b8; font-family: 'Courier New', monospace; background: #020617; padding: 10px; border-radius: 8px; height: 120px; overflow-y: auto; border: 1px solid #334155; }
+        .pulsing { animation: pulse 1.5s infinite; color: var(--warning); }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
     </style>
 </head>
 <body>
     <div id="topNav">
-        <h2 style="margin:0; color:var(--primary);">AIVM Admin Studio</h2>
-        <div id="statusText" style="font-size:0.8rem; color:#64748b;">Disconnected</div>
+        <h2 style="margin:0; color:var(--primary);">AIVM Admin Studio <span style="font-size:0.7rem; color:#64748b;">v3.0</span></h2>
+        <div id="statusText" style="font-weight:bold; color:var(--danger);">Disconnected</div>
     </div>
 
     <div class="content">
         <div class="sidebar">
             <div class="card">
-                <div id="walletInfo" style="display:none;">
-                    <div id="userAddr" style="font-size:0.8rem; opacity:0.7;">0x...</div>
-                    <div style="font-weight:bold; color:var(--success);"><span id="userBal">0.00</span> LCAI</div>
+                <div id="walletBox" style="display:none; margin-bottom: 10px;">
+                    <div id="addrDisplay" style="font-size:0.7rem; opacity:0.6;">0x...</div>
+                    <div style="font-weight:bold; color:var(--success); font-size:1.1rem;"><span id="balDisplay">0.00</span> LCAI</div>
                 </div>
                 <button id="connectBtn" class="primary-btn">Connect Wallet</button>
-
-                <div id="adminPanel" class="admin-section">
-                    <h4 style="color:var(--admin); margin:0 0 10px 0;">Owner Dashboard</h4>
-                    <div style="font-size:0.7rem; opacity:0.8;">Total Revenue:</div>
-                    <div class="rev-text"><span id="revDisplay">0.00</span> LCAI</div>
-                    
-                    <input type="text" id="targetUser" placeholder="User Address" style="margin-top:10px;">
-                    <div style="display:flex; gap:5px;">
-                        <button onclick="updateVerify(true)" class="primary-btn" style="background:var(--success); flex:1;">Verify</button>
-                        <button onclick="updateVerify(false)" class="primary-btn" style="background:var(--danger); flex:1;">Revoke</button>
-                    </div>
-                    <button onclick="withdraw()" class="primary-btn" style="background:var(--admin);">Withdraw Funds</button>
-                </div>
+                <div id="logFeed">> Initializing cluster logs...</div>
             </div>
-            
-            <div class="card" style="flex:1; font-size:0.7rem; font-family:monospace; color:#94a3b8;" id="logFeed">
-                > System ready...
+
+            <div id="zkCard" class="card" style="display:none; border-left: 4px solid var(--primary);">
+                <h4 style="margin:0 0 5px 0;">ZK Identity</h4>
+                <div id="zkStatus" style="font-size:0.8rem; color:var(--warning); margin-bottom:10px;">Status: Unverified</div>
+                <button id="zkVerifyBtn" class="primary-btn" style="background:#1e40af; font-size:0.8rem;">Verify with zkPass</button>
+            </div>
+
+            <div id="adminCard" class="card" style="display:none; border-top: 3px solid var(--admin);">
+                <h4 style="margin:0 0 10px 0; color:var(--admin);">Owner Revenue</h4>
+                <div style="font-size:0.7rem; opacity:0.7;">Total LCAI Collected:</div>
+                <div class="rev-text"><span id="revDisplay">0.00</span></div>
+                
+                <div style="border-top:1px solid #334155; margin:15px 0; padding-top:15px;">
+                    <h4 style="margin:0 0 10px 0; font-size:0.85rem;">User Permissions</h4>
+                    <input type="text" id="targetAddr" placeholder="User Wallet Address">
+                    <div style="display:flex; gap:5px;">
+                        <button onclick="manageUser(true)" class="primary-btn" style="background:var(--success); flex:1; margin:0;">Verify</button>
+                        <button onclick="manageUser(false)" class="primary-btn" style="background:var(--danger); flex:1; margin:0;">Revoke</button>
+                    </div>
+                </div>
+                <button onclick="payout()" class="primary-btn" style="background:var(--admin); margin-top:15px;">Withdraw to Admin Wallet</button>
             </div>
         </div>
 
         <div class="main-area" style="flex:1; display:flex; flex-direction:column; gap:20px;">
             <div class="card">
-                <input type="text" id="promptInput" placeholder="Describe your art...">
-                <button id="genBtn" class="primary-btn" disabled>Generate Art (0.25 LCAI)</button>
+                <input type="text" id="promptInput" placeholder="Enter AI Art Prompt (e.g. 'Space panda drinking coffee')">
+                <button id="genBtn" class="primary-btn" disabled>Anchor Art Request (0.25 LCAI)</button>
             </div>
             <div class="display-area" id="output">
-                <span style="color:#475569;">Connect and verify to begin</span>
+                <div style="text-align:center; color:#475569;">
+                    <p>AIVM Inference Engine Ready</p>
+                    <p style="font-size:0.8rem;">Connect and admin-verify to start generating</p>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        const ART_ADDR = "0xDBd624BB9B2664Ec321e04Ec4B0755845f197C5d";
+
+        const ART_ADDR = "0x6C6F8E8a159650Fa68154C18Fd638A05B32b2D6B";
+        
         const ABI = [
             "function generateArt(string p) payable",
             "function owner() view returns (address)",
             "function totalRevenue() view returns (uint256)",
             "function setVerification(address u, bool s)",
             "function withdrawRevenue()",
-            "function latestArt(address a) view returns (string)"
+            "function manualVerified(address) view returns (bool)",
+            "function latestArt(address) view returns (string)"
         ];
 
         let signer, contract, provider;
 
+        function log(msg) {
+            const f = document.getElementById('logFeed');
+            f.innerHTML += `<div>> ${msg}</div>`;
+            f.scrollTop = f.scrollHeight;
+        }
+
         async function init() {
-            provider = new ethers.BrowserProvider(window.ethereum);
-            await provider.send("eth_requestAccounts", []);
-            signer = await provider.getSigner();
-            const addr = await signer.getAddress();
-            
-            contract = new ethers.Contract(ART_ADDR, ABI, signer);
-            const [owner, rev, bal] = await Promise.all([
-                contract.owner(),
-                contract.totalRevenue(),
-                provider.getBalance(addr)
-            ]);
+            if(!window.ethereum) return alert("Install MetaMask");
+            try {
+                provider = new ethers.BrowserProvider(window.ethereum);
+                await provider.send("eth_requestAccounts", []);
+                signer = await provider.getSigner();
+                const addr = await signer.getAddress();
+                
+                contract = new ethers.Contract(ART_ADDR, ABI, signer);
+                const [admin, rev, bal, isVer] = await Promise.all([
+                    contract.owner(),
+                    contract.totalRevenue(),
+                    provider.getBalance(addr),
+                    contract.manualVerified(addr)
+                ]);
 
-            document.getElementById('userAddr').innerText = addr;
-            document.getElementById('userBal').innerText = parseFloat(ethers.formatEther(bal)).toFixed(4);
-            document.getElementById('connectBtn').style.display = 'none';
-            document.getElementById('walletInfo').style.display = 'block';
-            document.getElementById('genBtn').disabled = false;
+                document.getElementById('addrDisplay').innerText = addr;
+                document.getElementById('balDisplay').innerText = parseFloat(ethers.formatEther(bal)).toFixed(4);
+                document.getElementById('connectBtn').style.display = 'none';
+                document.getElementById('walletBox').style.display = 'block';
+                document.getElementById('zkCard').style.display = 'block';
+                document.getElementById('genBtn').disabled = false;
+                document.getElementById('statusText').innerText = "Connected";
+                document.getElementById('statusText').style.color = "#22c55e";
 
-            if(owner.toLowerCase() === addr.toLowerCase()) {
-                document.getElementById('adminPanel').style.display = 'block';
-                document.getElementById('revDisplay').innerText = ethers.formatEther(rev);
-            }
+                if(isVer) {
+                    document.getElementById('zkStatus').innerText = "Status: Admin Verified ✓";
+                    document.getElementById('zkStatus').style.color = "#22c55e";
+                }
+
+                if(admin.toLowerCase() === addr.toLowerCase()) {
+                    document.getElementById('adminCard').style.display = 'block';
+                    document.getElementById('revDisplay').innerText = ethers.formatEther(rev);
+                    log("Admin session authenticated.");
+                }
+                log("Handshake complete: " + addr.substring(0,10));
+            } catch (e) { log("Connection failed."); }
         }
 
-        async function updateVerify(status) {
-            const user = document.getElementById('targetUser').value;
-            const tx = await contract.setVerification(user, status);
-            await tx.wait();
-            alert("Status Updated!");
+        async function manageUser(status) {
+            const user = document.getElementById('targetAddr').value;
+            if(!ethers.isAddress(user)) return alert("Invalid Address");
+            try {
+                log("Updating identity on-chain...");
+                const tx = await contract.setVerification(user, status);
+                await tx.wait();
+                alert("Permission Updated Successfully");
+                location.reload();
+            } catch (e) { log("Admin action rejected."); }
         }
 
-        async function withdraw() {
-            const tx = await contract.withdrawRevenue();
-            await tx.wait();
-            alert("Funds Withdrawn!");
+        async function payout() {
+            try {
+                log("Withdrawing revenue...");
+                const tx = await contract.withdrawRevenue();
+                await tx.wait();
+                alert("Revenue withdrawn to wallet!");
+                location.reload();
+            } catch (e) { log("Withdrawal failed."); }
         }
 
         document.getElementById('genBtn').onclick = async () => {
-            const prompt = document.getElementById('promptInput').value;
-            const tx = await contract.generateArt(prompt, { value: ethers.parseEther("0.25") });
-            await tx.wait();
-            alert("Request Anchored!");
+            const p = document.getElementById('promptInput').value;
+            const out = document.getElementById('output');
+            if(!p) return;
+            try {
+                out.innerHTML = '<div class="pulsing">Requesting AIVM Inference...</div>';
+                const tx = await contract.generateArt(p, { value: ethers.parseEther("0.25") });
+                log("Task broadcasted: " + tx.hash.substring(0,12));
+                await tx.wait();
+                out.innerHTML = '<div style="color:var(--primary); text-align:center;">Request Anchored!<br>Awaiting AI Response...</div>';
+            } catch (e) { 
+                out.innerHTML = '<div style="color:var(--danger);">Error: Admin Verification Required</div>';
+                log("Inference rejected: Not verified."); 
+            }
         };
 
         document.getElementById('connectBtn').onclick = init;

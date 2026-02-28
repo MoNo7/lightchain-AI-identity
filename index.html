@@ -91,16 +91,15 @@
                 const addr = await signer.getAddress();
                 document.getElementById('connectBtn').innerText = addr.substring(0,6)+"..."+addr.slice(-4);
                 
-                checkIdentity(addr);
+                await checkIdentity(addr);
                 updateHealth();
-                renderLog();
-
-                // RECOVERY: Scan for previous successful TaskIDs not in current log
-                if (userTasks.length === 0) await recoverPastTasks(addr);
                 
-                // Start polling for any item marked as not ready
+                // FORCE RECOVERY of all past TaskIDs from the blockchain
+                await recoverPastTasks(addr);
+                
+                renderLog();
                 userTasks.forEach((t, i) => { if(!t.ready) pollTask(i); });
-            } catch (e) { console.error(e); }
+            } catch (e) { console.error("Connect failed:", e); }
         }
 
         async function checkIdentity(addr) {
@@ -120,7 +119,7 @@
                     <div style="background:#000; border:1px solid #333; padding:20px; border-radius:12px;">
                         <p>Status: <b style="color:#00ff88">ACTIVE</b></p>
                         <p>Role: <b style="color:var(--primary)">${isAdmin ? 'Protocol Admin' : 'Verified User'}</b></p>
-                        <button class="btn" style="margin-top:15px; font-size:12px;" onclick="localStorage.clear(); location.reload();">Clear Cache</button>
+                        <button class="btn" style="margin-top:15px; font-size:12px;" onclick="localStorage.clear(); location.reload();">Reset All Data</button>
                     </div>`;
             }
         }
@@ -139,21 +138,20 @@
                 const tx = await router.requestInferenceV2(2, prompt, { value: ethers.parseEther("0.1") });
                 const receipt = await tx.wait();
                 
-                // PRECISION LOG SCRAPER: Calculates the hash to find the specific TaskID log
                 const eventHash = ethers.id("InferenceRequested(bytes32,address,uint256)");
                 let taskId = receipt.logs.find(l => l.topics[0] === eventHash)?.topics[1];
                 
                 if(!taskId) throw "Task ID failed to anchor.";
 
-                // SAVE TO ACTIVITY LOG IMMEDIATELY
+                // ADD TO LOG AND RENDER IMMEDIATELY
                 const idx = userTasks.push({ prompt, taskId, ready: false, url: null }) - 1;
                 localStorage.setItem('lcai_art_tasks', JSON.stringify(userTasks));
                 renderLog();
                 
                 pollTask(idx);
-                status.innerText = "Task Anchored. Cluster is processing...";
+                status.innerText = "Task Anchored. Generating...";
             } catch (e) { 
-                status.innerText = "Inference Failed. Check Console."; 
+                status.innerText = "Inference Failed."; 
                 console.error(e); 
             }
         };
@@ -167,7 +165,6 @@
                     t.ready = true; t.url = data.url;
                     localStorage.setItem('lcai_art_tasks', JSON.stringify(userTasks));
                     renderLog();
-                    // If viewing this specific task, update the main viewer
                     if(document.getElementById('artView').offsetParent) viewArt(i);
                 } else {
                     setTimeout(() => pollTask(i), 5000);
@@ -177,18 +174,22 @@
 
         async function recoverPastTasks(addr) {
             const eventHash = ethers.id("InferenceRequested(bytes32,address,uint256)");
-            const filter = { address: ROUTER_ADDR, topics: [eventHash, null, ethers.zeroPadValue(addr, 32)] };
+            // Filter for events where YOU were the requester
+            const filter = { 
+                address: ROUTER_ADDR, 
+                topics: [eventHash, null, ethers.zeroPadValue(addr, 32)],
+                fromBlock: 1600000 // Scans a wide range to ensure we find everything
+            };
             try {
-                const logs = await provider.getLogs({...filter, fromBlock: 1620000});
+                const logs = await provider.getLogs(filter);
                 logs.forEach(log => {
                     const taskId = log.topics[1];
                     if (!userTasks.find(t => t.taskId === taskId)) {
-                        userTasks.push({ prompt: "Recovered Task", taskId, ready: false, url: null });
+                        userTasks.push({ prompt: "Recovered Art", taskId, ready: false, url: null });
                     }
                 });
                 localStorage.setItem('lcai_art_tasks', JSON.stringify(userTasks));
-                renderLog();
-            } catch (e) { console.warn("Recovery failed", e); }
+            } catch (e) { console.warn("Log recovery failed", e); }
         }
 
         function renderLog() {

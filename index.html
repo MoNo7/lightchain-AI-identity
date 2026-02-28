@@ -2,198 +2,265 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lightchain AI | Master Portal</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <style>
-        :root {
-            --primary: #00ff80;
-            --bg: #0a0a0f;
-            --card: #14141f;
-            --border: #2d2d3d;
-            --text: #ffffff;
-            --text-dim: #a0a0b0;
-            --danger: #ff4444;
+        :root { 
+            --bg: #0f172a; --card: #1e293b; --text: #f1f5f9; 
+            --primary: #3b82f6; --success: #22c55e; --danger: #ef4444; 
+            --admin: #8b5cf6; --owner: #f59e0b; --border: #334155;
         }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            font-family: 'Segoe UI', sans-serif; 
-            background: var(--bg); 
-            color: var(--text);
-            overflow: hidden;
-        }
-
-        /* TOP BAR */
-        .nav { 
-            height: 60px; 
-            background: var(--card); 
-            border-bottom: 1px solid var(--border); 
-            display: flex; 
-            align-items: center; 
-            justify-content: space-between; 
-            padding: 0 20px;
-        }
-        .nav-left { font-size: 1.1rem; font-weight: bold; color: var(--primary); }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; flex-direction: column; height: 100vh; }
         
-        .wallet-container {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            background: var(--border);
-            padding: 4px 12px;
-            border-radius: 8px;
-            border: 1px solid #3d3d4d;
-        }
-        .status-dot { height: 8px; width: 8px; border-radius: 50%; background: var(--danger); }
-        .status-dot.active { background: var(--primary); box-shadow: 0 0 8px var(--primary); }
-        .wallet-id { font-family: monospace; font-size: 0.85rem; }
-
-        /* CONTENT */
-        .content { display: flex; height: calc(100vh - 60px); padding: 20px; gap: 20px; }
-        .sidebar { width: 320px; display: flex; flex-direction: column; gap: 20px; }
+        /* TOP NAVIGATION */
+        .nav { height: 60px; background: var(--card); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; }
+        .nav-left { font-size: 1.2rem; font-weight: bold; color: var(--primary); }
+        .nav-right { display: flex; align-items: center; gap: 15px; font-size: 0.85rem; }
+        .status-badge { display: flex; align-items: center; gap: 6px; background: #020617; padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border); }
+        .dot { height: 8px; width: 8px; border-radius: 50%; background: var(--danger); box-shadow: 0 0 6px var(--danger); }
+        .dot.active { background: var(--success); box-shadow: 0 0 6px var(--success); }
+        .wallet-badge { background: var(--border); padding: 6px 12px; border-radius: 6px; font-family: monospace; }
+        
+        /* LAYOUT */
+        .content { display: flex; flex: 1; padding: 20px; gap: 20px; overflow: hidden; }
+        .sidebar { width: 320px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; padding-right: 5px; }
         .main-area { flex: 1; display: flex; flex-direction: column; gap: 20px; }
-
-        .card { background: var(--card); border-radius: 12px; padding: 20px; border: 1px solid var(--border); }
-        .card h4 { margin-bottom: 15px; color: var(--text-dim); font-size: 0.8rem; text-transform: uppercase; }
-
-        .btn { 
-            width: 100%; border: none; padding: 12px; border-radius: 8px; cursor: pointer; 
-            font-weight: bold; margin-bottom: 10px;
-        }
-        .btn-primary { background: var(--primary); color: #000; }
-        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
-
-        textarea { 
-            width: 100%; height: 100px; background: #020617; border: 1px solid var(--border); 
-            border-radius: 8px; color: white; padding: 12px; margin-bottom: 15px;
-        }
-
-        .log-box { 
-            flex: 1; background: #020617; border-radius: 8px; padding: 15px; 
-            font-family: monospace; font-size: 0.75rem; color: #94a3b8; overflow-y: auto;
-        }
-
-        .output-view {
-            flex: 1; border: 2px dashed var(--border); border-radius: 12px;
-            display: flex; align-items: center; justify-content: center; color: var(--text-dim);
-        }
-
-        .progress-bar { height: 4px; background: var(--border); border-radius: 2px; margin-top: 10px; }
-        .progress-fill { height: 100%; background: var(--primary); width: 68%; }
         
-        .hidden { display: none; }
+        /* CARDS & COMPONENTS */
+        .card { background: var(--card); border-radius: 10px; padding: 15px; border: 1px solid var(--border); }
+        .card h4 { margin: 0 0 10px 0; font-size: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 5px; }
+        .btn { border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; transition: opacity 0.2s; }
+        .btn:hover { opacity: 0.8; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-primary { background: var(--primary); }
+        .btn-success { background: var(--success); }
+        .btn-danger { background: var(--danger); }
+        .btn-admin { background: var(--admin); }
+        .btn-owner { background: var(--owner); }
+        .btn-sm { padding: 5px 10px; font-size: 0.8rem; }
+        .btn-full { width: 100%; margin-top: 5px; }
+        
+        input { width: 100%; background: #020617; border: 1px solid var(--border); color: white; padding: 10px; border-radius: 6px; margin-bottom: 10px; box-sizing: border-box; }
+        .log-box { font-family: monospace; font-size: 0.85rem; color: #94a3b8; background: #020617; padding: 15px; border-radius: 8px; flex: 1; overflow-y: auto; border: 1px solid var(--border); }
+        
+        /* UTILITIES */
+        .hidden { display: none !important; }
+        .flex-row { display: flex; gap: 8px; }
     </style>
 </head>
 <body>
 
-    <nav class="nav">
-        <div class="nav-left">LightChain AI | Master Portal</div>
-        <div class="wallet-container">
-            <div id="top-status-dot" class="status-dot"></div>
-            <span id="top-status-text" style="font-size: 0.75rem; margin-right: 10px; color: var(--text-dim);">No Pass</span>
-            <div class="wallet-id" id="wallet-address">Disconnected</div>
+    <div class="nav">
+        <div class="nav-left">AIVM Control Center</div>
+        <div class="nav-right">
+            <button id="connectBtn" class="btn btn-primary btn-sm" onclick="connectWallet()">Connect Wallet</button>
+            
+            <div id="clusterStatus" class="status-badge hidden">
+                <span id="statusDot" class="dot"></span> 
+                <span id="clusterText">Connecting...</span>
+            </div>
+            
+            <button id="topMintBtn" class="btn btn-success btn-sm hidden" onclick="mintSBT()">Register ZK-Pass</button>
+            <div id="topWallet" class="wallet-badge hidden">0x00...000</div>
         </div>
-    </nav>
-
+    </div>
+    
     <div class="content">
         <div class="sidebar">
-            <div class="card">
-                <h4>Identity Control</h4>
-                <button class="btn btn-primary" id="connect-btn">Connect Wallet</button>
-                <button class="btn btn-outline hidden" id="mint-btn">Mint ZK-Pass</button>
+            
+            <div id="zkCard" class="card hidden">
+                <h4>Identity Status</h4>
+                <div id="nftDisplay" style="text-align:center; margin-bottom:10px;"></div>
+                <div id="zkStatus" style="text-align:center; font-weight:bold; font-size:0.9rem;"></div>
             </div>
 
-            <div class="card">
-                <h4>AIVM Inference</h4>
-                <textarea id="prompt-input" placeholder="Enter generation prompt..."></textarea>
-                <button class="btn btn-primary" id="generate-btn">Generate (0.25 LCAI)</button>
-                <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-dim); margin-top: 10px;">
-                    <span>Cluster Load</span>
-                    <span>68%</span>
+            <div id="adminCard" class="card hidden" style="border-top: 3px solid var(--admin);">
+                <h4 style="color:var(--admin);">Admin Management</h4>
+                <input type="text" id="targetAddr" placeholder="Paste Wallet 0x...">
+                
+                <button class="btn btn-admin btn-full" onclick="queryUser()">Query Status</button>
+                <div id="qRes" style="text-align:center; font-weight:bold; margin: 10px 0; font-size: 0.9rem;"></div>
+                
+                <div class="flex-row">
+                    <button class="btn btn-success" style="flex:1;" onclick="verifyUser(true)">Verify</button>
+                    <button class="btn btn-danger" style="flex:1;" onclick="verifyUser(false)">Revoke</button>
                 </div>
-                <div class="progress-bar"><div class="progress-fill"></div></div>
             </div>
 
-            <div class="card" style="flex: 1; display: flex; flex-direction: column;">
-                <h4>System Logs</h4>
-                <div id="log-content" class="log-box">> System initialized...</div>
+            <div id="ownerCard" class="card hidden" style="border-top: 3px solid var(--owner);">
+                <h4 style="color:var(--owner);">Owner Vault</h4>
+                <div style="font-size:0.85rem; color:#94a3b8;">Total Revenue:</div>
+                <div style="font-size:1.6rem; font-weight:bold; color:var(--success); margin-bottom:15px;">
+                    <span id="revDisplay">0.00</span> LCAI
+                </div>
+                <button class="btn btn-owner btn-full" onclick="withdraw()">Quick Withdraw</button>
             </div>
         </div>
 
         <div class="main-area">
-            <div class="output-view">Inference output will appear here</div>
+            <div class="card" style="display:flex; gap:10px;">
+                <input type="text" id="prompt" placeholder="Enter prompt for AIVM Art Generation..." style="margin:0;">
+                <button id="genBtn" class="btn btn-primary" style="white-space:nowrap;" disabled onclick="generate()">Generate (0.25 LCAI)</button>
+            </div>
+            <div class="log-box" id="logs">
+                <div style="color: var(--primary);">> System Initialized. Awaiting connection...</div>
+            </div>
         </div>
     </div>
 
     <script>
-        // Use the addresses from your Lightchain IDE deployment
-        const CONFIG = {
-            SBT_ADDRESS: "0x3938E75C417688755601E8C6b62D7858c894A2D2", 
-            AIVM_ADDRESS: "0x4D36B31d4BFB957A5D816B0f420a9e755EFc6a2c"
+        // --- DEPLOYED ADDRESSES ---
+        const ART_ADDR = "0x8560106c90C4e53D6fcf53bcEFdf4Ac8Ba1300cA";
+        const ZK_ADDR = "0x35aA3C723E33B12b07342432b8B2a19a5213f0fA";
+
+        const ART_ABI = [
+            "function generateArt(string) payable", 
+            "function owner() view returns (address)", 
+            "function totalRevenue() view returns (uint256)", 
+            "function manualVerified(address) view returns (bool)", 
+            "function setVerification(address, bool)", 
+            "function withdrawRevenue()"
+        ];
+        const ZK_ABI = [
+            "function tokenURI(uint256) view returns (string)", 
+            "function hasSBT(address) view returns (bool)", 
+            "function mintIdentity()"
+        ];
+        
+        let provider, signer, artCon, zkCon, userAddr;
+        const logger = (msg) => { 
+            const logs = document.getElementById('logs');
+            logs.innerHTML += `<div>> ${msg}</div>`; 
+            logs.scrollTop = logs.scrollHeight; 
         };
 
-        const SBT_ABI = ["function hasSBT(address) view returns (bool)", "function mintIdentity() external"];
-
-        let provider, signer, userAddress, sbtContract;
-
-        function addLog(msg) {
-            const log = document.getElementById('log-content');
-            log.innerHTML += `<div>> ${msg}</div>`;
-            log.scrollTop = log.scrollHeight;
-        }
-
-        async function checkPass() {
-            try {
-                const hasPass = await sbtContract.hasSBT(userAddress);
-                const dot = document.getElementById('top-status-dot');
-                const text = document.getElementById('top-status-text');
-                const mintBtn = document.getElementById('mint-btn');
-
-                if (hasPass) {
-                    dot.classList.add('active');
-                    text.innerText = "ZK-Pass Active";
-                    mintBtn.classList.add('hidden');
-                    addLog("Identity verified.");
-                } else {
-                    dot.classList.remove('active');
-                    text.innerText = "Pass Required";
-                    mintBtn.classList.remove('hidden');
-                    addLog("Warning: Identity Pass required for AI access.");
-                }
-            } catch (e) { addLog("Identity sync error."); }
-        }
-
-        document.getElementById('connect-btn').addEventListener('click', async () => {
+        // Auto-connect on page refresh if already authorized
+        window.onload = async () => {
             if (window.ethereum) {
+                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                if (accounts.length > 0) connectWallet();
+            }
+        };
+
+        async function connectWallet() {
+            try {
+                if (!window.ethereum) throw new Error("MetaMask not found.");
+                
                 provider = new ethers.BrowserProvider(window.ethereum);
                 await provider.send("eth_requestAccounts", []);
                 signer = await provider.getSigner();
-                userAddress = await signer.getAddress();
+                userAddr = await signer.getAddress();
                 
-                document.getElementById('wallet-address').innerText = userAddress.slice(0,6) + "..." + userAddress.slice(-4);
-                document.getElementById('connect-btn').innerText = "Wallet Sync On";
-                
-                sbtContract = new ethers.Contract(CONFIG.SBT_ADDRESS, SBT_ABI, signer);
-                addLog("Wallet connected: " + userAddress);
-                await checkPass();
+                artCon = new ethers.Contract(ART_ADDR, ART_ABI, signer);
+                zkCon = new ethers.Contract(ZK_ADDR, ZK_ABI, signer);
+
+                // Fetch global states
+                const [owner, rev, hasSBT] = await Promise.all([
+                    artCon.owner(), 
+                    artCon.totalRevenue(), 
+                    zkCon.hasSBT(userAddr)
+                ]);
+
+                updateUI(owner, rev, hasSBT);
+                logger(`Wallet linked: ${userAddr}`);
+
+            } catch (e) {
+                logger("Connection Failed: " + (e.reason || e.message));
             }
-        });
+        }
 
-        document.getElementById('mint-btn').addEventListener('click', async () => {
+        async function updateUI(owner, rev, hasSBT) {
+            // Top Nav Updates
+            document.getElementById('connectBtn').classList.add('hidden');
+            document.getElementById('topWallet').classList.remove('hidden');
+            document.getElementById('topWallet').innerText = `${userAddr.substring(0,6)}...${userAddr.substring(38)}`;
+            
+            document.getElementById('clusterStatus').classList.remove('hidden');
+            document.getElementById('statusDot').classList.add('active');
+            document.getElementById('clusterText').innerText = `SDXL-Turbo | Load: ${Math.floor(Math.random()*15 + 10)}%`;
+
+            // Identity & Main Generator
+            document.getElementById('zkCard').classList.remove('hidden');
+            if(hasSBT) {
+                const uri = await zkCon.tokenURI(1);
+                const json = JSON.parse(atob(uri.split(',')[1]));
+                document.getElementById('nftDisplay').innerHTML = `<img src="${json.image}" style="width:80%; border-radius:8px;">`;
+                document.getElementById('zkStatus').innerText = "✅ ZK-Pass Verified";
+                document.getElementById('zkStatus').style.color = "var(--success)";
+                document.getElementById('genBtn').disabled = false;
+                logger("Identity synced. Ready for generation.");
+            } else {
+                document.getElementById('zkStatus').innerText = "❌ No ZK-Pass Found";
+                document.getElementById('zkStatus').style.color = "var(--danger)";
+                document.getElementById('topMintBtn').classList.remove('hidden');
+                logger("Notice: ZK-Pass Required to generate art.");
+            }
+
+            // Admin & Owner Panels
+            if(owner.toLowerCase() === userAddr.toLowerCase()) {
+                document.getElementById('adminCard').classList.remove('hidden');
+                document.getElementById('ownerCard').classList.remove('hidden');
+                document.getElementById('revDisplay').innerText = ethers.formatEther(rev);
+                logger("Elevated Privileges Granted (Owner/Admin).");
+            }
+        }
+
+        // --- CONTRACT INTERACTIONS ---
+
+        async function queryUser() {
+            const t = document.getElementById('targetAddr').value;
+            if(!t) return logger("Query Error: No address provided.");
             try {
-                addLog("Minting ZK-Pass...");
-                const tx = await sbtContract.mintIdentity();
-                await tx.wait();
-                addLog("Pass minted successfully.");
-                await checkPass();
-            } catch (e) { addLog("Mint failed: " + (e.reason || "Check Balance")); }
-        });
+                const isVerified = await artCon.manualVerified(t);
+                const res = document.getElementById('qRes');
+                res.innerText = isVerified ? "STATUS: VERIFIED ✅" : "STATUS: UNVERIFIED ❌";
+                res.style.color = isVerified ? "var(--success)" : "var(--danger)";
+                logger(`Queried ${t.substring(0,6)}... -> ${isVerified}`);
+            } catch(e) { logger("Query Failed"); }
+        }
 
-        document.getElementById('generate-btn').addEventListener('click', async () => {
-            addLog("Checking AIVM permissions...");
-            // Link to your actual AIVM logic here
-        });
+        async function verifyUser(status) {
+            const t = document.getElementById('targetAddr').value;
+            if(!t) return;
+            try {
+                logger(`Sending ${status ? 'Verify' : 'Revoke'} transaction...`);
+                const tx = await artCon.setVerification(t, status);
+                await tx.wait();
+                logger(`Success: Address updated.`);
+                queryUser();
+            } catch(e) { logger("Transaction Failed"); }
+        }
+
+        async function mintSBT() {
+            try {
+                logger("Minting ZK-Pass...");
+                const tx = await zkCon.mintIdentity();
+                await tx.wait();
+                logger("ZK-Pass Minted! Reloading...");
+                setTimeout(() => location.reload(), 1500);
+            } catch(e) { logger("Mint Failed: " + (e.reason || "Rejected")); }
+        }
+
+        async function generate() {
+            const p = document.getElementById('prompt').value;
+            if(!p) return logger("Please enter a prompt.");
+            try {
+                logger(`Routing prompt: "${p}"`);
+                const tx = await artCon.generateArt(p, {value: ethers.parseEther("0.25")});
+                await tx.wait();
+                logger("AIVM Job Dispatched! Check Explorer for results.");
+            } catch(e) { logger("Generation Failed: " + (e.reason || "Rejected")); }
+        }
+
+        async function withdraw() {
+            try {
+                logger("Processing Quick Withdraw...");
+                const tx = await artCon.withdrawRevenue();
+                await tx.wait();
+                logger("Revenue withdrawn to owner wallet.");
+                connectWallet(); // Refresh balance
+            } catch(e) { logger("Withdraw Failed: " + (e.reason || "Rejected")); }
+        }
     </script>
 </body>
 </html>

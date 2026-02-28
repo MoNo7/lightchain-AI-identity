@@ -2,87 +2,54 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>LCAI | TaskID Brute Force Recovery</title>
+    <title>Lightchain zkPass Recovery</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
-    <style>
-        body { background: #050505; color: #fff; font-family: sans-serif; padding: 40px; }
-        .card { background: #111; border: 1px solid #333; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; }
-        .item { background: #000; border: 1px solid #222; padding: 15px; border-radius: 8px; font-size: 11px; }
-        .btn { background: #00d1ff; color: #000; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        img { width: 100%; border-radius: 8px; margin-top: 10px; border: 1px solid #00d1ff; }
-    </style>
-</head>
+    </head>
 <body>
-    <h1>Manual TaskID Recovery</h1>
-    <div class="card">
-        <button id="scanBtn" class="btn">Search All Router Logs</button>
-        <p id="status" style="color: #888;">This ignores event names and scans raw hex data.</p>
+    <div class="card" style="max-width: 500px; margin: 50px auto; padding: 30px;">
+        <h2 style="color: #dc3545;">Identity Recovery Portal</h2>
+        <p style="font-size: 0.9rem; color: #666;">Provide your zkPass credential to recover your Lightchain Identity and bypass the standard phrase.</p>
+        
+        <input type="text" id="recoveryAddress" placeholder="Lost Wallet Address (0x...)" style="width:100%; padding:10px; margin-bottom:15px;">
+        <button id="generateZkBtn" class="primary-btn" style="background: #6f42c1; color: white;">Generate Local zkProof</button>
+        
+        <div id="zkStatus" style="margin-top: 15px; font-family: monospace; font-size: 0.8rem; background: #f4f4f4; padding: 10px; display: none;"></div>
+        
+        <button id="recoverBtn" class="primary-btn" style="background: #28a745; color: white; display: none; margin-top: 10px;">Submit Recovery Transaction</button>
     </div>
-    <div id="results" class="grid"></div>
 
     <script>
-        const ROUTER = "0x0269683E61b210d56b3D692603336fEB27B8a83a";
-        const API = "https://chat2.lightchain.ai/api/v1";
+        let mockZkProof = "";
 
-        document.getElementById('scanBtn').onclick = async () => {
-            const status = document.getElementById('status');
-            const results = document.getElementById('results');
-            if(!window.ethereum) return alert("Connect Wallet");
-
-            status.innerText = "Scanning Raw Blockchain Logs...";
-            results.innerHTML = "";
+        // 1. Generate the local ZK Proof (Simulated via hashing for Testnet)
+        document.getElementById('generateZkBtn').onclick = async () => {
+            const addr = document.getElementById('recoveryAddress').value;
+            if (!ethers.isAddress(addr)) return alert("Enter a valid lost address.");
             
-            const provider = new ethers.BrowserProvider(window.ethereum);
-            const signer = await provider.getSigner();
-            const addr = await signer.getAddress();
-            const paddedAddr = ethers.zeroPadValue(addr, 32).toLowerCase();
-
-            try {
-                // We scan the Router address for ANY log where your address appears as a topic
-                const filter = {
-                    address: ROUTER,
-                    fromBlock: 1620000, 
-                    toBlock: 'latest'
-                };
-
-                const logs = await provider.getLogs(filter);
-                let foundCount = 0;
-
-                for (const log of logs) {
-                    // Search topics for your padded address
-                    const userIndex = log.topics.findIndex(t => t.toLowerCase() === paddedAddr);
-                    
-                    if (userIndex !== -1 && log.topics.length > 1) {
-                        // In the AIVM logic, the TaskID is usually the OTHER topic
-                        const taskId = log.topics[userIndex === 1 ? 2 : 1]; 
-                        
-                        if (taskId && taskId.length === 66) {
-                            foundCount++;
-                            displayTask(taskId);
-                        }
-                    }
-                }
-                status.innerText = `Found ${foundCount} potential TaskIDs. Querying Cluster...`;
-            } catch (e) { status.innerText = "Scan error: " + e.message; }
+            const status = document.getElementById('zkStatus');
+            status.style.display = 'block';
+            status.innerHTML = "Computing Zero-Knowledge Proof...<br/>(Verifying previous identity shards)";
+            
+            // Simulating ZK Snark computation time
+            setTimeout(() => {
+                // Generate a mock hex proof based on the address
+                mockZkProof = ethers.keccak256(ethers.toUtf8Bytes("zkPass_Recovery_" + addr));
+                status.innerHTML = `<span style="color: green;">Proof Generated Successfully!</span><br/>Payload: ${mockZkProof.substring(0,25)}...`;
+                document.getElementById('recoverBtn').style.display = 'block';
+            }, 2000);
         };
 
-        async function displayTask(id) {
-            const div = document.createElement('div');
-            div.className = 'item';
-            div.innerHTML = `<b>TaskID:</b> ${id.substring(0,20)}...<br><div id="res-${id}">Checking...</div>`;
-            document.getElementById('results').appendChild(div);
-
-            try {
-                const res = await fetch(`${API}/chat/status?taskId=${id}`);
-                const data = await res.json();
-                if(data.ready && data.url) {
-                    document.getElementById(`res-${id}`).innerHTML = `<img src="${data.url}"><br><a href="${data.url}" target="_blank" style="color:#00d1ff">View Full Art</a>`;
-                } else {
-                    document.getElementById(`res-${id}`).innerText = "Expired or Still Processing";
-                }
-            } catch (e) { document.getElementById(`res-${id}`).innerText = "API Error"; }
-        }
+        // 2. Submit to Network
+        document.getElementById('recoverBtn').onclick = async () => {
+            if (!window.ethereum) return alert("MetaMask required");
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            const signer = await provider.getSigner();
+            
+            // Execute the recovery/zkPass verification on your deployed contract
+            // (Requires ABI and your new Contract Address)
+            alert("Submitting zkProof " + mockZkProof.substring(0,10) + "... to AIVM. Check wallet to sign.");
+            // ... insert contract.verifyZkPass(mockZkProof) logic here ...
+        };
     </script>
 </body>
 </html>

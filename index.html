@@ -155,26 +155,74 @@
             } catch (e) { log("History scan failed.", true); }
         }
 
-function addToGallery(prompt) {
+        // NEW: Blob-based fetcher to bypass cache and handle delays
+async function fetchAIVisual(url, maxRetries = 10) {
+    for (let i = 0; i < maxRetries; i++) {
+        try {
+            const response = await fetch(url, { cache: 'no-cache' });
+            if (response.ok) {
+                const blob = await response.blob();
+                return URL.createObjectURL(blob);
+            }
+        } catch (e) {
+            console.log(`Retrying AIVM fetch... (${i+1})`);
+        }
+        await new Promise(r => setTimeout(r, 3000)); // Wait 3 seconds before retry
+    }
+    return null;
+}
+
+async function addToGallery(prompt) {
     const gallery = document.getElementById('art-gallery');
     const item = document.createElement('div');
     item.className = 'gallery-item';
+    
+    // Initial Syncing State
+    item.innerHTML = `
+        <div class="sync-text" style="height:150px; display:flex; align-items:center; justify-content:center; background:#000; font-size:0.6rem; color:var(--primary); animation:pulse 1s infinite">Syncing...</div>
+    `;
+    gallery.appendChild(item);
+
     const seed = Math.floor(Math.random() * 1000000);
     const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=512&height=512&nologo=true&seed=${seed}`;
     
-    // Updated Logic: Use a background image for the container to ensure it shows up faster
-    item.innerHTML = `
-        <div class="sync-text" style="height:150px; display:flex; align-items:center; justify-content:center; background:#000; font-size:0.6rem; color:var(--primary); animation:pulse 1s infinite">Syncing...</div>
-        <img src="${url}" class="gallery-img" style="display:block; width:100%; height:150px; object-fit:cover; position:absolute; top:0; left:0;" 
-             onload="this.previousElementSibling.style.display='none'; this.nextElementSibling.style.display='flex'"
-             onerror="console.log('AIVM Retry...');">
-        <div class="gallery-controls" style="display:none">
-            <button class="btn-gallery btn-view" onclick="swapToMain('${url}')">View</button>
-            <button class="btn-gallery btn-dl" onclick="downloadImg('${url}')">DL</button>
-        </div>`;
-    gallery.appendChild(item);
+    const blobUrl = await fetchAIVisual(url);
+    
+    if (blobUrl) {
+        item.innerHTML = `
+            <img src="${blobUrl}" class="gallery-img" style="display:block; width:100%; height:150px; object-fit:cover;">
+            <div class="gallery-controls" style="display:flex">
+                <button class="btn-gallery btn-view" onclick="swapToMain('${blobUrl}')">View</button>
+                <button class="btn-gallery btn-dl" onclick="downloadImg('${blobUrl}')">DL</button>
+            </div>`;
+    } else {
+        item.innerHTML = `<div style="height:150px; display:flex; align-items:center; justify-content:center; background:#1a1b26; font-size:0.6rem; color:var(--danger)">AIVM Timeout</div>`;
+    }
 }
 
+async function renderArt(prompt) {
+    log(`AIVM is painting: "${prompt.slice(0,20)}..."`);
+    document.getElementById('art-output').innerHTML = `
+        <div id="mint-status" class="mint-overlay" style="display:flex"><div class="mint-spinner"></div>Status: Rendering...</div>
+        <div style="color:var(--primary); font-weight:bold; animation:pulse 1.5s infinite">AIVM Inference in Progress...</div>`;
+
+    const seed = Math.floor(Math.random() * 1000000);
+    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&seed=${seed}`;
+    
+    const blobUrl = await fetchAIVisual(url);
+
+    if (blobUrl) {
+        document.getElementById('art-output').innerHTML = `
+            <div id="mint-status" class="mint-overlay" style="display:none"><div class="mint-spinner"></div>Status: Minted</div>
+            <img src="${blobUrl}" style="width:100%; height:100%; object-fit:contain;" id="main-art-img">`;
+        addToGallery(prompt);
+        log("Visualization Success.");
+    } else {
+        document.getElementById('art-output').innerHTML = `<span style="color:var(--danger)">AIVM Render Failed</span>`;
+        log("Inference Timeout.", true);
+    }
+}
+        
         async function checkIdentity() {
             try {
                 const hasPass = await sbtContract.hasSBT(userAddr);
@@ -191,27 +239,6 @@ function addToGallery(prompt) {
         }
 
         let retryCount = {};
-        function renderArt(prompt) {
-            const seed = Math.floor(Math.random() * 1000000);
-            const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&seed=${seed}`;
-            const img = new Image();
-            img.src = url;
-            if (!retryCount[prompt]) retryCount[prompt] = 0;
-
-            img.onload = () => {
-                document.getElementById('art-output').innerHTML = `<div id="mint-status" class="mint-overlay"><div class="mint-spinner"></div>Status: Minting...</div><img src="${url}" style="width:100%; height:100%; object-fit:contain;" id="main-art-img">`;
-                addToGallery(prompt);
-                log(`AIVM Visualization Success.`);
-                delete retryCount[prompt];
-            };
-
-            img.onerror = () => {
-                if (retryCount[prompt] < 10) {
-                    retryCount[prompt]++;
-                    setTimeout(() => renderArt(prompt), 3000);
-                }
-            };
-        }
 
         window.swapToMain = (url) => { document.getElementById('art-output').innerHTML = `<div id="mint-status" class="mint-overlay"><div class="mint-spinner"></div>Status: Minting...</div><img src="${url}" style="width:100%; height:100%; object-fit:contain;" id="main-art-img">`; };
         window.downloadImg = async (url) => { const response = await fetch(url); const blob = await response.blob(); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `AIVM_${Date.now()}.jpg`; link.click(); };
@@ -233,4 +260,5 @@ function addToGallery(prompt) {
     </script>
 </body>
 </html>
+
 

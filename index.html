@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AIVM Control Center | Lightchain AI</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <style>
@@ -13,7 +12,7 @@
         .header-left-group { display: flex; align-items: center; gap: 15px; }
         .header-title { font-weight: 800; color: var(--primary); font-size: 1.1rem; }
         .nav-identity-group { display: flex; align-items: center; gap: 10px; margin-left: 10px; padding-left: 15px; border-left: 1px solid var(--border); }
-        .nav-sbt-svg { width: 28px; height: 28px; opacity: 0.2; transition: 0.3s; }
+        .nav-sbt-svg { width: 28px; height: 28px; opacity: 0.2; }
         .nav-sbt-svg.active { opacity: 1; filter: drop-shadow(0 0 5px var(--primary)); }
         .nav-desc { font-size: 0.75rem; color: var(--text-dim); }
         .header-right { display: flex; align-items: center; gap: 15px; }
@@ -26,7 +25,7 @@
         .main-content { flex: 1; padding: 20px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; }
         .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
         .card-title { font-size: 0.7rem; font-weight: 800; color: var(--text-dim); text-transform: uppercase; margin-bottom: 12px; }
-        .console { height: 250px; background: #000; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: monospace; font-size: 0.75rem; color: #7dd3fc; overflow-y: auto; }
+        .console { height: 220px; background: #000; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: monospace; font-size: 0.75rem; color: #7dd3fc; overflow-y: auto; }
         .admin-input { width: 100%; background: #0f111a; border: 1px solid var(--border); border-radius: 6px; padding: 10px; color: white; margin-bottom: 10px; font-size: 0.75rem; }
         .admin-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         .btn-admin { border: none; padding: 6px 8px; border-radius: 4px; font-weight: 700; cursor: pointer; font-size: 0.7rem; }
@@ -38,20 +37,13 @@
         .prompt-input { flex: 1; background: transparent; border: none; color: white; padding: 10px; outline: none; font-size: 1rem; }
         .btn-gen { background: var(--primary); color: white; border: none; padding: 10px 25px; border-radius: 8px; font-weight: 700; cursor: pointer; }
         .output-view { min-height: 400px; background: #08090f; border: 1px solid var(--border); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--text-dim); overflow: hidden; position: relative; }
-        
-        /* MINTING OVERLAY */
         .mint-overlay { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.8); padding: 5px 12px; border-radius: 20px; border: 1px solid var(--secondary); font-size: 0.65rem; color: var(--secondary); display: none; align-items: center; gap: 8px; z-index: 10; }
         .mint-spinner { width: 10px; height: 10px; border: 2px solid var(--secondary); border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; }
-        
         .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; margin-top: 10px; }
         .gallery-item { background: var(--card); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; transition: 0.2s; position: relative; min-height: 150px; }
-        .gallery-item:hover { border-color: var(--primary); }
         .gallery-img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; cursor: pointer; }
-        .gallery-controls { padding: 8px; display: flex; gap: 5px; background: rgba(0, 0, 0, 0.5); }
+        .gallery-controls { padding: 8px; display: flex; gap: 5px; background: rgba(0,0,0,0.5); }
         .btn-gallery { flex: 1; border: none; padding: 4px; border-radius: 4px; font-size: 0.6rem; font-weight: 700; cursor: pointer; }
-        .btn-view { background: var(--primary); color: white; }
-        .btn-dl { background: var(--secondary); color: black; }
-        
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
     </style>
@@ -79,7 +71,7 @@
             <div class="card"><div class="card-title">System Status Window</div><div id="console-output" class="console"></div></div>
             <div class="card">
                 <div class="card-title">Admin Management</div>
-                <input type="text" id="admin-user-addr" class="admin-input" placeholder="Query Address 0x...">
+                <input type="text" id="admin-user-addr" class="admin-input" placeholder="0x...">
                 <div class="admin-actions">
                     <button class="btn-admin btn-query" id="admin-query">Query Status</button>
                     <button class="btn-admin btn-verify" id="admin-verify">Verify</button>
@@ -109,13 +101,13 @@
         </div>
     </div>
     <script>
+        // Ensure these match your Remix deployments!
         const CONFIG = { SBT_ADDR: "0xd71462F0002Ee9373fCe05B568583Ed13e75f600", AIVM_ADDR: "0x5B2d46cb1e3451aA3d584f28E714892373D7c7C6" };
-        const ABI = ["function hasSBT(address user) view returns (bool)", "function isAdmin(address user) view returns (bool)", "function owner() view returns (address)", "function setVerification(address user, bool status) external", "function generateArt(string calldata prompt) external payable", "function withdraw() external", "event ArtGenerated(address indexed user, string prompt, uint256 fee)" ];
+        const ABI = ["function hasSBT(address) view returns (bool)", "function isAdmin(address) view returns (bool)", "function owner() view returns (address)", "function setVerification(address,bool) external", "function generateArt(string) external payable", "function withdraw() external", "event ArtGenerated(address indexed,string,uint256)" ];
         let provider, signer, userAddr, sbtContract, studioContract;
         const sbtSvg = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="45" fill="none" stroke="#5865f2" stroke-width="5"/><path d="M30 50L45 65L70 35" stroke="#00ff80" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
-        function log(msg, isError = false) { const out = document.getElementById('console-output'); const div = document.createElement('div'); div.style.color = isError ? "#ff4444" : "#7dd3fc"; div.innerText = `> ${msg}`; out.appendChild(div); out.scrollTop = out.scrollHeight; }
-        
+        function log(m, e) { const out = document.getElementById('console-output'); const div = document.createElement('div'); div.style.color = e ? "#ff4444" : "#7dd3fc"; div.innerText = `> ${m}`; out.appendChild(div); out.scrollTop = out.scrollHeight; }
         async function updateVault() { if (!provider) return; const bal = await provider.getBalance(CONFIG.AIVM_ADDR); document.getElementById('revenue-display').innerText = `${parseFloat(ethers.formatEther(bal)).toFixed(2)} LCAI`; }
         
         async function connect() {
@@ -130,135 +122,73 @@
                 const bal = await provider.getBalance(userAddr);
                 document.getElementById('balance-display').innerText = `${parseFloat(ethers.formatEther(bal)).toFixed(2)} LCAI`;
                 document.getElementById('connect-btn').innerText = "Sync Active";
-
-                studioContract.on("ArtGenerated", (user, prompt) => {
-                    log(`Live Event: New AIVM Generation Detected!`);
-                    document.getElementById('mint-status').style.display = 'none';
-                    updateVault();
-                    renderArt(prompt); 
-                });
-
+                studioContract.on("ArtGenerated", (u, p) => { document.getElementById('mint-status').style.display = 'none'; updateVault(); renderArt(p); });
                 log(`Authenticated: ${userAddr}`); checkIdentity(); updateVault(); scanHistory(); 
             } catch (err) { log("Connection failed.", true); }
         }
 
         async function scanHistory() {
             try {
-                log("Scanning blockchain for art history...");
                 const filter = studioContract.filters.ArtGenerated();
                 const events = await studioContract.queryFilter(filter, -10000);
-                const last10 = events.slice(-10).reverse();
                 const gallery = document.getElementById('art-gallery');
                 gallery.innerHTML = ''; 
-                if (last10.length === 0) log("No previous art found.");
-                last10.forEach(event => { addToGallery(event.args[1]); });
+                events.slice(-10).reverse().forEach(ev => { addToGallery(ev.args[1]); });
             } catch (e) { log("History scan failed.", true); }
         }
 
-        // NEW: Blob-based fetcher to bypass cache and handle delays
-async function fetchAIVisual(url, maxRetries = 10) {
-    for (let i = 0; i < maxRetries; i++) {
-        try {
-            const response = await fetch(url, { cache: 'no-cache' });
-            if (response.ok) {
-                const blob = await response.blob();
-                return URL.createObjectURL(blob);
+        async function fetchAIVisual(url) {
+            for (let i = 0; i < 5; i++) {
+                try {
+                    const response = await fetch(url);
+                    if (response.ok) return URL.createObjectURL(await response.blob());
+                } catch (e) {}
+                await new Promise(r => setTimeout(r, 4000));
             }
-        } catch (e) {
-            console.log(`Retrying AIVM fetch... (${i+1})`);
+            return null;
         }
-        await new Promise(r => setTimeout(r, 3000)); // Wait 3 seconds before retry
-    }
-    return null;
-}
 
-async function addToGallery(prompt) {
-    const gallery = document.getElementById('art-gallery');
-    const item = document.createElement('div');
-    item.className = 'gallery-item';
-    
-    // Initial Syncing State
-    item.innerHTML = `
-        <div class="sync-text" style="height:150px; display:flex; align-items:center; justify-content:center; background:#000; font-size:0.6rem; color:var(--primary); animation:pulse 1s infinite">Syncing...</div>
-    `;
-    gallery.appendChild(item);
+        async function addToGallery(p) {
+            const gallery = document.getElementById('art-gallery');
+            const item = document.createElement('div');
+            item.className = 'gallery-item';
+            item.innerHTML = `<div class="sync-text" style="height:150px; display:flex; align-items:center; justify-content:center; background:#000; font-size:0.6rem; color:var(--primary); animation:pulse 1s infinite">Syncing...</div>`;
+            gallery.appendChild(item);
+            const blobUrl = await fetchAIVisual(`https://image.pollinations.ai/prompt/${encodeURIComponent(p)}?width=512&height=512&nologo=true&seed=${Math.floor(Math.random()*99999)}`);
+            if (blobUrl) item.innerHTML = `<img src="${blobUrl}" class="gallery-img" onclick="window.swapToMain('${blobUrl}')"><div class="gallery-controls"><button class="btn-gallery btn-view" onclick="window.swapToMain('${blobUrl}')">View</button><button class="btn-gallery" onclick="window.downloadImg('${blobUrl}')">DL</button></div>`;
+            else item.innerHTML = `<div style="height:150px; display:flex; align-items:center; justify-content:center; background:#000; color:var(--danger); font-size:0.6rem;">AIVM Timeout</div>`;
+        }
 
-    const seed = Math.floor(Math.random() * 1000000);
-    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=512&height=512&nologo=true&seed=${seed}`;
-    
-    const blobUrl = await fetchAIVisual(url);
-    
-    if (blobUrl) {
-        item.innerHTML = `
-            <img src="${blobUrl}" class="gallery-img" style="display:block; width:100%; height:150px; object-fit:cover;">
-            <div class="gallery-controls" style="display:flex">
-                <button class="btn-gallery btn-view" onclick="swapToMain('${blobUrl}')">View</button>
-                <button class="btn-gallery btn-dl" onclick="downloadImg('${blobUrl}')">DL</button>
-            </div>`;
-    } else {
-        item.innerHTML = `<div style="height:150px; display:flex; align-items:center; justify-content:center; background:#1a1b26; font-size:0.6rem; color:var(--danger)">AIVM Timeout</div>`;
-    }
-}
+        async function renderArt(p) {
+            document.getElementById('art-output').innerHTML = `<div id="mint-status" class="mint-overlay" style="display:flex"><div class="mint-spinner"></div>Status: Rendering...</div><div style="color:var(--primary); font-weight:bold; animation:pulse 1.5s infinite">AIVM Inference in Progress...</div>`;
+            const blobUrl = await fetchAIVisual(`https://image.pollinations.ai/prompt/${encodeURIComponent(p)}?width=1024&height=1024&nologo=true`);
+            if (blobUrl) document.getElementById('art-output').innerHTML = `<img src="${blobUrl}" style="width:100%; height:100%; object-fit:contain;">`;
+            else document.getElementById('art-output').innerHTML = `<span style="color:var(--danger)">AIVM Render Failed</span>`;
+        }
 
-async function renderArt(prompt) {
-    log(`AIVM is painting: "${prompt.slice(0,20)}..."`);
-    document.getElementById('art-output').innerHTML = `
-        <div id="mint-status" class="mint-overlay" style="display:flex"><div class="mint-spinner"></div>Status: Rendering...</div>
-        <div style="color:var(--primary); font-weight:bold; animation:pulse 1.5s infinite">AIVM Inference in Progress...</div>`;
-
-    const seed = Math.floor(Math.random() * 1000000);
-    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&seed=${seed}`;
-    
-    const blobUrl = await fetchAIVisual(url);
-
-    if (blobUrl) {
-        document.getElementById('art-output').innerHTML = `
-            <div id="mint-status" class="mint-overlay" style="display:none"><div class="mint-spinner"></div>Status: Minted</div>
-            <img src="${blobUrl}" style="width:100%; height:100%; object-fit:contain;" id="main-art-img">`;
-        addToGallery(prompt);
-        log("Visualization Success.");
-    } else {
-        document.getElementById('art-output').innerHTML = `<span style="color:var(--danger)">AIVM Render Failed</span>`;
-        log("Inference Timeout.", true);
-    }
-}
-        
         async function checkIdentity() {
             try {
-                const hasPass = await sbtContract.hasSBT(userAddr);
-                const isAdmin = await sbtContract.isAdmin(userAddr);
-                const owner = await studioContract.owner();
-                const container = document.getElementById('sbt-svg-container');
-                const desc = document.getElementById('nav-id-desc');
-                if (hasPass || isAdmin || userAddr.toLowerCase() === owner.toLowerCase()) {
-                    container.innerHTML = sbtSvg; container.classList.add('active');
-                    desc.innerText = (userAddr.toLowerCase() === owner.toLowerCase()) ? "Contract Owner Verified" : "Master Admin Verified";
-                    log("Access roles synchronized.");
-                } else { desc.innerText = "No Pass Detected"; }
-            } catch (e) { log("Identity Check Failed.", true); }
+                const isA = await sbtContract.isAdmin(userAddr);
+                const o = await studioContract.owner();
+                if (isA || userAddr.toLowerCase() === o.toLowerCase()) {
+                    document.getElementById('sbt-svg-container').innerHTML = sbtSvg;
+                    document.getElementById('nav-id-desc').innerText = (userAddr.toLowerCase() === o.toLowerCase()) ? "Contract Owner Verified" : "Master Admin Verified";
+                }
+            } catch (e) {}
         }
 
-        let retryCount = {};
-
-        window.swapToMain = (url) => { document.getElementById('art-output').innerHTML = `<div id="mint-status" class="mint-overlay"><div class="mint-spinner"></div>Status: Minting...</div><img src="${url}" style="width:100%; height:100%; object-fit:contain;" id="main-art-img">`; };
-        window.downloadImg = async (url) => { const response = await fetch(url); const blob = await response.blob(); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `AIVM_${Date.now()}.jpg`; link.click(); };
-
+        window.swapToMain = (url) => { document.getElementById('art-output').innerHTML = `<img src="${url}" style="width:100%; height:100%; object-fit:contain;">`; };
+        window.downloadImg = async (url) => { const a = document.createElement('a'); a.href = url; a.download = `AIVM_${Date.now()}.jpg`; a.click(); };
+        document.getElementById('admin-query').onclick = async () => { const a = document.getElementById('admin-user-addr').value; if (!ethers.isAddress(a)) return; log(`Querying: SBT=${await sbtContract.hasSBT(a)} | Admin=${await sbtContract.isAdmin(a)}`); };
+        document.getElementById('admin-verify').onclick = async () => { try { await (await studioContract.setVerification(document.getElementById('admin-user-addr').value, true)).wait(); log("Verified!"); } catch (e) { log("Denied", true); } };
+        document.getElementById('withdraw-btn').onclick = async () => { try { await (await studioContract.withdraw()).wait(); log("Withdrawn!"); updateVault(); } catch (e) { log("Denied", true); } };
         document.getElementById('generate-btn').onclick = async () => {
-            const prompt = document.getElementById('prompt-input').value;
-            if (!prompt) return log("Prompt required", true);
-            try {
-                log("Starting AIVM Inference...");
-                document.getElementById('mint-status').style.display = 'flex';
-                document.getElementById('art-output').childNodes[2].nodeValue = "Inference Processing...";
-                const tx = await studioContract.generateArt(prompt, { value: ethers.parseEther("0.25") });
-                await tx.wait(); log("Generation Success!");
-            } catch (e) { log("Generation failed.", true); document.getElementById('mint-status').style.display = 'none'; }
+            const p = document.getElementById('prompt-input').value;
+            try { document.getElementById('mint-status').style.display = 'flex'; await (await studioContract.generateArt(p, { value: ethers.parseEther("0.25") })).wait(); log("Success!"); } 
+            catch (e) { log("Failed", true); document.getElementById('mint-status').style.display = 'none'; }
         };
-
         document.getElementById('connect-btn').onclick = connect;
         log("System Online. Awaiting Handshake...");
     </script>
 </body>
 </html>
-
-

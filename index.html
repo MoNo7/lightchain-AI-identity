@@ -34,7 +34,6 @@
         .header-title { font-weight: 800; color: var(--primary); font-size: 1.1rem; white-space: nowrap; }
         
         .nav-identity-group { display: flex; align-items: center; gap: 12px; margin-left: 10px; padding-left: 15px; border-left: 1px solid var(--border); }
-        /* Fix for broken logo: added a background-color fallback */
         .nav-sbt-icon { width: 24px; height: 24px; border-radius: 4px; background-color: #2d2f45; opacity: 0.5; transition: 0.3s; }
         .nav-sbt-icon.active { opacity: 1; border: 1px solid var(--primary); box-shadow: 0 0 5px var(--primary); }
         .nav-desc { font-size: 0.75rem; color: var(--text-dim); }
@@ -49,18 +48,25 @@
         .sidebar { width: 350px; background: var(--sidebar); border-right: 1px solid var(--border); padding: 20px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; }
         .main-content { flex: 1; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
         .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
-        .card-title { font-size: 0.75rem; font-weight: 800; color: var(--text-dim); text-transform: uppercase; margin-bottom: 12px; }
+        .card-title { font-size: 0.7rem; font-weight: 800; color: var(--text-dim); text-transform: uppercase; margin-bottom: 12px; }
+        
+        /* Compact Logs */
         .console { height: 250px; background: #000; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: monospace; font-size: 0.75rem; color: #7dd3fc; overflow-y: auto; }
+        
+        /* Input & Generation UI */
         .input-group { background: var(--card); border: 1px solid var(--border); border-radius: 12px; display: flex; padding: 8px; gap: 10px; }
         .prompt-input { flex: 1; background: transparent; border: none; color: white; padding: 10px; outline: none; font-size: 1rem; }
         .btn-gen { background: var(--primary); color: white; border: none; padding: 10px 25px; border-radius: 8px; font-weight: 700; cursor: pointer; }
         .output-view { flex: 1; background: #08090f; border: 1px solid var(--border); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--text-dim); }
-        .admin-input { width: 100%; background: #0f111a; border: 1px solid var(--border); border-radius: 6px; padding: 10px; color: white; margin-bottom: 10px; font-size: 0.8rem; }
+        
+        /* Compact Admin & Owner UI */
+        .admin-input { width: 100%; background: #0f111a; border: 1px solid var(--border); border-radius: 6px; padding: 10px; color: white; margin-bottom: 10px; font-size: 0.75rem; }
         .admin-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .btn-admin { border: none; padding: 8px; border-radius: 4px; font-weight: 700; cursor: pointer; font-size: 0.75rem; }
+        .btn-admin { border: none; padding: 6px 8px; border-radius: 4px; font-weight: 700; cursor: pointer; font-size: 0.7rem; transition: 0.2s; }
         .btn-query { grid-column: span 2; background: var(--border); color: white; margin-bottom: 4px; }
         .btn-verify { background: var(--secondary); color: black; }
         .btn-revoke { background: var(--danger); color: white; }
+        .btn-withdraw { width: 100%; background: #f59e0b; color: black; border: none; padding: 8px; border-radius: 6px; font-weight: 800; cursor: pointer; font-size: 0.75rem; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -102,9 +108,9 @@
 
             <div class="card">
                 <div class="card-title">Owner Vault</div>
-                <div style="font-size: 0.7rem; color: var(--text-dim);">Revenue Collected:</div>
-                <div id="revenue-display" style="font-size: 1.3rem; font-weight: 800; color: var(--secondary); margin: 5px 0;">0.00 LCAI</div>
-                <button id="withdraw-btn" style="width: 100%; background: #f59e0b; color: black; border: none; padding: 10px; border-radius: 8px; font-weight: 800; cursor: pointer;">Withdraw Funds</button>
+                <div style="font-size: 0.65rem; color: var(--text-dim);">Revenue Collected:</div>
+                <div id="revenue-display" style="font-size: 1.2rem; font-weight: 800; color: var(--secondary); margin: 2px 0;">0.00 LCAI</div>
+                <button id="withdraw-btn" class="btn-withdraw">Withdraw Funds</button>
             </div>
         </div>
 
@@ -125,7 +131,8 @@
 
         const ABI = [
             "function hasSBT(address user) view returns (bool)",
-            "function mintIdentity() external",
+            "function isAdmin(address user) view returns (bool)",
+            "function owner() view returns (address)",
             "function requestInference(string memory prompt) external payable",
             "function withdraw() external",
             "function verifyUser(address user) external",
@@ -170,35 +177,55 @@
         async function checkIdentity() {
             try {
                 const hasPass = await sbtContract.hasSBT(userAddr);
+                const isAdmin = await sbtContract.isAdmin(userAddr);
+                const ownerAddr = await aivmContract.owner();
+                
                 const icon = document.getElementById('sbt-icon-nav');
                 const desc = document.getElementById('nav-id-desc');
+                
                 if (hasPass) {
                     icon.classList.add('active');
-                    desc.innerText = "ZK-Pass Verified. Full Access.";
-                    log("Identity verified via Lightchain Testnet.");
+                    if (userAddr.toLowerCase() === ownerAddr.toLowerCase()) {
+                        desc.innerText = "Contract Owner Verified.";
+                        log("Role Detected: Owner.");
+                    } else if (isAdmin) {
+                        desc.innerText = "Master Admin Verified.";
+                        log("Role Detected: Admin.");
+                    } else {
+                        desc.innerText = "ZK-Pass Verified. Full Access.";
+                        log("Identity verified via Lightchain Testnet.");
+                    }
                 } else {
                     icon.classList.remove('active');
                     desc.innerText = "No Pass Detected.";
                 }
-            } catch (e) { log("SBT Sync failed.", true); }
+            } catch (e) { log("Role Sync failed.", true); }
         }
+
+        document.getElementById('admin-query').onclick = async () => {
+            const addr = document.getElementById('admin-user-addr').value;
+            if(!ethers.isAddress(addr)) return log("Invalid Address Format", true);
+            try {
+                log(`Querying ${addr.slice(0,10)}...`);
+                const holdsSBT = await sbtContract.hasSBT(addr);
+                const isUserAdmin = await sbtContract.isAdmin(addr);
+                log(`Result: SBT=${holdsSBT} | Admin=${isUserAdmin}`);
+            } catch (e) { log("Query failed.", true); }
+        };
 
         document.getElementById('generate-btn').onclick = async () => {
             const prompt = document.getElementById('prompt-input').value;
             if (!prompt || !userAddr) return log("Invalid Request", true);
-            
             try {
                 log(`Sending Inference Transaction...`);
-                // Actual transaction call
                 const tx = await aivmContract.requestInference(prompt, { 
                     value: ethers.parseEther("0.25") 
                 });
                 log("Transaction Sent. Waiting for confirmation...");
                 await tx.wait();
                 log("Inference anchored. Processing AI output...");
-                document.getElementById('art-output').innerText = "Generation Successful. Rendering Image...";
             } catch (err) {
-                log("Inference Failed: Check balance or ZK-Pass.", true);
+                log("Inference Failed: Check balance or roles.", true);
             }
         };
 
@@ -207,19 +234,18 @@
                 log("Initiating Withdrawal...");
                 const tx = await aivmContract.withdraw();
                 await tx.wait();
-                log("Funds successfully withdrawn to owner wallet.");
-            } catch (err) {
-                log("Withdrawal failed: Access Denied.", true);
-            }
+                log("Funds successfully withdrawn.");
+            } catch (err) { log("Withdrawal failed: Access Denied.", true); }
         };
 
         document.getElementById('admin-verify').onclick = async () => {
             const addr = document.getElementById('admin-user-addr').value;
             if(!ethers.isAddress(addr)) return log("Invalid Address", true);
             try {
+                log(`Sending Verify Transaction...`);
                 const tx = await aivmContract.verifyUser(addr);
                 await tx.wait();
-                log(`User ${addr.slice(0,10)}... Verified.`);
+                log(`User ${addr.slice(0,10)} Verified.`);
             } catch (e) { log("Admin Action Denied.", true); }
         };
 
@@ -228,5 +254,3 @@
     </script>
 </body>
 </html>
-
-

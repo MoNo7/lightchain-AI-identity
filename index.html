@@ -2,150 +2,199 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Lightchain AI | Final Fix Portal</title>
+    <title>Lightchain AI | Art Studio & Portal</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <style>
-        :root { --primary: #00d1ff; --bg: #050505; --sidebar: #0d0d0e; --card: #141417; --text: #e0e0e0; }
-        body { background: var(--bg); color: var(--text); font-family: sans-serif; margin: 0; display: flex; height: 100vh; overflow: hidden; }
-        aside { width: 260px; background: var(--sidebar); border-right: 1px solid #222; padding: 20px; display: flex; flex-direction: column; }
-        .nav-item { padding: 12px; cursor: pointer; color: #888; border-radius: 8px; margin-bottom: 5px; }
-        .nav-item.active { background: rgba(0, 209, 255, 0.1); color: var(--primary); }
-        .status-dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; background: #ff4444; margin-right: 5px; }
-        .online { background: #00ff88; box-shadow: 0 0 8px #00ff88; }
-        main { flex: 1; padding: 40px; overflow-y: auto; }
-        .card { background: var(--card); border: 1px solid #222; padding: 25px; border-radius: 12px; }
-        .btn { background: var(--primary); color: #000; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; }
-        #artLog { margin-top: 20px; background: #000; padding: 10px; border-radius: 8px; max-height: 300px; overflow-y: auto; }
-        .log-entry { font-size: 11px; padding: 8px; border-bottom: 1px solid #222; cursor: pointer; }
+        :root { --primary: #007bff; --admin-blue: #0056b3; --bg: #f0f2f5; --text: #1c1e21; --success: #28a745; --owner: #6f42c1; --warning: #f0ad4e; --danger: #dc3545; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--bg); color: var(--text); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        #topNav { height: 60px; background: #fff; border-bottom: 1px solid #e1e4e8; display: flex; align-items: center; justify-content: space-between; padding: 0 25px; flex-shrink: 0; }
+        .token-display { background: #f8f9fa; padding: 8px 15px; border-radius: 20px; border: 1px solid #e1e4e8; font-weight: 700; font-size: 0.85rem; color: var(--success); }
+        .content-wrapper { display: flex; flex: 1; overflow: hidden; }
+        #leftSidebar, #rightSidebar { width: 320px; background: #fff; padding: 20px; overflow-y: auto; border-right: 1px solid #e1e4e8; box-sizing: border-box; }
+        #rightSidebar { border-right: none; border-left: 1px solid #e1e4e8; }
+        .main-utility-area { flex: 1; padding: 30px; display: flex; flex-direction: column; align-items: center; background: #f8f9fa; overflow-y: auto; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid #e1e4e8; width: 100%; box-sizing: border-box; }
+        .primary-btn { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: 600; margin-top: 10px; transition: opacity 0.2s; }
+        .primary-btn:hover { opacity: 0.9; }
+        .primary-btn:disabled { background: #ccc; cursor: not-allowed; }
+        .result-window { margin-top: 20px; padding: 15px; background: #fdfdfd; border: 2px dashed #cbd5e0; border-radius: 8px; min-height: 150px; display: flex; align-items: center; justify-content: center; text-align: center; flex-direction: column; }
+        input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 8px; box-sizing: border-box; }
+        .pulsing-text { animation: pulse 1.5s infinite; color: var(--warning); font-weight: bold; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
     </style>
 </head>
 <body>
-    <aside>
-        <div style="font-weight:bold; margin-bottom:20px;">LCAI Identity</div>
-        <div class="nav-item active">AI Art Generator</div>
-        <div style="margin-top:auto; font-size:11px;">
-            <div id="gpuHealth"><span class="status-dot" id="dot"></span> Cluster: Offline</div>
-            <div id="gpuLoad" style="color:#555">Load: Checking...</div>
+    <div id="topNav">
+        <h1 style="font-size: 1.1rem; color: #0056b3; margin: 0;">Identity & Art Portal</h1>
+        <div class="token-display"><span id="tokenBalance">0.0000</span> LCAI</div>
+    </div>
+    <div class="content-wrapper">
+        <div id="leftSidebar">
+            <div class="card" style="text-align: center;">
+                <div id="userProfile" style="display:none; margin-bottom:15px;">
+                    <div id="userNameDisplay" style="font-size: 1.1rem; font-weight:800; color: #0056b3;"></div>
+                    <div id="verifyTag" style="font-size: 0.65rem; font-weight: bold;">CONNECTED</div>
+                </div>
+                <button id="connectBtn" class="primary-btn">Connect Wallet</button>
+            </div>
+            
+            <div id="zkPassSection" class="card" style="display:none; border-top: 4px solid var(--owner);">
+                <h4 style="color:var(--owner); margin: 0 0 10px 0;">zkPass Verification</h4>
+                <p style="font-size: 0.8rem; color: #666;">Verify your zero-knowledge credentials to unlock AI image generation.</p>
+                <div id="zkStatusBadge" style="padding: 8px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; text-align: center; background: #f8d7da; color: #721c24; margin-bottom: 10px;">Unverified</div>
+                <button id="verifyZkBtn" class="primary-btn" style="background: var(--owner);">Generate & Verify ZK Proof</button>
+            </div>
         </div>
-    </aside>
 
-    <main>
-        <header style="display:flex; justify-content:flex-end; margin-bottom:20px;">
-            <button id="connectBtn" class="btn" onclick="connect()">Connect Wallet</button>
-        </header>
-
-        <div class="card" id="artUI" style="display:none">
-            <input type="text" id="artPrompt" placeholder="Panda on Mars..." style="width:80%; padding:10px; background:#000; border:1px solid #333; color:#fff;">
-            <button id="genBtn" class="btn">Generate Art</button>
-            <p id="status" style="color:#888; font-size:12px;">Ready.</p>
-            <div id="artLog"></div>
-            <div id="viewer" style="margin-top:20px; text-align:center;"></div>
+        <div class="main-utility-area">
+            <div id="artUI" style="display:none; width: 100%; max-width: 600px;">
+                <div class="card" style="border-top: 4px solid var(--success);">
+                    <h2 style="margin-top: 0;">AIVM Art Studio (SDXL)</h2>
+                    <p style="font-size: 0.85rem; color: #666; margin-bottom: 15px;">Enter a prompt to generate an image via the Lightchain AI Cluster.</p>
+                    <input type="text" id="artPrompt" placeholder="e.g., A futuristic cyberpunk city at sunset, highly detailed...">
+                    <button id="generateArtBtn" class="primary-btn" style="background: var(--success);" disabled>Generate Art (0.25 LCAI)</button>
+                    
+                    <div class="result-window" id="artResultWindow">
+                        <span style="color: #999;">Awaiting inference command...</span>
+                    </div>
+                </div>
+            </div>
         </div>
-    </main>
+
+        <div id="rightSidebar">
+            <div class="card">
+                <h4 style="margin:0;">Cluster Logs</h4>
+                <div id="txFeed" style="font-size: 0.75rem; margin-top:10px; max-height: 400px; overflow-y:auto; word-break: break-all;"></div>
+            </div>
+        </div>
+    </div>
 
     <script>
-        const ROUTER = "0x0269683E61b210d56b3D692603336fEB27B8a83a";
-        const API = "https://chat2.lightchain.ai/api/v1";
-        let provider, signer, userTasks = JSON.parse(localStorage.getItem('lcai_tasks') || '[]');
+        const IDENTITY_CONTRACT = "0xe0087e581f11b9de0d61697a0cb0cdffca8f1f34";
+        const ART_CONTRACT_ADDR = "0x7dC3097b91439a86526E8771c7b2bF99ab4F82F9"; 
+        const IDENTITY_ABI = ["function getIdentity(address) view returns (string, string, bool)"];
+        const ART_ABI = [
+            "function generateArt(string _prompt) payable",
+            "function verifyZkPass(bytes proof)",
+            "function isZkVerified(address) view returns (bool)",
+            "event ArtRequested(address indexed user, string prompt, bytes32 taskId)",
+            "event ArtCompleted(address indexed user, string imageUrl, bytes32 taskId)",
+            "event ZkPassVerified(address indexed user)"
+        ];
+        
+        let signer, artContract, identityContract, provider;
 
-        async function connect() {
+        function logToSidebar(msg) {
+            const feed = document.getElementById('txFeed');
+            const entry = document.createElement('div');
+            entry.style.borderBottom = "1px solid #eee"; entry.style.padding = "5px 0";
+            entry.innerHTML = `<span style="color:#666">[${new Date().toLocaleTimeString()}]</span> ${msg}`;
+            feed.prepend(entry);
+        }
+
+        async function hardSync() {
+            const address = await signer.getAddress();
+            const [profile, balance, zkVerified] = await Promise.all([
+                identityContract.getIdentity(address),
+                provider.getBalance(address),
+                artContract.isZkVerified(address)
+            ]);
+            
+            // Update Identity Profile
+            document.getElementById('tokenBalance').innerText = parseFloat(ethers.formatEther(balance)).toFixed(4);
+            document.getElementById('userNameDisplay').innerText = profile[0] || "Anonymous User";
+            document.getElementById('verifyTag').innerText = profile[2] ? "GLOBAL ID VERIFIED" : "ID UNVERIFIED";
+            document.getElementById('verifyTag').style.color = profile[2] ? "var(--success)" : "var(--danger)";
+            
+            // Update ZK Status
+            const zkBadge = document.getElementById('zkStatusBadge');
+            const genBtn = document.getElementById('generateArtBtn');
+            if (zkVerified) {
+                zkBadge.innerText = "ZK Pass Verified";
+                zkBadge.style.background = "#d4edda";
+                zkBadge.style.color = "#155724";
+                document.getElementById('verifyZkBtn').style.display = "none";
+                genBtn.disabled = false;
+                genBtn.innerText = "Generate Art (0.25 LCAI)";
+            } else {
+                genBtn.disabled = true;
+                genBtn.innerText = "Requires ZK Pass Verification";
+            }
+        }
+
+        async function connectWallet() {
+            if (!window.ethereum) return alert("Install MetaMask");
             provider = new ethers.BrowserProvider(window.ethereum);
             signer = await provider.getSigner();
-            const addr = await signer.getAddress();
-            document.getElementById('connectBtn').innerText = addr.substring(0,6)+"...";
-            document.getElementById('artUI').style.display = 'block';
-            updateHealth();
-            renderLog();
-            userTasks.forEach((t, i) => { if(!t.ready) pollTask(i); });
-        }
+            const myAddr = await signer.getAddress();
+            
+            artContract = new ethers.Contract(ART_CONTRACT_ADDR, ART_ABI, signer);
+            identityContract = new ethers.Contract(IDENTITY_CONTRACT, IDENTITY_ABI, signer);
 
-        async function updateHealth() {
-            try {
-                const res = await fetch(`${API}/chat/health`);
-                const data = await res.json();
-                document.getElementById('dot').classList.add('online');
-                document.getElementById('gpuHealth').innerText = "Cluster: Online";
-                document.getElementById('gpuLoad').innerText = `Global Load: ${data.load || 'Normal'}%`;
-            } catch(e) {}
-        }
-
-        document.getElementById('genBtn').onclick = async () => {
-            const prompt = document.getElementById('artPrompt').value;
-            const status = document.getElementById('status');
-            status.innerText = "Signing Transaction...";
-            try {
-                const router = new ethers.Contract(ROUTER, ["function requestInferenceV2(uint256 m, string p) external payable"], signer);
-                const tx = await router.requestInferenceV2(2, prompt, { value: ethers.parseEther("0.1") });
-                
-                // PUSH TO LOG IMMEDIATELY
-                const idx = userTasks.push({ prompt, taskId: "Searching...", ready: false, tx: tx.hash }) - 1;
-                renderLog();
-                
-                const receipt = await tx.wait();
-                // SEARCH ALL LOGS FOR ANY 32-BYTE TOPIC
-                const log = receipt.logs.find(l => l.address.toLowerCase() === ROUTER.toLowerCase() && l.topics.length > 1);
-                
-                if(log) {
-                    userTasks[idx].taskId = log.topics[1];
-                    localStorage.setItem('lcai_tasks', JSON.stringify(userTasks));
-                    renderLog();
-                    pollTask(idx);
-                } else {
-                    status.innerText = "Log Error. Try Recovery page.";
+            // Set up Listeners
+            artContract.on("ArtRequested", (user, p, taskId) => { 
+                if(user.toLowerCase() === myAddr.toLowerCase()) {
+                    logToSidebar(`Inference Requested: ${taskId.substring(0,10)}...`); 
                 }
-            } catch (e) { status.innerText = "Failed."; console.error(e); }
+            });
+            
+            artContract.on("ZkPassVerified", (user) => {
+                if(user.toLowerCase() === myAddr.toLowerCase()) {
+                    logToSidebar("zkPass verification confirmed on-chain.");
+                    hardSync();
+                }
+            });
+
+            artContract.on("ArtCompleted", async (user, imageUrl, taskId) => {
+                if (user.toLowerCase() === myAddr.toLowerCase()) {
+                    logToSidebar(`AIVM Callback Received! Task: ${taskId.substring(0,10)}`);
+                    const box = document.getElementById('artResultWindow');
+                    box.innerHTML = `
+                        <div style="color: var(--success); font-weight: bold; margin-bottom: 10px;">Inference Complete!</div>
+                        <img src="${imageUrl}" alt="AI Generated Art" style="max-width: 100%; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+                    `;
+                    await hardSync();
+                }
+            });
+
+            document.getElementById('connectBtn').style.display = 'none';
+            document.getElementById('userProfile').style.display = 'block';
+            document.getElementById('zkPassSection').style.display = 'block';
+            document.getElementById('artUI').style.display = 'block';
+            await hardSync();
+        }
+
+        // Handle ZK Verification
+        document.getElementById('verifyZkBtn').onclick = async () => {
+            try {
+                logToSidebar("Generating local ZK proof...");
+                // Create a mock proof for testnet purposes
+                const mockProof = ethers.keccak256(ethers.toUtf8Bytes(Date.now().toString()));
+                
+                const tx = await artContract.verifyZkPass(mockProof);
+                logToSidebar(`Submitting ZK proof to network...`);
+                await tx.wait();
+            } catch (e) {
+                alert("Error verifying ZK Pass: " + (e.reason || e.message));
+            }
         };
 
-        async function pollTask(i) {
-            const t = userTasks[i];
-            if(t.taskId === "Searching...") return;
+        // Handle Art Generation
+        document.getElementById('generateArtBtn').onclick = async () => {
+            const prompt = document.getElementById('artPrompt').value;
+            if (!prompt) return alert("Please enter a prompt.");
+            const box = document.getElementById('artResultWindow');
             try {
-                const res = await fetch(`${API}/chat/status?taskId=${t.taskId}`);
-                const data = await res.json();
-                if(data.ready && data.url) {
-                    t.ready = true; t.url = data.url;
-                    localStorage.setItem('lcai_tasks', JSON.stringify(userTasks));
-                    renderLog();
-                } else setTimeout(() => pollTask(i), 5000);
-            } catch(e) { setTimeout(() => pollTask(i), 10000); }
-        }
+                box.innerHTML = '<span class="pulsing-text">Anchoring request to Lightchain...</span>';
+                const tx = await artContract.generateArt(prompt, { value: ethers.parseEther("0.25") });
+                await tx.wait();
+                box.innerHTML = '<span class="pulsing-text">Transaction confirmed. Waiting for AIVM Cluster inference (approx 30-60s)...</span>';
+            } catch (e) { 
+                box.innerHTML = `<span style="color: var(--danger);">Error: ${e.reason || e.message}</span>`; 
+            }
+        };
 
-        function renderLog() {
-            const log = document.getElementById('artLog');
-            log.innerHTML = userTasks.map((t, i) => `
-                <div class="log-entry" onclick="viewArt(${i})">
-                    <b>#${i+1}</b> ${t.prompt.slice(0,10)}... [${t.ready ? 'READY' : 'QUEUED'}]
-                </div>
-            `).join('');
-        }
-
-        function viewArt(i) {
-            const t = userTasks[i];
-            const viewer = document.getElementById('viewer');
-            if(t.ready) {
-                viewer.innerHTML = `<img src="${t.url}" style="width:100%; border-radius:10px;"><br><a href="${t.url}" download class="btn">Download</a>`;
-            } else viewer.innerHTML = `<p>ID: ${t.taskId.slice(0,10)}... is still processing.</p>`;
-        }
-
-        // Listen for the AI Router Callback
-artContract.on("ArtCompleted", async (user, imageUrl, taskId) => {
-    const myAddr = await signer.getAddress();
-    
-    // Only update if the callback belongs to the connected wallet
-    if (user.toLowerCase() === myAddr.toLowerCase()) {
-        console.log("AIVM Callback Received! TaskID:", taskId);
-        
-        const displayBox = document.getElementById('artResultWindow');
-        displayBox.innerHTML = `
-            <div style="color: var(--success); font-weight: bold; margin-bottom: 10px;">Inference Complete!</div>
-            <img src="${imageUrl}" alt="AI Generated Art" style="max-width: 100%; border-radius: 8px; border: 2px solid #e1e4e8;">
-        `;
-        
-        logToSidebar(`Task ${taskId.substring(0,8)}... Completed.`);
-    }
-});
-        
+        window.onload = () => { document.getElementById('connectBtn').onclick = connectWallet; };
     </script>
 </body>
 </html>
-

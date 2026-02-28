@@ -55,45 +55,67 @@
     </div>
     <script>
         // Update these with your new deployed addresses
-        const ART_ADDR = "0x79Bb2fCB0400dd586Ed15260793AC1e6471adE94";
-        const ZK_ADDR = "0xB26030990248C04E624A473185828827AAe34776";
+        const ART_ADDR = "0xe124b0dE725eF4760AAaC30048729484183A4aAe";
+        const ZK_ADDR = "0xdB20408B589363B8A82Fcc008d50715c5958320c";
 
         const ABI = ["function generateArt(string p) payable","function owner() view returns (address)","function totalRevenue() view returns (uint256)","function setVerification(address u, bool s)","function withdrawRevenue()","function manualVerified(address) view returns (bool)"];
         const ZK_ABI = ["function tokenURI(uint256) view returns (string)", "function hasSBT(address) view returns (bool)","function mintIdentity() external"];
         let signer, contract, zkContract, provider;
         function log(msg) { const f = document.getElementById('logFeed'); f.innerHTML += `<div>> ${msg}</div>`; f.scrollTop = f.scrollHeight; }
 
-        async function init() {
-            provider = new ethers.BrowserProvider(window.ethereum); await provider.send("eth_requestAccounts", []);
-            signer = await provider.getSigner(); const addr = await signer.getAddress();
-            contract = new ethers.Contract(ART_ADDR, ABI, signer); zkContract = new ethers.Contract(ZK_ADDR, ZK_ABI, signer);
-            const [owner, rev, bal, hasSBT] = await Promise.all([contract.owner(), contract.totalRevenue(), provider.getBalance(addr), zkContract.hasSBT(addr)]);
-            document.getElementById('addrDisplay').innerText = addr; document.getElementById('balDisplay').innerText = parseFloat(ethers.formatEther(bal)).toFixed(4);
-            document.getElementById('walletBox').style.display = 'block'; document.getElementById('connectBtn').style.display = 'none';
-            document.getElementById('zkCard').style.display = 'block'; document.getElementById('statusText').innerText = "Cluster Active"; document.getElementById('statusText').style.color = "#22c55e";
-            
-            document.getElementById('genBtn').disabled = false;
-            document.getElementById('genBtn').onclick = async () => {
-                try {
-                    const prompt = document.getElementById('promptInput').value;
-                    log("Anchoring AIVM Request...");
-                    const tx = await contract.generateArt(prompt, { value: ethers.parseEther("0.25") });
-                    await tx.wait();
-                    log("Request Confirmed ✓");
-                    document.getElementById('output').innerHTML = "<span>Request sent to AIVM Router...</span>";
-                } catch(e) { log("Error: " + (e.reason || e.message)); }
-            };
 
-            if(hasSBT) {
-                const uri = await zkContract.tokenURI(1); const json = JSON.parse(atob(uri.split(',')[1]));
-                document.getElementById('nftDisplay').innerHTML = `<img src="${json.image}">`;
-                document.getElementById('zkStatus').innerText = "VERIFIED IDENTITY ✓";
-            } else { document.getElementById('zkVerifyBtn').style.display = 'block'; }
-            if(owner.toLowerCase() === addr.toLowerCase()) {
-                document.getElementById('adminCard').style.display = 'block';
+        async function init() {
+            try {
+                log("Initializing Cluster Connection...");
+                provider = new ethers.BrowserProvider(window.ethereum);
+                await provider.send("eth_requestAccounts", []);
+                signer = await provider.getSigner();
+                const addr = await signer.getAddress();
+                
+                contract = new ethers.Contract(ART_ADDR, ABI, signer);
+                zkContract = new ethers.Contract(ZK_ADDR, ZK_ABI, signer);
+
+                // This fetches everything simultaneously to avoid the hang
+                const [owner, rev, bal, hasSBT] = await Promise.all([
+                    contract.owner(),
+                    contract.totalRevenue(),
+                    provider.getBalance(addr),
+                    zkContract.hasSBT(addr)
+                ]);
+
+                document.getElementById('addrDisplay').innerText = addr;
+                document.getElementById('balDisplay').innerText = parseFloat(ethers.formatEther(bal)).toFixed(4);
                 document.getElementById('revDisplay').innerText = ethers.formatEther(rev);
+                
+                // Switch UI State
+                document.getElementById('walletBox').style.display = 'block';
+                document.getElementById('connectBtn').style.display = 'none';
+                document.getElementById('zkCard').style.display = 'block';
+                
+                if (hasSBT) {
+                    const uri = await zkContract.tokenURI(1);
+                    const json = JSON.parse(atob(uri.split(',')[1]));
+                    document.getElementById('nftDisplay').innerHTML = `<img src="${json.image}" style="width:100%; border-radius:10px;">`;
+                    document.getElementById('zkStatus').innerText = "ZK IDENTITY VERIFIED ✓";
+                    log("Identity Loaded.");
+                } else {
+                    document.getElementById('zkVerifyBtn').style.display = 'block';
+                    log("Identity Required.");
+                }
+
+                if (owner.toLowerCase() === addr.toLowerCase()) {
+                    document.getElementById('adminCard').style.display = 'block';
+                }
+                
+                log("Cluster Active & Synced.");
+                document.getElementById('genBtn').disabled = false;
+
+            } catch (e) {
+                log("Error syncing cluster: " + e.message);
+                console.error(e);
             }
         }
+        
         async function checkStatus() {
             const addr = document.getElementById('targetAddr').value;
             const status = await contract.manualVerified(addr);
@@ -107,4 +129,5 @@
     </script>
 </body>
 </html>
+
 

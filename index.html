@@ -130,27 +130,63 @@
             } catch (err) { log("Connection failed.", true); }
         }
 
-        async function scanHistory() {
-            try {
-                log("Scanning blockchain for art history...");
-                const filter = studioContract.filters.ArtGenerated();
-                const events = await studioContract.queryFilter(filter, -5000);
-                const last10 = events.slice(-10).reverse();
-                const gallery = document.getElementById('art-gallery');
-                gallery.innerHTML = ''; 
-                last10.forEach(event => { addToGallery(event.args[1]); });
-                log(`History Sync: ${last10.length} items recovered.`);
-            } catch (e) { log("History scan failed.", true); }
+// Update scanHistory to use the new gallery logic
+async function scanHistory() {
+    try {
+        log("Scanning blockchain for art history...");
+        const filter = studioContract.filters.ArtGenerated();
+        const events = await studioContract.queryFilter(filter, -10000); // Scan deeper
+        const last10 = events.slice(-10).reverse();
+        const gallery = document.getElementById('art-gallery');
+        gallery.innerHTML = ''; 
+        
+        if (last10.length === 0) {
+            log("No previous art found on this contract.");
         }
+        last10.forEach(event => { 
+            // args[1] is the prompt string from your AIArtStudio.sol
+            addToGallery(event.args[1]); 
+        });
+        log(`History Sync: ${last10.length} items recovered.`);
+    } catch (e) { 
+        log("History scan failed: Check RPC connection.", true); 
+    }
+}
 
-        function addToGallery(prompt) {
-            const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&seed=${Math.floor(Math.random() * 1000000)}`;
-            const gallery = document.getElementById('art-gallery');
-            const item = document.createElement('div');
-            item.className = 'gallery-item';
-            item.innerHTML = `<img src="${url}" class="gallery-img" onclick="swapToMain('${url}')"><div class="gallery-controls"><button class="btn-gallery btn-view" onclick="swapToMain('${url}')">View</button><button class="btn-gallery btn-dl" onclick="downloadImg('${url}')">DL</button></div>`;
-            gallery.appendChild(item);
-        }
+// NEW: Optimized Gallery Adder with Loading States
+function addToGallery(prompt) {
+    const gallery = document.getElementById('art-gallery');
+    const item = document.createElement('div');
+    item.className = 'gallery-item';
+    
+    // Create a unique seed for this specific history item
+    const seed = Math.floor(Math.random() * 1000000);
+    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=512&height=512&nologo=true&seed=${seed}`;
+    
+    // Start with a loading placeholder
+    item.innerHTML = `
+        <div class="gallery-loading" style="aspect-ratio:1; display:flex; align-items:center; justify-content:center; background:#000; font-size:0.6rem; color:var(--primary)">
+            Syncing...
+        </div>
+        <div class="gallery-controls" style="display:none">
+            <button class="btn-gallery btn-view" onclick="swapToMain('${url}')">View</button>
+            <button class="btn-gallery btn-dl" onclick="downloadImg('${url}')">DL</button>
+        </div>
+    `;
+    gallery.appendChild(item);
+    // Pre-load the image in the background
+    const img = new Image();
+    img.src = url;
+    img.onload = () => {
+        item.innerHTML = `
+            <img src="${url}" class="gallery-img" onclick="swapToMain('${url}')">
+            <div class="gallery-controls">
+                <button class="btn-gallery btn-view" onclick="swapToMain('${url}')">View</button>
+                <button class="btn-gallery btn-dl" onclick="downloadImg('${url}')">DL</button>
+            </div>
+        `;
+    };
+}
 
         async function checkIdentity() {
             try {
@@ -168,30 +204,29 @@
         }
 
         let retryCount = {};
-        function renderArt(prompt) {
-            const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&seed=${Math.floor(Math.random() * 1000000)}`;
-            const img = new Image();
-            img.src = url;
-            if (!retryCount[prompt]) retryCount[prompt] = 0;
+       // NEW: Robust Render for New Generations
+function renderArt(prompt) {
+    const seed = Math.floor(Math.random() * 1000000);
+    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&seed=${seed}`;
+    
+    log(`AIVM is painting: "${prompt.slice(0,20)}..."`);
+    document.getElementById('art-output').innerHTML = `<div style="color:var(--primary); font-weight:bold; animation:pulse 1.5s infinite">AIVM Inference in Progress...</div>`;
 
-            img.onload = () => {
-                document.getElementById('art-output').innerHTML = `<img src="${url}" style="width:100%; height:100%; object-fit:contain;" id="main-art-img">`;
-                addToGallery(prompt);
-                log(`AIVM Visualization Rendered: ${prompt.slice(0, 20)}...`);
-                delete retryCount[prompt];
-            };
+    const img = new Image();
+    img.src = url;
 
-            img.onerror = () => {
-                if (retryCount[prompt] < 5) {
-                    retryCount[prompt]++;
-                    log(`Inference in progress... attempt ${retryCount[prompt]}`, false);
-                    setTimeout(() => renderArt(prompt), 4000);
-                } else {
-                    log("AIVM Render Timeout. Please try a different prompt.", true);
-                    document.getElementById('art-output').innerHTML = "Render Failed. Retry Generation.";
-                }
-            };
-        }
+    img.onload = () => {
+        document.getElementById('art-output').innerHTML = `<img src="${url}" style="width:100%; height:100%; object-fit:contain;" id="main-art-img">`;
+        addToGallery(prompt);
+        log("Visualization Success.");
+    };
+
+    img.onerror = () => {
+        // AI is likely still generating; retry in 5 seconds
+        log("Inference busy, retrying link...", false);
+        setTimeout(() => renderArt(prompt), 5000);
+    };
+}
 
         window.swapToMain = (url) => { document.getElementById('art-output').innerHTML = `<img src="${url}" style="width:100%; height:100%; object-fit:contain;" id="main-art-img">`; };
         window.downloadImg = async (url) => { const response = await fetch(url); const blob = await response.blob(); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `AIVM_${Date.now()}.jpg`; link.click(); };
@@ -227,3 +262,4 @@
     </script>
 </body>
 </html>
+

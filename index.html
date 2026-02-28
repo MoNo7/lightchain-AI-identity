@@ -56,14 +56,28 @@
     <script>
         // Update these with your new deployed addresses
         const ART_ADDR = "0x8560106c90C4e53D6fcf53bcEFdf4Ac8Ba1300cA";
-        const ZK_ADDR = "0x1ef239d3D68b596D10AB58Dd0DA728Aa91E1C3Dc";
+        const ZK_ADDR = "0x35aA3C723E33B12b07342432b8B2a19a5213f0fA";
 
         const ABI = ["function generateArt(string p) payable","function owner() view returns (address)","function totalRevenue() view returns (uint256)","function setVerification(address u, bool s)","function withdrawRevenue()","function manualVerified(address) view returns (bool)"];
         const ZK_ABI = ["function tokenURI(uint256) view returns (string)", "function hasSBT(address) view returns (bool)","function mintIdentity() external"];
         let signer, contract, zkContract, provider;
         function log(msg) { const f = document.getElementById('logFeed'); f.innerHTML += `<div>> ${msg}</div>`; f.scrollTop = f.scrollHeight; }
 
-
+if(hasSBT) {
+                    const uri = await zkCon.tokenURI(1);
+                    const json = JSON.parse(atob(uri.split(',')[1]));
+                    
+                    // Display the image and the DID description below it
+                    document.getElementById('nftDisplay').innerHTML = `
+                        <img src="${json.image}" style="width:100%; border-radius:8px; margin-bottom:10px;">
+                        <div style="font-size:0.7rem; color:#94a3b8; text-align:center;">
+                            ${json.description}
+                        </div>
+                    `;
+                    document.getElementById('zkStatus').innerText = "✅ IDENTITY SYNCED";
+                    document.getElementById('genBtn').disabled = false;
+                }
+        
 async function init() {
             try {
                 log("Initializing Cluster Connection...");
@@ -124,6 +138,7 @@ async function init() {
     </script>
 </body>
 </html>
+
 
 
 

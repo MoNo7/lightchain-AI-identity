@@ -83,20 +83,27 @@
 
         let provider, signer, userTasks = JSON.parse(localStorage.getItem('lcai_art_tasks') || '[]');
 
-        async function connect() {
-            if (!window.ethereum) return alert("Install MetaMask");
-            try {
-                provider = new ethers.BrowserProvider(window.ethereum);
-                signer = await provider.getSigner();
-                const addr = await signer.getAddress();
-                document.getElementById('connectBtn').innerText = addr.substring(0,6)+"..."+addr.slice(-4);
-                
-                checkIdentity(addr);
-                updateHealth();
-                renderLog();
-                userTasks.forEach((t, i) => { if(!t.ready) pollTask(i); });
-            } catch (e) { console.error("Connection error:", e); }
+async function connect() {
+    if (!window.ethereum) return alert("Install MetaMask");
+    try {
+        provider = new ethers.BrowserProvider(window.ethereum);
+        signer = await provider.getSigner();
+        const addr = await signer.getAddress();
+        document.getElementById('connectBtn').innerText = addr.substring(0,6)+"..."+addr.slice(-4);
+        
+        // --- NEW: RECOVERY LOGIC ---
+        // If the log is empty, try to find past TaskIDs from the chain
+        if (userTasks.length === 0) {
+            console.log("Activity log empty. Scanning for past anchors...");
+            await recoverPastTasks(addr);
         }
+
+        checkIdentity(addr);
+        updateHealth();
+        renderLog();
+        userTasks.forEach((t, i) => { if(!t.ready) pollTask(i); });
+    } catch (e) { console.error("Connection error:", e); }
+}
 
         async function checkIdentity(addr) {
             const sbt = new ethers.Contract(SBT_ADDR, ["function hasSBT(address) view returns (bool)"], provider);
@@ -177,18 +184,25 @@
             } catch (e) { setTimeout(() => pollTask(i), 5000); }
         }
 
-        function renderLog() {
-            const list = document.getElementById('logItems');
-            list.innerHTML = '';
-            userTasks.forEach((t, i) => {
-                const div = document.createElement('div');
-                div.className = `log-entry ${t.ready ? 'ready' : ''}`;
-                div.innerHTML = `<b>#${i+1}</b> ${t.prompt.substring(0,15)}...<br><small>${t.ready ? '✓ READY' : '⟳ QUEUED'}</small>`;
-                div.onclick = () => viewArt(i);
-                list.prepend(div);
-            });
-        }
-
+async function recoverPastTasks(addr) {
+    const eventHash = ethers.id("InferenceRequested(bytes32,address,uint256)");
+    // Filter for events where YOU (the addr) were the requester
+    const filter = {
+        address: ROUTER_ADDR,
+        topics: [eventHash, null, ethers.zeroPadValue(addr, 32)]
+    };
+    
+    try {
+        const logs = await provider.getLogs({...filter, fromBlock: 1620000});
+        logs.forEach(log => {
+            const taskId = log.topics[1];
+            if (!userTasks.find(t => t.taskId === taskId)) {
+                userTasks.push({ prompt: "Recovered Task", taskId, ready: false, url: null });
+            }
+        });
+        localStorage.setItem('lcai_art_tasks', JSON.stringify(userTasks));
+    } catch (e) { console.warn("Recovery failed", e); }
+}
         function viewArt(i) {
             const t = userTasks[i];
             const content = document.getElementById('viewerContent');
@@ -223,3 +237,4 @@
     </script>
 </body>
 </html>
+

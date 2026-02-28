@@ -2,60 +2,18 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Lightchain | Identity Recovery</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+    <title>Lightchain | Identity Recovery Redirect</title>
     <style>
-        :root { --bg: #f0f2f5; --text: #1c1e21; --primary: #6f42c1; --success: #28a745; --danger: #dc3545; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #e1e4e8; width: 100%; max-width: 450px; text-align: center; }
-        .primary-btn { background: var(--primary); color: white; border: none; padding: 14px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: 600; margin-top: 15px; }
-        input[type="text"] { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 15px; box-sizing: border-box; }
-        .status-box { margin-top: 20px; font-family: monospace; font-size: 0.85rem; background: #f8f9fa; padding: 15px; border-radius: 8px; display: none; text-align: left; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; text-align: center; }
+        .card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); max-width: 400px; }
+        .btn { background: #6f42c1; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; text-decoration: none; display: inline-block; margin-top: 20px; font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="card">
-        <h2 style="color: var(--danger);">Identity Recovery</h2>
-        <p>Provide your lost address to generate a local zkProof for recovery.</p>
-        <input type="text" id="recoveryAddress" placeholder="Lost Address (0x...)">
-        <button id="generateZkBtn" class="primary-btn">Compute Local zkProof</button>
-        <div id="zkStatus" class="status-box"></div>
-        <button id="recoverBtn" class="primary-btn" style="background: var(--success); display: none;">Submit to Lightchain (On-Chain)</button>
+        <h2 style="color: #dc3545;">Identity Recovery</h2>
+        <p>Recovery is now integrated into the main Admin Portal. Use the sidebar to verify your zkPass and recover on-chain art history.</p>
+        <a href="index.html" class="btn">Go to Admin Portal</a>
     </div>
-
-    <script>
-        const ART_CONTRACT_ADDR = "0xd17F12ef2C5d95e135094100a14D3d7569505d89"; 
-        const ABI = ["function verifyZkPass(bytes proof)"];
-        let mockZkProof = "";
-
-        document.getElementById('generateZkBtn').onclick = async () => {
-            const addr = document.getElementById('recoveryAddress').value;
-            if (!ethers.isAddress(addr)) return alert("Invalid Address");
-            document.getElementById('zkStatus').style.display = 'block';
-            document.getElementById('zkStatus').innerText = "Computing ZK-SNARK...";
-            setTimeout(() => {
-                mockZkProof = ethers.keccak256(ethers.toUtf8Bytes("Lightchain_Recovery_" + addr));
-                document.getElementById('zkStatus').innerText = "Proof Generated: " + mockZkProof.substring(0,20) + "...";
-                document.getElementById('recoverBtn').style.display = 'block';
-            }, 1500);
-        };
-
-        document.getElementById('recoverBtn').onclick = async () => {
-            if (!window.ethereum) return alert("Install MetaMask");
-            const provider = new ethers.BrowserProvider(window.ethereum);
-            const signer = await provider.getSigner();
-            const contract = new ethers.Contract(ART_CONTRACT_ADDR, ABI, signer);
-
-            try {
-                document.getElementById('zkStatus').innerText = "Broadcasting to Lightchain...";
-                const tx = await contract.verifyZkPass(mockZkProof);
-                await tx.wait();
-                alert("Success! Your zkPass is verified on-chain. Redirecting to Portal...");
-                window.location.href = "index.html";
-            } catch (err) {
-                alert("Transaction failed: " + err.message);
-            }
-        };
-    </script>
 </body>
 </html>

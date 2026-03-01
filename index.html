@@ -16,8 +16,6 @@
         .ticker-item { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; font-family: monospace; background: rgba(0,0,0,0.3); padding: 4px 12px; border-radius: 6px; border: 1px solid var(--border); }
         .ticker-val { color: var(--secondary); }
         .header-right { display: flex; align-items: center; gap: 16px; flex: 1; justify-content: flex-end; }
-        .cluster-pill { background: #000; padding: 6px 14px; border-radius: 20px; border: 1px solid #1e293b; font-size: 0.75rem; display: flex; align-items: center; gap: 8px; }
-        .status-dot { width: 8px; height: 8px; background: var(--secondary); border-radius: 50%; box-shadow: 0 0 6px var(--secondary); }
         .wallet-pill { background: #1e293b; padding: 6px 14px; border-radius: 8px; font-family: monospace; border: 1px solid var(--border); font-size: 0.75rem; display: flex; align-items: center; gap: 10px; cursor: pointer; }
         .balance-txt { color: var(--secondary); font-weight: 700; border-right: 1px solid var(--border); padding-right: 10px; }
         .container { display: flex; flex: 1; overflow: hidden; }
@@ -31,12 +29,10 @@
         .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 24px; }
         .card-title { font-size: 0.7rem; font-weight: 800; color: var(--text-dim); text-transform: uppercase; margin-bottom: 20px; letter-spacing: 1px; display: flex; align-items: center; gap: 10px; }
         .card-title::after { content: ""; flex: 1; height: 1px; background: var(--border); }
-        .input-pro { background: #0f111a; border: 1px solid var(--border); border-radius: 6px; padding: 12px; color: white; outline: none; width: 100%; }
         .btn-pro { padding: 12px; border-radius: 6px; font-weight: 700; border: none; cursor: pointer; transition: 0.2s; }
         .btn-primary { background: var(--primary); color: white; }
         .btn-secondary { background: var(--secondary); color: black; }
         .hidden { display: none !important; }
-        iframe { width: 100%; height: 85vh; border: none; border-radius: 12px; }
         .profile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
         .info-label { font-size: 0.65rem; color: var(--text-dim); text-transform: uppercase; margin-bottom: 4px; }
         .info-value { font-family: monospace; font-size: 0.95rem; color: var(--secondary); word-break: break-all; }
@@ -55,7 +51,6 @@
             <div class="ticker-item"><span style="color:var(--text-dim)">LCAI</span><span class="ticker-val">$0.0021</span></div>
         </div>
         <div class="header-right">
-            <div class="cluster-pill"><span class="status-dot"></span><span>SDXL-Turbo Cluster</span></div>
             <div class="wallet-pill" id="wallet-pill" onclick="copyAddress()" style="display:none">
                 <span id="balance-display" class="balance-txt">0.00 LCAI</span>
                 <span id="address-display">0x00...00</span>
@@ -92,14 +87,14 @@
                 </div>
             </div>
 
-            <div id="view-art" class="hidden"><iframe src="artgenerator-ui.html"></iframe></div>
+            <div id="view-art" class="hidden"><iframe id="art-frame" src="artgenerator-ui.html"></iframe></div>
 
             <div id="view-recovery" class="hidden">
                 <div id="recovery-layout" class="split-grid">
                     <div class="card" style="border-left: 4px solid var(--danger)">
                         <div class="card-title" style="color:var(--danger)">Identity Recovery Panel</div>
                         <div style="display: flex; flex-direction: column; gap: 12px;">
-                            <input type="text" id="rec-addr" class="input-pro" placeholder="Target Wallet Address">
+                            <input type="text" id="rec-addr" class="input-pro" placeholder="Target Wallet Address" style="background: #0f111a; border: 1px solid var(--border); border-radius: 6px; padding: 12px; color: white; outline: none;">
                             <button class="btn-pro btn-primary" onclick="queryAccess()">Query Access Status</button>
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                                 <button class="btn-pro btn-secondary" onclick="updateVerify(true)">Restore Access</button>
@@ -121,7 +116,7 @@
     <script>
         const CONFIG = { SBT_ADDR: "0xd71462F0002Ee9373fCe05B568583Ed13e75f600", AIVM_ADDR: "0xbcA38515887Dc3Ca163398C0Ef7bF02dd156D8FB" };
         const ABI = [
-            "function manualVerified(address) view returns (bool)",
+            "function manualVerified(address) view returns (bool)", 
             "function owner() view returns (address)", 
             "function setVerification(address,bool) external", 
             "function withdraw() external"
@@ -152,21 +147,23 @@
 
         async function connect() {
             if (!window.ethereum) return notify("MetaMask Required");
-            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-            userAddr = accounts[0];
-            provider = new ethers.BrowserProvider(window.ethereum);
-            signer = await provider.getSigner();
-            studioContract = new ethers.Contract(CONFIG.AIVM_ADDR, ABI, signer);
-            
-            document.getElementById('connect-btn').classList.add('hidden');
-            document.getElementById('wallet-pill').style.display = 'flex';
-            document.getElementById('address-display').innerText = `${userAddr.slice(0,6)}...${userAddr.slice(-4)}`;
-            const bal = await provider.getBalance(userAddr);
-            document.getElementById('balance-display').innerText = `${parseFloat(ethers.formatEther(bal)).toFixed(2)} LCAI`;
-            
-            document.getElementById('view-iam').classList.remove('hidden');
-            log(`Session Authorized: ${userAddr}`);
-            checkAccess();
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                userAddr = accounts[0];
+                provider = new ethers.BrowserProvider(window.ethereum);
+                signer = await provider.getSigner();
+                studioContract = new ethers.Contract(CONFIG.AIVM_ADDR, ABI, signer);
+                
+                document.getElementById('connect-btn').classList.add('hidden');
+                document.getElementById('wallet-pill').style.display = 'flex';
+                document.getElementById('address-display').innerText = `${userAddr.slice(0,6)}...${userAddr.slice(-4)}`;
+                const bal = await provider.getBalance(userAddr);
+                document.getElementById('balance-display').innerText = `${parseFloat(ethers.formatEther(bal)).toFixed(2)} LCAI`;
+                
+                document.getElementById('view-iam').classList.remove('hidden');
+                log(`Session Authorized: ${userAddr}`);
+                checkAccess();
+            } catch (e) { log("Connection Failed", true); }
         }
 
         async function checkAccess() {
@@ -179,9 +176,11 @@
                     document.getElementById('zk-registration-area').classList.add('hidden');
                     document.getElementById('zk-name').innerText = `Verified Member #${userAddr.slice(-4)}`;
                     document.getElementById('zk-did').innerText = `did:lcai:eth:${userAddr}`;
+                    log("Identity Status: Verified.");
                 } else {
                     document.getElementById('zk-registration-area').classList.remove('hidden');
                     document.getElementById('zk-info-area').classList.add('hidden');
+                    log("Identity Status: Not Registered.");
                 }
 
                 const owner = await studioContract.owner().catch(() => "0x4D36B31d4BFB957A5D816B0f420a9e755EFc6a2c");
@@ -193,18 +192,15 @@
             } catch (e) { log("Access Validation Error", true); }
         }
 
-async function queryAccess() {
-    const addr = document.getElementById('rec-addr').value;
-    if(!ethers.isAddress(addr)) return notify("Invalid Address");
-    try {
-                const isA = await studioContract.isAdmin(addr);
-          const status = await studioContract.manualVerified(addr); 
-        log(`Query [${addr.slice(0,6)}]: Manual Verified = ${status}`);
-        notify(status ? "Address is Verified" : "No Access Detected");
-    } catch (e) { 
-        console.error(e);
-        log("Query Failed: Contract method mismatch", true); 
-    }
+        async function queryAccess() {
+            const addr = document.getElementById('rec-addr').value;
+            if(!ethers.isAddress(addr)) return notify("Invalid Address");
+            try {
+                const status = await studioContract.manualVerified(addr);
+                log(`Query [${addr.slice(0,6)}]: Manual Verified = ${status}`);
+                notify(status ? "Address is Verified" : "No Access Detected");
+            } catch (e) { log("Query Failed", true); }
+        }
 
         async function updateVerify(state) {
             const addr = document.getElementById('rec-addr').value;
@@ -215,6 +211,7 @@ async function queryAccess() {
                 await tx.wait();
                 log(`Success: Status = ${state}`);
                 notify("Status Updated");
+                checkAccess();
             } catch (e) { log("Action Denied", true); }
         }
 
@@ -231,4 +228,3 @@ async function queryAccess() {
     </script>
 </body>
 </html>
-

@@ -133,7 +133,7 @@ const CONFIG = {
         "function registerModel(bytes32 digest, bool status) external",
         "function manualVerified(address) public view returns (bool)",
         "function generateArt(string prompt, bytes32 modelDigest) public payable",
-        "event InferenceRequested(address indexed user, string prompt, bytes32 modelDigest)"
+        "event InferenceRequested(address indexed user, string prompt)"
     ]
 };
 
@@ -150,11 +150,15 @@ const log = (msg, type = "info") => {
 
 async function updatePrices() {
     try {
-        const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum,lightchain-ai&vs_currencies=usd');
+        const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum,lightchain-ai&vs_currencies=usd&precision=6');
         const data = await res.json();
         document.getElementById('eth-price').innerText = `$${data.ethereum.usd.toLocaleString()}`;
-        document.getElementById('lcai-price').innerText = `$${data['lightchain-ai'] ? data['lightchain-ai'].usd.toFixed(4) : "0.1420"}`;
-    } catch (e) { document.getElementById('eth-price').innerText = "$2,451"; document.getElementById('lcai-price').innerText = "$0.1420"; }
+        // precision=6 ensures we see .001974 instead of .0020
+        document.getElementById('lcai-price').innerText = `$${data['lightchain-ai'] ? data['lightchain-ai'].usd.toFixed(6) : "0.001974"}`;
+    } catch (e) { 
+        document.getElementById('eth-price').innerText = "$2,451"; 
+        document.getElementById('lcai-price').innerText = "$0.001974"; 
+    }
 }
 
 async function connectWallet() {
@@ -179,9 +183,8 @@ async function initGallery() {
     const grid = document.getElementById('gallery-grid');
     grid.innerHTML = "SCANNING NETWORK...";
     try {
-        const filter = contract.filters.InferenceRequested();
-        const events = await contract.queryFilter(filter, 1620000); // Use a specific block number to be safe
-        //const events = await contract.queryFilter("InferenceRequested", 0); // Changed block range for full capture
+        // Broad search window to ensure sync
+        const events = await contract.queryFilter("InferenceRequested", -50000); 
         if (events.length === 0) { grid.innerHTML = "GALLERY EMPTY"; return; }
         grid.innerHTML = "";
         events.reverse().slice(0, 12).forEach(ev => {
@@ -197,21 +200,12 @@ async function initGallery() {
 
 async function verifySelf() {
     try {
-        log("INITIATING ZK-HANDSHAKE...", "info");
+        log("INITIATING VERIFICATION...");
         const tx = await contract.setVerification(user, true);
-        log("TRANSACTION PENDING: " + tx.hash.slice(0,10) + "...", "info");
-        
-        const receipt = await tx.wait(); // This waits for the block to mine
-        if (receipt.status === 1) {
-            log("VERIFICATION SUCCESS: IDENTITY ANCHORED", "success");
-            roles.isVerified = true;
-            updateMenu();
-            showView('aivm-view'); // Auto-unlock the Art tab
-        }
-    } catch (e) {
-        log("VERIFICATION REJECTED: CHECK GAS/PERMISSIONS", "error");
-        console.error(e);
-    }
+        await tx.wait(); 
+        log("VERIFICATION SUCCESS", "success");
+        roles.isVerified = true; updateMenu();
+    } catch (e) { log("VERIFY FAILED"); }
 }
 
 async function generateArt() {

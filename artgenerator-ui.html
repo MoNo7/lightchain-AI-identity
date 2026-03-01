@@ -97,9 +97,9 @@ async function initHistory() {
 
         history = events.map(e => ({
             prompt: e.args.prompt,
-            digest: e.args.modelDigest.slice(0, 10),
+            digest: e.args.modelDigest,
             url: `https://image.pollinations.ai/prompt/${encodeURIComponent(e.args.prompt)}?nologo=true`
-        })).reverse().slice(0, 10);
+        })).reverse();
 
         renderHistory();
         window.parent.postMessage({ type: "LCAI_STATUS", message: `Gallery Refreshed: Found ${history.length} inferences.` }, "*");

@@ -62,12 +62,11 @@ const CONFIG = {
         ];
         let history = JSON.parse(localStorage.getItem('ai_history') || '[]');
       
-// Replace the initHistory function in artgenerator-ui.html
+// Update the initHistory function in artgenerator-ui.html
 async function initHistory() {
     try {
         const provider = new ethers.BrowserProvider(window.ethereum);
-        
-        // TARGET: AIArtStudio for Inference History (NOT the Identity SBT)
+        // Matching your EXACT contract ABI from Remix
         const contract = new ethers.Contract(CONFIG.AIVM_ADDR, [
             "event ArtGenerated(address indexed user, string prompt, bytes32 modelDigest, uint256 fee)"
         ], provider);
@@ -75,28 +74,32 @@ async function initHistory() {
         const accounts = await window.ethereum.request({ method: 'eth_accounts' });
         const user = accounts[0];
 
-        window.parent.postMessage({ type: "LCAI_STATUS", message: "Scanning AIVM On-Chain Gallery..." }, "*");
+        // Global scan for the last 10,000 blocks
+        const events = await contract.queryFilter("ArtGenerated", -10000);
 
-        // Scan for ArtGenerated events specifically from your wallet
-        const filter = contract.filters.ArtGenerated(user);
-        const events = await contract.queryFilter(filter, -10000); 
+        // Filter for current user and map with Model Digest
+        history = events.filter(e => e.args.user.toLowerCase() === user.toLowerCase())
+            .map(e => ({
+                prompt: e.args.prompt,
+                digest: e.args.modelDigest.slice(0, 10) + "...", // Shorten for UI
+                url: `https://image.pollinations.ai/prompt/${encodeURIComponent(e.args.prompt)}?nologo=true`
+            }))
+            .reverse().slice(0, 10);
 
-        // Map events to the image worker URL
-        history = events.map(e => ({
-            prompt: e.args.prompt,
-            url: `https://image.pollinations.ai/prompt/${encodeURIComponent(e.args.prompt)}?nologo=true`
-        })).reverse().slice(0, 10);
-
-        renderHistory();
+        const grid = document.getElementById('history-grid');
+        grid.innerHTML = history.map((item, i) => `
+            <div class="gallery-item" onclick="loadHistory(${i})" style="position:relative;">
+                <img src="${item.url}" style="width:100%; height:100%; object-fit:cover;">
+                <div style="position:absolute; top:4px; right:4px; background:rgba(88,101,242,0.9); 
+                            color:white; font-size:10px; padding:2px 4px; border-radius:3px; font-weight:bold;">
+                    ${item.digest}
+                </div>
+            </div>
+        `).join('');
         
-        const statusMsg = history.length > 0 
-            ? `Gallery Synced: ${history.length} inferences found.` 
-            : "No AIVM inferences found on-chain yet.";
-            
-        window.parent.postMessage({ type: "LCAI_STATUS", message: statusMsg }, "*");
+        window.parent.postMessage({ type: "LCAI_STATUS", message: `Gallery Synced: ${history.length} inferences found.` }, "*");
     } catch (e) {
-        console.error("Gallery Sync Failed:", e);
-        window.parent.postMessage({ type: "LCAI_STATUS", message: "Gallery Sync Error: Check ABI Mismatch" }, "*");
+        console.error(e);
     }
 }
         

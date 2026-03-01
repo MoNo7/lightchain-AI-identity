@@ -30,16 +30,38 @@
         }
 
         /* TOP NAVIGATION */
-        header {
-            width: 100%;
-            background: var(--nav-bg);
-            border-bottom: 1px solid var(--border);
-            padding: 8px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-sizing: border-box;
-        }
+header {
+    width: 100%;
+    background: var(--nav-bg);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-sizing: border-box;
+}
+.header-right { display: flex; align-items: center; gap: 12px; }
+.pill {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.8rem;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-weight: 500;
+}
+.status-dot {
+    height: 8px; width: 8px; background-color: var(--success);
+    border-radius: 50%; box-shadow: 0 0 6px var(--success);
+}
+.balance-text {
+    color: var(--accent); font-weight: 700;
+    border-right: 1px solid var(--border);
+    padding-right: 10px; margin-right: 2px;
+}
+.wallet-pill { cursor: pointer; }
 
         .header-left { display: flex; align-items: center; gap: 20px; }
         .brand-title { font-weight: 600; font-size: 1.1rem; color: white; cursor: pointer; }
@@ -128,16 +150,23 @@
 </head>
 <body>
 
-    <header>
-        <div class="header-left">
-            <span class="brand-title" onclick="location.href='index.html'">Lightchain AI Testnet</span>
-            <div class="cluster-status"><span class="dot"></span><span>AIVM Cluster: Active</span></div>
-            <div id="wallet-display" class="wallet-info">
-                <span id="balance-amt" style="color: var(--accent); font-weight: bold;">0.00 LCAI</span>
-                <span id="user-addr-pill" class="address-pill" onclick="copyAddress()">0x...</span>
-            </div>
+<header>
+    <div class="header-left">
+        <span class="brand-title" onclick="location.href='index.html'">Lightchain AI Testnet</span>
+    </div>
+    <div class="header-right">
+        <div class="pill">
+            <span class="status-dot"></span>
+            <span>AIVM Cluster: Active</span>
+            <span class="load-text">Load: 14%</span>
         </div>
-    </header>
+        
+        <div id="wallet-pill" class="pill wallet-pill" onclick="copyAddress()">
+            <span id="balance-amt" class="balance-text">0.00 LCAI</span>
+            <span id="user-addr-short">0x...</span>
+        </div>
+    </div>
+</header>
 
     <div class="app-container">
         <aside id="sidebar">

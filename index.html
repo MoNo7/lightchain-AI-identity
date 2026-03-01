@@ -222,8 +222,15 @@
 async function checkAccess() {
         try {
             const isA = await studioContract.isAdmin(userAddr);
+            const identityContract = new ethers.Contract(CONFIG.SBT_ADDR, ["function hasSBT(address) view returns (bool)"], provider);
+            const verified = await identityContract.hasSBT(userAddr);
             const ownerAddr = await studioContract.owner();
             const isOwner = userAddr.toLowerCase() === ownerAddr.toLowerCase();
+
+            const zkCard = document.getElementById('zk-status-card');
+            const zkHeader = document.getElementById('zk-header');
+            const zkDesc = document.getElementById('zk-desc');
+            const zkAction = document.getElementById('zk-action-area');
 
             if (isA) {
                 document.getElementById('admin-panel').classList.remove('hidden');
@@ -243,7 +250,32 @@ async function checkAccess() {
                 // Center the recovery panel if not owner
                 document.getElementById('recovery-layout').classList.add('full-width');
             }
-        } catch (e) { log("Access Validation Error", true); }
+
+            if (verified) {
+                zkCard.style.borderColor = "var(--secondary)";
+                zkHeader.innerText = "ZK Verify Info";
+                zkHeader.style.color = "var(--secondary)";
+                zkDesc.innerText = "Your Soulbound Identity is active. Access to AIVM Clusters is granted.";
+                zkAction.innerHTML = `<button class="btn-pro btn-primary" onclick="showView('art')">Launch AIVM Workspace</button>`;
+                log("ZK Identity: Verified.");
+            } else {
+                zkCard.style.borderColor = "var(--primary)";
+                zkHeader.innerText = "ZK Verify Registration";
+                zkDesc.innerText = "No Soulbound Identity detected. Register to unlock Native AIVM features.";
+                zkAction.innerHTML = `<button class="btn-pro btn-secondary" onclick="window.open('https://testnet.lightscan.app/faucet')">Get Testnet LCAI</button>`;
+                log("ZK Identity: Not Found.");
+            }
+            if (userAddr.toLowerCase() === ownerAddr.toLowerCase()) {
+                document.getElementById('owner-panel').classList.remove('hidden');
+                const vBal = await provider.getBalance(CONFIG.AIVM_ADDR);
+                document.getElementById('vault-balance').innerText = `${parseFloat(ethers.formatEther(vBal)).toFixed(2)} LCAI`;
+                log("IAM: Master Vault Linked.");
+            }
+        } catch (e) { 
+            console.error(e);
+            log("Handshake Error: Access Check Reverted", true);
+            log("Access Validation Error", true); 
+        }
     }
 
     function copyAddress() { navigator.clipboard.writeText(userAddr); notify("Address Copied"); }
@@ -253,5 +285,6 @@ async function checkAccess() {
 </script>
 </body>
 </html>
+
 
 

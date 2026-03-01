@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AIVM Control Center | Lightchain AI</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         :root { --primary: #5865f2; --secondary: #00ff80; --danger: #ff4444; --bg: #0f1016; --nav-bg: #13141f; --card: #1a1b26; --border: #2d2f45; --text: #ffffff; --text-dim: #94a3b8; }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
@@ -33,7 +34,9 @@
         .btn-primary { background: var(--primary); color: white; }
         .btn-secondary { background: var(--secondary); color: black; }
         .hidden { display: none !important; }
-        .profile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+        .profile-grid { display: grid; grid-template-columns: 1fr auto; gap: 24px; }
+        .info-col { display: flex; flex-direction: column; gap: 20px; }
+        .qr-col { background: #fff; padding: 12px; border-radius: 8px; align-self: start; }
         .info-label { font-size: 0.65rem; color: var(--text-dim); text-transform: uppercase; margin-bottom: 4px; }
         .info-value { font-family: monospace; font-size: 0.95rem; color: var(--secondary); word-break: break-all; }
         .split-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
@@ -72,29 +75,39 @@
 
         <main class="main-content">
             <div id="view-iam" class="hidden">
-                <div id="zk-profile-card" class="card" style="border-left: 4px solid var(--secondary)">
-                    <div class="card-title">ZK Identity Status</div>
+                <div class="card" style="border-left: 4px solid var(--secondary)">
+                    <div class="card-title">ZK Identity Profile</div>
                     <div id="zk-registration-area" class="hidden">
                         <h3 style="margin-bottom:10px; color:var(--primary)">Unregistered Identity</h3>
-                        <p style="color:var(--text-dim); margin-bottom:20px;">You do not have a ZK-Pass. Register now to unlock AIVM cluster permissions.</p>
-                        <button class="btn-pro btn-primary" onclick="window.open('https://testnet.lightscan.app/faucet')">Mint ZK-Pass (Faucet)</button>
+                        <p style="color:var(--text-dim); margin-bottom:20px;">Register a ZK-Pass to unlock AIVM cluster permissions.</p>
+                        <button class="btn-pro btn-primary" onclick="window.open('https://testnet.lightscan.app/faucet')">Mint ZK-Pass</button>
                     </div>
                     <div id="zk-info-area" class="profile-grid hidden">
-                        <div><div class="info-label">Identity Name</div><div id="zk-name" class="info-value">LCAI Voyager</div></div>
-                        <div><div class="info-label">ZK Verification</div><div class="info-value">● ACTIVE</div></div>
-                        <div style="grid-column: 1 / -1;"><div class="info-label">Decentralized Identifier (DID)</div><div id="zk-did" class="info-value">did:lcai:0x...</div></div>
+                        <div class="info-col">
+                            <div><div class="info-label">Identity Name</div><div id="zk-name" class="info-value">LCAI Voyager</div></div>
+                            <div><div class="info-label">DID Status</div><div class="info-value">● ACTIVE (ZK-Verified)</div></div>
+                            <div><div class="info-label">Decentralized Identifier</div><div id="zk-did" class="info-value">did:lcai:eth:0x...</div></div>
+                            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                                <button class="btn-pro btn-primary" style="flex:1" onclick="exportIdentity()">Export Identity (JSON)</button>
+                                <button class="btn-pro btn-secondary" onclick="showView('art')">Launch AIVM</button>
+                            </div>
+                        </div>
+                        <div class="qr-col">
+                            <div id="qrcode"></div>
+                            <div style="color: #000; font-size: 0.6rem; text-align: center; margin-top: 8px; font-weight: 800;">WALLET QR</div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div id="view-art" class="hidden"><iframe id="art-frame" src="artgenerator-ui.html"></iframe></div>
+            <div id="view-art" class="hidden"><iframe src="artgenerator-ui.html"></iframe></div>
 
             <div id="view-recovery" class="hidden">
                 <div id="recovery-layout" class="split-grid">
                     <div class="card" style="border-left: 4px solid var(--danger)">
                         <div class="card-title" style="color:var(--danger)">Identity Recovery Panel</div>
                         <div style="display: flex; flex-direction: column; gap: 12px;">
-                            <input type="text" id="rec-addr" class="input-pro" placeholder="Target Wallet Address" style="background: #0f111a; border: 1px solid var(--border); border-radius: 6px; padding: 12px; color: white; outline: none;">
+                            <input type="text" id="rec-addr" class="input-pro" placeholder="Target Wallet Address">
                             <button class="btn-pro btn-primary" onclick="queryAccess()">Query Access Status</button>
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                                 <button class="btn-pro btn-secondary" onclick="updateVerify(true)">Restore Access</button>
@@ -115,13 +128,8 @@
 
     <script>
         const CONFIG = { SBT_ADDR: "0xd71462F0002Ee9373fCe05B568583Ed13e75f600", AIVM_ADDR: "0xbcA38515887Dc3Ca163398C0Ef7bF02dd156D8FB" };
-        const ABI = [
-            "function manualVerified(address) view returns (bool)", 
-            "function owner() view returns (address)", 
-            "function setVerification(address,bool) external", 
-            "function withdraw() external"
-        ];
-        let provider, signer, userAddr, studioContract;
+        const ABI = ["function manualVerified(address) view returns (bool)", "function owner() view returns (address)", "function setVerification(address,bool) external", "function withdraw() external"];
+        let provider, signer, userAddr, studioContract, qrcode;
 
         function log(m) { const out = document.getElementById('console-output'); const d = document.createElement('div'); d.innerText = `> ${m}`; out.appendChild(d); out.scrollTop = out.scrollHeight; }
         function notify(m) { const t = document.getElementById('toast'); t.innerText = m; t.style.display = 'block'; setTimeout(()=>t.style.display='none', 3000); }
@@ -162,6 +170,10 @@
                 
                 document.getElementById('view-iam').classList.remove('hidden');
                 log(`Session Authorized: ${userAddr}`);
+                
+                if(!qrcode) qrcode = new QRCode(document.getElementById("qrcode"), { width: 120, height: 120 });
+                qrcode.makeCode(userAddr);
+                
                 checkAccess();
             } catch (e) { log("Connection Failed", true); }
         }
@@ -170,7 +182,6 @@
             try {
                 const sbt = new ethers.Contract(CONFIG.SBT_ADDR, ["function hasSBT(address) view returns (bool)"], provider);
                 const isVerified = await sbt.hasSBT(userAddr);
-                
                 if (isVerified) {
                     document.getElementById('zk-info-area').classList.remove('hidden');
                     document.getElementById('zk-registration-area').classList.add('hidden');
@@ -180,7 +191,6 @@
                 } else {
                     document.getElementById('zk-registration-area').classList.remove('hidden');
                     document.getElementById('zk-info-area').classList.add('hidden');
-                    log("Identity Status: Not Registered.");
                 }
 
                 const owner = await studioContract.owner().catch(() => "0x4D36B31d4BFB957A5D816B0f420a9e755EFc6a2c");
@@ -190,6 +200,32 @@
                     document.getElementById('vault-balance-rec').innerText = `${parseFloat(ethers.formatEther(vBal)).toFixed(2)} LCAI`;
                 }
             } catch (e) { log("Access Validation Error", true); }
+        }
+
+        function exportIdentity() {
+            const didDoc = {
+                "@context": "https://www.w3.org/ns/did/v1",
+                "id": `did:lcai:eth:${userAddr}`,
+                "verificationMethod": [{
+                    "id": `did:lcai:eth:${userAddr}#keys-1`,
+                    "type": "EcdsaSecp256k1RecoveryMethod2020",
+                    "controller": `did:lcai:eth:${userAddr}`,
+                    "blockchainAccountId": `eip155:504:${userAddr}`
+                }],
+                "authentication": [`did:lcai:eth:${userAddr}#keys-1`],
+                "service": [{
+                    "id": "#lcai-aivm",
+                    "type": "AIVMInferenceService",
+                    "serviceEndpoint": "https://chat2.lightchain.ai/api/v1"
+                }]
+            };
+            const blob = new Blob([JSON.stringify(didDoc, null, 2)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `lcai-identity-${userAddr.slice(0,6)}.json`;
+            a.click();
+            log("Identity Exported: DID Document Generated.");
         }
 
         async function queryAccess() {

@@ -9,52 +9,36 @@
         :root { --primary: #5865f2; --secondary: #00ff80; --danger: #ff4444; --bg: #0f1016; --nav-bg: #13141f; --card: #1a1b26; --border: #2d2f45; --text: #ffffff; --text-dim: #94a3b8; }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
         body { background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-        
         header { height: 64px; background: var(--nav-bg); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; z-index: 100; }
         .header-left-group { display: flex; align-items: center; gap: 20px; }
         .brand-title { font-weight: 800; color: var(--primary); font-size: 1.1rem; }
-        
         .header-right { display: flex; align-items: center; gap: 16px; }
         .cluster-pill { background: #000; padding: 6px 14px; border-radius: 20px; border: 1px solid #1e293b; font-size: 0.75rem; display: flex; align-items: center; gap: 8px; }
         .status-dot { width: 8px; height: 8px; background: var(--secondary); border-radius: 50%; box-shadow: 0 0 6px var(--secondary); }
         .wallet-pill { background: #1e293b; padding: 6px 14px; border-radius: 8px; font-family: monospace; border: 1px solid var(--border); font-size: 0.75rem; display: flex; align-items: center; gap: 10px; cursor: pointer; }
         .balance-txt { color: var(--secondary); font-weight: 700; border-right: 1px solid var(--border); padding-right: 10px; }
-        
         .container { display: flex; flex: 1; overflow: hidden; }
         .sidebar { width: 420px; background: var(--nav-bg); border-right: 1px solid var(--border); padding: 24px; display: flex; flex-direction: column; gap: 20px; }
         .main-content { flex: 1; padding: 32px; overflow-y: auto; background: radial-gradient(circle at top right, #1a1b26 0%, #0f1016 100%); }
-
         .nav-menu { display: flex; flex-direction: column; gap: 8px; }
         .nav-item { padding: 12px 16px; border-radius: 8px; color: var(--text-dim); text-decoration: none; font-size: 0.9rem; transition: 0.2s; cursor: pointer; display: flex; align-items: center; gap: 12px; border: 1px solid transparent; }
         .nav-item:hover { background: #1e2030; color: white; }
         .nav-item.active { background: rgba(88, 101, 242, 0.1); color: var(--primary); border-color: rgba(88, 101, 242, 0.3); font-weight: 600; }
-
         .console { height: 280px; background: #000; border: 1px solid var(--border); border-radius: 8px; padding: 16px; font-family: monospace; font-size: 0.75rem; color: #7dd3fc; overflow-y: auto; white-space: pre-wrap; word-break: break-all; }
         .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 24px; }
         .card-title { font-size: 0.7rem; font-weight: 800; color: var(--text-dim); text-transform: uppercase; margin-bottom: 20px; letter-spacing: 1px; display: flex; align-items: center; gap: 10px; }
         .card-title::after { content: ""; flex: 1; height: 1px; background: var(--border); }
-
-        /* Responsive adjustment if not owner */
-        .full-width { grid-column: span 2; max-width: 600px; margin: 0 auto; }        
         .admin-grid { display: grid; grid-template-columns: 1fr 200px; gap: 12px; }
         .input-pro { background: #0f111a; border: 1px solid var(--border); border-radius: 6px; padding: 12px; color: white; outline: none; }
-        .split-grid { 
-        display: grid; 
-        grid-template-columns: 1fr 1fr; 
-        gap: 24px; 
-        align-items: start;
-    }
-        
-        /* Button Hover Effects */
-        .btn-pro { padding: 12px; border-radius: 6px; font-weight: 700; border: none; cursor: pointer; }
+        .split-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+        .btn-pro { padding: 12px; border-radius: 6px; font-weight: 700; border: none; cursor: pointer; transition: 0.2s; }
         .btn-pro:hover { filter: brightness(1.2); transform: translateY(-1px); }
-        .btn-pro:active { transform: translateY(0); }        
         .btn-primary { background: var(--primary); color: white; }
         .btn-secondary { background: var(--secondary); color: black; }
-        
-        .hidden { display: none; }
+        .hidden { display: none !important; }
         iframe { width: 100%; height: 80vh; border: none; border-radius: 12px; }
         #toast { position: fixed; bottom: 24px; right: 24px; background: var(--nav-bg); border: 1px solid var(--primary); color: white; padding: 12px 20px; border-radius: 8px; display: none; z-index: 1000; }
+        .full-width { grid-column: span 2; max-width: 600px; margin: 0 auto; }
     </style>
 </head>
 <body>
@@ -85,206 +69,176 @@
             </nav>
         </aside>
 
-   <main class="main-content">
-    <div id="view-iam">
-        <div class="card" style="border-left: 4px solid var(--primary)">
-            <h2>IAM Command Center</h2>
-            <p style="color:var(--text-dim)">Manage Identity and AIVM Permissions.</p>
-        </div>
-        <div id="admin-panel" class="card hidden">
-            <div class="card-title">Quick Admin Verify</div>
-            <div class="admin-grid">
-                <input type="text" id="target-addr" class="input-pro" placeholder="Wallet Address">
-                <button class="btn-pro btn-secondary" onclick="setVerify(true, 'target-addr')">Verify</button>
+        <main class="main-content">
+            <div id="view-iam">
+                <div id="zk-status-card" class="card" style="border-left: 4px solid var(--text-dim)">
+                    <h2 id="zk-header">Initializing ZK Shield...</h2>
+                    <p id="zk-desc" style="color:var(--text-dim)">Checking Lightchain AI Registry status.</p>
+                    <div id="zk-action-area" style="margin-top: 15px;"></div>
+                </div>
+
+                <div id="admin-panel" class="card hidden">
+                    <div class="card-title">Admin Management</div>
+                    <div class="admin-grid">
+                        <input type="text" id="target-addr" class="input-pro" placeholder="Wallet Address">
+                        <button class="btn-pro btn-secondary" onclick="setVerify(true, 'target-addr')">Verify</button>
+                    </div>
+                </div>
+
+                <div id="owner-panel" class="card hidden" style="border-color: #f59e0b">
+                    <div class="card-title" style="color:#f59e0b">Master Owner Vault</div>
+                    <div id="vault-balance" style="font-size: 2.2rem; font-weight: 900; color: #f59e0b">0.00 LCAI</div>
+                    <button class="btn-pro" style="background:#f59e0b; color:black; width:100%; margin-top:10px" onclick="withdraw()">Withdraw All Funds</button>
+                </div>
             </div>
-        </div>
-    </div>
 
-    <div id="view-art" class="hidden">
-        <iframe src="artgenerator-ui.html"></iframe>
-    </div>
+            <div id="view-art" class="hidden">
+                <iframe src="artgenerator-ui.html"></iframe>
+            </div>
 
-    <div id="view-recovery" class="hidden">
-        <div id="recovery-layout" class="split-grid">
-            
-            <div class="card" style="border-left: 4px solid var(--danger)">
-                <div class="card-title" style="color:var(--danger)">Identity Recovery Panel</div>
-                <div style="display: flex; flex-direction: column; gap: 12px;">
-                    <input type="text" id="rec-addr" class="input-pro" placeholder="Address to Query/Recover">
-                    <button class="btn-pro btn-primary" onclick="queryStatus('rec-addr')">Query Access Status</button>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                        <button class="btn-pro btn-secondary" onclick="setVerify(true, 'rec-addr')">Restore Access</button>
-                        <button class="btn-pro" style="background:var(--danger); color:white" onclick="setVerify(false, 'rec-addr')">Revoke Access</button>
+            <div id="view-recovery" class="hidden">
+                <div id="recovery-layout" class="split-grid">
+                    <div class="card" style="border-left: 4px solid var(--danger)">
+                        <div class="card-title" style="color:var(--danger)">Identity Recovery Panel</div>
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <input type="text" id="rec-addr" class="input-pro" placeholder="Address to Query/Recover">
+                            <button class="btn-pro btn-primary" onclick="queryStatus('rec-addr')">Query Access Status</button>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                <button class="btn-pro btn-secondary" onclick="setVerify(true, 'rec-addr')">Restore Access</button>
+                                <button class="btn-pro" style="background:var(--danger); color:white" onclick="setVerify(false, 'rec-addr')">Revoke Access</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="recovery-owner-panel" class="card hidden" style="border-color: #f59e0b">
+                        <div class="card-title" style="color:#f59e0b">Master Owner Vault</div>
+                        <div style="margin-bottom: 20px;">
+                            <div style="font-size: 0.8rem; color: var(--text-dim);">Unclaimed Revenue</div>
+                            <div id="vault-balance-rec" style="font-size: 2.2rem; font-weight: 900; color: #f59e0b">0.00 LCAI</div>
+                        </div>
+                        <button class="btn-pro" style="background:#f59e0b; color:black; width:100%" onclick="withdraw()">Withdraw All Funds</button>
                     </div>
                 </div>
             </div>
-
-            <div id="recovery-owner-panel" class="card hidden" style="border-color: #f59e0b">
-                <div class="card-title" style="color:#f59e0b">Master Owner Vault</div>
-                <div style="margin-bottom: 20px;">
-                    <div style="font-size: 0.8rem; color: var(--text-dim);">Unclaimed Revenue</div>
-                    <div id="vault-balance-rec" style="font-size: 2.2rem; font-weight: 900; color: #f59e0b">0.00 LCAI</div>
-                </div>
-                <button class="btn-pro" style="background:#f59e0b; color:black; width:100%" onclick="withdraw()">Withdraw All Funds</button>
-            </div>
-
-        </div>
-    </div>
-</main>
+        </main>
     </div>
     <div id="toast"></div>
 
-  <script>
-    const CONFIG = { 
-        SBT_ADDR: "0xd71462F0002Ee9373fCe05B568583Ed13e75f600", 
-        AIVM_ADDR: "0xbcA38515887Dc3Ca163398C0Ef7bF02dd156D8FB" 
-    };
-    // Refined ABI to match your AIArtStudio.sol
-    const ABI = [
-        "function isAdmin(address) view returns (bool)", 
-        "function owner() view returns (address)", 
-        "function setVerification(address,bool) external", 
-        "function withdraw() external"
-    ];
-    let provider, signer, userAddr, studioContract;
+    <script>
+        const CONFIG = { 
+            SBT_ADDR: "0xd71462F0002Ee9373fCe05B568583Ed13e75f600", 
+            AIVM_ADDR: "0xbcA38515887Dc3Ca163398C0Ef7bF02dd156D8FB" 
+        };
+        const ABI = [
+            "function isAdmin(address) view returns (bool)", 
+            "function owner() view returns (address)", 
+            "function setVerification(address,bool) external", 
+            "function withdraw() external"
+        ];
+        let provider, signer, userAddr, studioContract;
 
-    function log(m) { 
-        const out = document.getElementById('console-output'); 
-        const d = document.createElement('div'); 
-        d.innerText = `> ${m}`; 
-        out.appendChild(d); 
-        out.scrollTop = out.scrollHeight; 
-    }
+        function log(m) { const out = document.getElementById('console-output'); const d = document.createElement('div'); d.innerText = `> ${m}`; out.appendChild(d); out.scrollTop = out.scrollHeight; }
+        function notify(m) { const t = document.getElementById('toast'); t.innerText = m; t.style.display = 'block'; setTimeout(()=>t.style.display='none', 3000); }
 
-    function notify(m) { 
-        const t = document.getElementById('toast'); 
-        t.innerText = m; t.style.display = 'block'; 
-        setTimeout(()=>t.style.display='none', 3000); 
-    }
-
-    function showView(viewId) {
-        ['iam', 'art', 'recovery'].forEach(v => {
-            document.getElementById('view-' + v).classList.add('hidden');
-            document.getElementById('nav-' + v).classList.remove('active');
-        });
-        document.getElementById('view-' + viewId).classList.remove('hidden');
-        document.getElementById('nav-' + viewId).classList.add('active');
-        log(`Navigation: Switched to ${viewId.toUpperCase()}`);
-    }
-
-    async function connect() {
-        if (!window.ethereum) return notify("MetaMask Required");
-        try {
-            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-            userAddr = accounts[0];
-            provider = new ethers.BrowserProvider(window.ethereum);
-            signer = await provider.getSigner();
-            studioContract = new ethers.Contract(CONFIG.AIVM_ADDR, ABI, signer);
-
-            document.getElementById('connect-btn').style.display = 'none';
-            document.getElementById('wallet-pill').style.display = 'flex';
-            document.getElementById('address-display').innerText = `${userAddr.slice(0,6)}...${userAddr.slice(-4)}`;
-            
-            const bal = await provider.getBalance(userAddr);
-            document.getElementById('balance-display').innerText = `${parseFloat(ethers.formatEther(bal)).toFixed(2)} LCAI`;
-            
-            log(`Authorized: ${userAddr}`);
-            // Small timeout to ensure provider sync
-            setTimeout(checkAccess, 500);
-        } catch (e) { log("Connection Failed", true); }
-    }
-
-      async function setVerify(state, inputId) {
-        const addr = document.getElementById(inputId).value;
-        if(!ethers.isAddress(addr)) return notify("Invalid Wallet Address");
-        try {
-            log(`Broadcasting Verification for ${addr.slice(0,6)}...`);
-            const tx = await studioContract.setVerification(addr, state);
-            notify("Transaction Sent...");
-            await tx.wait();
-            log(`Status Updated: ${state ? 'Verified' : 'Revoked'}`);
-            notify("Identity Updated Successfully");
-        } catch (e) { log("Action Denied by Protocol", true); }
-    }
-
-      // Functional Button Logic
-    async function queryStatus(inputId) {
-        const addr = document.getElementById(inputId).value;
-        if(!ethers.isAddress(addr)) return notify("Invalid Wallet Address");
-        try {
-            const isA = await studioContract.isAdmin(addr);
-            log(`Query [${addr.slice(0,6)}]: Admin Status = ${isA}`);
-            notify(isA ? "Address is Verified Admin" : "Address has no Admin Access");
-        } catch (e) { log("Query Failed", true); }
-    }
-      
-      
-async function checkAccess() {
-        try {
-            const isA = await studioContract.isAdmin(userAddr);
-            const identityContract = new ethers.Contract(CONFIG.SBT_ADDR, ["function hasSBT(address) view returns (bool)"], provider);
-            const verified = await identityContract.hasSBT(userAddr);
-            const ownerAddr = await studioContract.owner();
-            const isOwner = userAddr.toLowerCase() === ownerAddr.toLowerCase();
-
-            const zkCard = document.getElementById('zk-status-card');
-            const zkHeader = document.getElementById('zk-header');
-            const zkDesc = document.getElementById('zk-desc');
-            const zkAction = document.getElementById('zk-action-area');
-
-            if (isA) {
-                document.getElementById('admin-panel').classList.remove('hidden');
-                log("Admin Permissions Unlocked.");
-            }
-            
-            if (isOwner) {
-                // Show Owner Panel in Recovery View
-                document.getElementById('recovery-owner-panel').classList.remove('hidden');
-                // Adjust Recovery Card width (remove centering/max-width)
-                document.getElementById('recovery-layout').classList.remove('full-width');
-                
-                const vBal = await provider.getBalance(CONFIG.AIVM_ADDR);
-                document.getElementById('vault-balance-rec').innerText = `${parseFloat(ethers.formatEther(vBal)).toFixed(2)} LCAI`;
-                log("Owner Master Vault Linked.");
-            } else {
-                // Center the recovery panel if not owner
-                document.getElementById('recovery-layout').classList.add('full-width');
-            }
-
-            if (verified) {
-                zkCard.style.borderColor = "var(--secondary)";
-                zkHeader.innerText = "ZK Verify Info";
-                zkHeader.style.color = "var(--secondary)";
-                zkDesc.innerText = "Your Soulbound Identity is active. Access to AIVM Clusters is granted.";
-                zkAction.innerHTML = `<button class="btn-pro btn-primary" onclick="showView('art')">Launch AIVM Workspace</button>`;
-                log("ZK Identity: Verified.");
-            } else {
-                zkCard.style.borderColor = "var(--primary)";
-                zkHeader.innerText = "ZK Verify Registration";
-                zkDesc.innerText = "No Soulbound Identity detected. Register to unlock Native AIVM features.";
-                zkAction.innerHTML = `<button class="btn-pro btn-secondary" onclick="window.open('https://testnet.lightscan.app/faucet')">Get Testnet LCAI</button>`;
-                log("ZK Identity: Not Found.");
-            }
-            if (userAddr.toLowerCase() === ownerAddr.toLowerCase()) {
-                document.getElementById('owner-panel').classList.remove('hidden');
-                const vBal = await provider.getBalance(CONFIG.AIVM_ADDR);
-                document.getElementById('vault-balance').innerText = `${parseFloat(ethers.formatEther(vBal)).toFixed(2)} LCAI`;
-                log("IAM: Master Vault Linked.");
-            }
-        } catch (e) { 
-            console.error(e);
-            log("Handshake Error: Access Check Reverted", true);
-            log("Access Validation Error", true); 
+        function showView(viewId) {
+            ['iam', 'art', 'recovery'].forEach(v => {
+                document.getElementById('view-' + v).classList.add('hidden');
+                document.getElementById('nav-' + v).classList.remove('active');
+            });
+            document.getElementById('view-' + viewId).classList.remove('hidden');
+            document.getElementById('nav-' + viewId).classList.add('active');
+            log(`Navigation: Switched to ${viewId.toUpperCase()}`);
         }
-    }
 
-    function copyAddress() { navigator.clipboard.writeText(userAddr); notify("Address Copied"); }
-    async function withdraw() { try { const tx = await studioContract.withdraw(); await tx.wait(); notify("Withdrawn"); } catch(e){ log("Withdraw Failed", true); } }
-    
-    log("LCAI IAM Kernel Online...");
-</script>
+        async function connect() {
+            if (!window.ethereum) return notify("MetaMask Required");
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                userAddr = accounts[0];
+                provider = new ethers.BrowserProvider(window.ethereum);
+                signer = await provider.getSigner();
+                studioContract = new ethers.Contract(CONFIG.AIVM_ADDR, ABI, signer);
+                document.getElementById('connect-btn').style.display = 'none';
+                document.getElementById('wallet-pill').style.display = 'flex';
+                document.getElementById('address-display').innerText = `${userAddr.slice(0,6)}...${userAddr.slice(-4)}`;
+                const bal = await provider.getBalance(userAddr);
+                document.getElementById('balance-display').innerText = `${parseFloat(ethers.formatEther(bal)).toFixed(2)} LCAI`;
+                log(`Authorized: ${userAddr}`);
+                setTimeout(checkAccess, 500);
+            } catch (e) { log("Connection Failed", true); }
+        }
+
+        async function queryStatus(inputId) {
+            const addr = document.getElementById(inputId).value;
+            if(!ethers.isAddress(addr)) return notify("Invalid Wallet Address");
+            try {
+                const isA = await studioContract.isAdmin(addr);
+                log(`Query [${addr.slice(0,6)}]: Admin Status = ${isA}`);
+                notify(isA ? "Verified Admin" : "No Admin Access");
+            } catch (e) { log("Query Failed", true); }
+        }
+
+        async function setVerify(state, inputId) {
+            const addr = document.getElementById(inputId).value;
+            if(!ethers.isAddress(addr)) return notify("Invalid Wallet Address");
+            try {
+                log(`Broadcasting verification for ${addr.slice(0,6)}...`);
+                const tx = await studioContract.setVerification(addr, state);
+                await tx.wait();
+                log(`Status Updated: ${state ? 'Verified' : 'Revoked'}`);
+                notify("Identity Updated Successfully");
+                checkAccess();
+            } catch (e) { log("Action Denied", true); }
+        }
+
+        async function checkAccess() {
+            try {
+                // 1. ZK Identity Check
+                const sbtContract = new ethers.Contract(CONFIG.SBT_ADDR, ["function hasSBT(address) view returns (bool)"], provider);
+                const verified = await sbtContract.hasSBT(userAddr);
+                const zkCard = document.getElementById('zk-status-card');
+                const zkHeader = document.getElementById('zk-header');
+                const zkDesc = document.getElementById('zk-desc');
+                const zkAction = document.getElementById('zk-action-area');
+
+                if (verified) {
+                    zkCard.style.borderColor = "var(--secondary)";
+                    zkHeader.innerText = "ZK Verify Info";
+                    zkHeader.style.color = "var(--secondary)";
+                    zkDesc.innerText = "Your Soulbound Identity is active. Access to AIVM Clusters is granted.";
+                    zkAction.innerHTML = `<button class="btn-pro btn-primary" onclick="showView('art')">Launch AIVM Workspace</button>`;
+                    log("ZK Identity: Verified.");
+                } else {
+                    zkCard.style.borderColor = "var(--primary)";
+                    zkHeader.innerText = "ZK Verify Registration";
+                    zkDesc.innerText = "No Soulbound Identity detected. Register to unlock Native AIVM features.";
+                    zkAction.innerHTML = `<button class="btn-pro btn-secondary" onclick="window.open('https://testnet.lightscan.app/faucet')">Get Testnet LCAI</button>`;
+                }
+
+                // 2. Admin/Owner Check
+                const isA = await studioContract.isAdmin(userAddr);
+                const ownerAddr = await studioContract.owner();
+                const isOwner = userAddr.toLowerCase() === ownerAddr.toLowerCase();
+
+                if (isA) { document.getElementById('admin-panel').classList.remove('hidden'); log("Admin Access Unlocked."); }
+                if (isOwner) {
+                    document.getElementById('owner-panel').classList.remove('hidden');
+                    document.getElementById('recovery-owner-panel').classList.remove('hidden');
+                    document.getElementById('recovery-layout').classList.remove('full-width');
+                    const vBal = await provider.getBalance(CONFIG.AIVM_ADDR);
+                    const balTxt = `${parseFloat(ethers.formatEther(vBal)).toFixed(2)} LCAI`;
+                    document.getElementById('vault-balance').innerText = balTxt;
+                    document.getElementById('vault-balance-rec').innerText = balTxt;
+                    log("Master Owner Vault Linked.");
+                } else {
+                    document.getElementById('recovery-layout').classList.add('full-width');
+                }
+            } catch (e) { log("Access Validation Error", true); console.error(e); }
+        }
+
+        function copyAddress() { navigator.clipboard.writeText(userAddr); notify("Address Copied"); }
+        async function withdraw() { try { const tx = await studioContract.withdraw(); await tx.wait(); notify("Withdrawn"); checkAccess(); } catch(e){ log("Withdraw Failed", true); } }
+        log("LCAI IAM Kernel Online...");
+    </script>
 </body>
 </html>
-
-
-

@@ -62,23 +62,38 @@ const CONFIG = {
         ];
         let history = JSON.parse(localStorage.getItem('ai_history') || '[]');
       
+// Replace the initHistory function in artgenerator-ui.html
 async function initHistory() {
     try {
         const provider = new ethers.BrowserProvider(window.ethereum);
-        const contract = new ethers.Contract(CONFIG.AIVM_ADDR, ABI, provider);
+        // Matching your EXACT contract event signature
+        const contract = new ethers.Contract(CONFIG.AIVM_ADDR, [
+            "event ArtGenerated(address indexed user, string prompt, bytes32 modelDigest, uint256 fee)"
+        ], provider);
         
-        // Remove the user filter for a "global" test scan
-        const events = await contract.queryFilter("ArtGenerated", -50000); 
+        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        const user = accounts[0];
+
+        // Scan for your address
+        const filter = contract.filters.ArtGenerated(user);
+        const events = await contract.queryFilter(filter, -10000); 
 
         history = events.map(e => ({
             prompt: e.args.prompt,
             url: `https://image.pollinations.ai/prompt/${encodeURIComponent(e.args.prompt)}?nologo=true`
         })).reverse().slice(0, 10);
 
-        renderHistory();
-        window.parent.postMessage({ type: "LCAI_STATUS", message: `On-Chain Scan: ${events.length} total items found.` }, "*");
+        // Render as clickable thumbnails
+        const grid = document.getElementById('history-grid');
+        grid.innerHTML = history.map((item, i) => `
+            <div class="gallery-item" onclick="loadHistory(${i})" style="width: 80px; height: 80px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; cursor: pointer;">
+                <img src="${item.url}" style="width: 100%; height: 100%; object-fit: cover;">
+            </div>
+        `).join('');
+        
+        window.parent.postMessage({ type: "LCAI_STATUS", message: `Gallery Synced: ${history.length} on-chain items found.` }, "*");
     } catch (e) {
-        window.parent.postMessage({ type: "LCAI_STATUS", message: "History Sync: Contract Event Mismatch" }, "*");
+        console.error(e);
     }
 }
         

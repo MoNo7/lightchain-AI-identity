@@ -31,6 +31,11 @@
         .admin-grid { display: grid; grid-template-columns: 1fr 200px; gap: 12px; }
         .input-pro { background: #0f111a; border: 1px solid var(--border); border-radius: 6px; padding: 12px; color: white; outline: none; }
         .split-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+        /* New Identity Styling */
+    .profile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+    .info-label { font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; margin-bottom: 4px; }
+    .info-value { font-family: monospace; font-size: 1rem; color: var(--secondary); word-break: break-all; }
+    .did-badge { background: rgba(88, 101, 242, 0.1); border: 1px solid var(--primary); color: var(--primary); padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; }
         .btn-pro { padding: 12px; border-radius: 6px; font-weight: 700; border: none; cursor: pointer; transition: 0.2s; }
         .btn-pro:hover { filter: brightness(1.2); transform: translateY(-1px); }
         .btn-primary { background: var(--primary); color: white; }
@@ -69,58 +74,55 @@
             </nav>
         </aside>
 
-        <main class="main-content">
-            <div id="view-iam">
-                <div id="zk-status-card" class="card" style="border-left: 4px solid var(--text-dim)">
-                    <h2 id="zk-header">Initializing ZK Shield...</h2>
-                    <p id="zk-desc" style="color:var(--text-dim)">Checking Lightchain AI Registry status.</p>
-                    <div id="zk-action-area" style="margin-top: 15px;"></div>
+    <main class="main-content">
+    <div id="view-iam">
+        <div class="card" style="border-left: 4px solid var(--secondary)">
+            <div class="card-title">ZK Identity Profile</div>
+            <div class="profile-grid">
+                <div>
+                    <div class="info-label">Identity Name</div>
+                    <div id="zk-profile-name" class="info-value">LCAI Voyager</div>
                 </div>
-
-                <div id="admin-panel" class="card hidden">
-                    <div class="card-title">Admin Management</div>
-                    <div class="admin-grid">
-                        <input type="text" id="target-addr" class="input-pro" placeholder="Wallet Address">
-                        <button class="btn-pro btn-secondary" onclick="setVerify(true, 'target-addr')">Verify</button>
-                    </div>
+                <div>
+                    <div class="info-label">Verification Status</div>
+                    <div id="zk-status-text" class="info-value" style="color: var(--secondary)">● ZK-Verified</div>
                 </div>
-
-                <div id="owner-panel" class="card hidden" style="border-color: #f59e0b">
-                    <div class="card-title" style="color:#f59e0b">Master Owner Vault</div>
-                    <div id="vault-balance" style="font-size: 2.2rem; font-weight: 900; color: #f59e0b">0.00 LCAI</div>
-                    <button class="btn-pro" style="background:#f59e0b; color:black; width:100%; margin-top:10px" onclick="withdraw()">Withdraw All Funds</button>
+                <div style="grid-column: 1 / -1;">
+                    <div class="info-label">Decentralized Identifier (DID) <span class="did-badge">W3C Standard</span></div>
+                    <div id="zk-did-value" class="info-value">did:lcai:0x0000...0000</div>
                 </div>
             </div>
+            <div id="zk-action-area" style="margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border);">
+                </div>
+        </div>
+    </div>
 
-            <div id="view-art" class="hidden">
-                <iframe src="artgenerator-ui.html"></iframe>
-            </div>
+    <div id="view-art" class="hidden">
+        <iframe src="artgenerator-ui.html"></iframe>
+    </div>
 
-            <div id="view-recovery" class="hidden">
-                <div id="recovery-layout" class="split-grid">
-                    <div class="card" style="border-left: 4px solid var(--danger)">
-                        <div class="card-title" style="color:var(--danger)">Identity Recovery Panel</div>
-                        <div style="display: flex; flex-direction: column; gap: 12px;">
-                            <input type="text" id="rec-addr" class="input-pro" placeholder="Address to Query/Recover">
-                            <button class="btn-pro btn-primary" onclick="queryStatus('rec-addr')">Query Access Status</button>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                                <button class="btn-pro btn-secondary" onclick="setVerify(true, 'rec-addr')">Restore Access</button>
-                                <button class="btn-pro" style="background:var(--danger); color:white" onclick="setVerify(false, 'rec-addr')">Revoke Access</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="recovery-owner-panel" class="card hidden" style="border-color: #f59e0b">
-                        <div class="card-title" style="color:#f59e0b">Master Owner Vault</div>
-                        <div style="margin-bottom: 20px;">
-                            <div style="font-size: 0.8rem; color: var(--text-dim);">Unclaimed Revenue</div>
-                            <div id="vault-balance-rec" style="font-size: 2.2rem; font-weight: 900; color: #f59e0b">0.00 LCAI</div>
-                        </div>
-                        <button class="btn-pro" style="background:#f59e0b; color:black; width:100%" onclick="withdraw()">Withdraw All Funds</button>
+    <div id="view-recovery" class="hidden">
+        <div id="recovery-layout" class="split-grid">
+            <div class="card" style="border-left: 4px solid var(--danger)">
+                <div class="card-title" style="color:var(--danger)">Identity Recovery Panel</div>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <input type="text" id="rec-addr" class="input-pro" placeholder="Address to Query/Recover">
+                    <button class="btn-pro btn-primary" onclick="queryStatus('rec-addr')">Query Access Status</button>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <button class="btn-pro btn-secondary" onclick="setVerify(true, 'rec-addr')">Restore Access</button>
+                        <button class="btn-pro" style="background:var(--danger); color:white" onclick="setVerify(false, 'rec-addr')">Revoke Access</button>
                     </div>
                 </div>
             </div>
-        </main>
+
+            <div id="recovery-owner-panel" class="card hidden" style="border-color: #f59e0b">
+                <div class="card-title" style="color:#f59e0b">Master Owner Vault</div>
+                <div id="vault-balance-rec" style="font-size: 2.2rem; font-weight: 900; color: #f59e0b">0.00 LCAI</div>
+                <button class="btn-pro" style="background:#f59e0b; color:black; width:100%; margin-top:20px;" onclick="withdraw()">Withdraw All Funds</button>
+            </div>
+        </div>
+    </div>
+</main>
     </div>
     <div id="toast"></div>
 
@@ -168,78 +170,67 @@
             } catch (e) { log("Connection Failed", true); }
         }
 
-        async function queryStatus(inputId) {
-            const addr = document.getElementById(inputId).value;
-            if(!ethers.isAddress(addr)) return notify("Invalid Wallet Address");
-            try {
-                const isA = await studioContract.isAdmin(addr);
-                log(`Query [${addr.slice(0,6)}]: Admin Status = ${isA}`);
-                notify(isA ? "Verified Admin" : "No Admin Access");
-            } catch (e) { log("Query Failed", true); }
-        }
-
-        async function setVerify(state, inputId) {
-            const addr = document.getElementById(inputId).value;
-            if(!ethers.isAddress(addr)) return notify("Invalid Wallet Address");
-            try {
-                log(`Broadcasting verification for ${addr.slice(0,6)}...`);
-                const tx = await studioContract.setVerification(addr, state);
-                await tx.wait();
-                log(`Status Updated: ${state ? 'Verified' : 'Revoked'}`);
-                notify("Identity Updated Successfully");
-                checkAccess();
-            } catch (e) { log("Action Denied", true); }
-        }
-
-       async function checkAccess() {
-    try {
-        log("Validating Protocol Permissions...");
-        
-        // 1. Check ZK Identity (SBT)
-        const sbtContract = new ethers.Contract(CONFIG.SBT_ADDR, ["function hasSBT(address) view returns (bool)"], provider);
-        const hasIdentity = await sbtContract.hasSBT(userAddr);
-        
-        const zkCard = document.getElementById('zk-status-card');
-        if (hasIdentity) {
-            zkCard.style.borderColor = "var(--secondary)";
-            document.getElementById('zk-header').innerText = "ZK Verify Info";
-            document.getElementById('zk-desc').innerText = "Soulbound Identity Active. AIVM Cluster access granted.";
-            document.getElementById('zk-action-area').innerHTML = `<button class="btn-pro btn-primary" onclick="showView('art')">Launch AIVM Workspace</button>`;
-            log("ZK Identity: Verified.");
-        }
-
-        // 2. Admin & Owner Handshake
-        // We use a robust check: if the contract call fails, we compare to known deployer address
-        let ownerAddr = "";
+// Fixed Recovery Actions
+    async function queryStatus(id) {
+        const addr = document.getElementById(id).value;
+        if(!ethers.isAddress(addr)) return notify("Invalid Wallet");
         try {
-            ownerAddr = await studioContract.owner();
-        } catch (e) {
-            log("Note: Owner lookup failed, using provider fallback.");
-            ownerAddr = "0x4D36B31d4BFB957A5D816B0f420a9e755EFc6a2c"; // Your known address
-        }
+            const status = await studioContract.isAdmin(addr);
+            log(`Query: ${addr.slice(0,8)}... Admin = ${status}`);
+            notify(status ? "Access Confirmed" : "No Access Detected");
+        } catch(e) { log("Query Error", true); }
+    }
 
-        const isOwner = userAddr.toLowerCase() === ownerAddr.toLowerCase();
-        const isAdmin = await studioContract.isAdmin(userAddr).catch(() => isOwner);
+async function setVerify(state, id) {
+        const addr = document.getElementById(id).value;
+        if(!ethers.isAddress(addr)) return notify("Invalid Wallet");
+        try {
+            log(`Modifying [AIArtStudio](https://testnet.lightscan.app/address/0xbcA38515887Dc3Ca163398C0Ef7bF02dd156D8FB) Access...`);
+            const tx = await studioContract.setVerification(addr, state);
+            await tx.wait();
+            log(`Success: ${state ? 'Verified' : 'Revoked'}`);
+            notify("Identity Updated");
+            checkAccess();
+        } catch(e) { log("Protocol Denied Change", true); }
+    }
 
-        if (isAdmin || isOwner) {
-            document.getElementById('admin-panel').classList.remove('hidden');
-            log("IAM: Admin Access Unlocked.");
-        }
-
-        if (isOwner) {
-            document.getElementById('owner-panel').classList.remove('hidden');
-            document.getElementById('recovery-owner-panel').classList.remove('hidden');
-            document.getElementById('recovery-layout').classList.remove('full-width');
+async function checkAccess() {
+        try {
+            // 1. Fetch ZK SBT Status
+            const sbtContract = new ethers.Contract(CONFIG.SBT_ADDR, ["function hasSBT(address) view returns (bool)"], provider);
+            const verified = await sbtContract.hasSBT(userAddr);
             
-            const vBal = await provider.getBalance(CONFIG.AIVM_ADDR);
-            const balTxt = `${parseFloat(ethers.formatEther(vBal)).toFixed(2)} LCAI`;
-            document.getElementById('vault-balance').innerText = balTxt;
-            document.getElementById('vault-balance-rec').innerText = balTxt;
-            log("IAM: Master Vault Connected.");
+            const zkName = document.getElementById('zk-profile-name');
+            const zkStatus = document.getElementById('zk-status-text');
+            const zkDID = document.getElementById('zk-did-value');
+            const zkAction = document.getElementById('zk-action-area');
+
+            if (verified) {
+                zkName.innerText = `Verified Member #${userAddr.slice(-4)}`;
+                zkStatus.innerText = "● ZK-Verified (Active)";
+                zkStatus.style.color = "var(--secondary)";
+                zkDID.innerText = `did:lcai:eth:${userAddr}`;
+                zkAction.innerHTML = `<button class="btn-pro btn-primary" onclick="showView('art')">Enter AIVM Workspace</button>`;
+                log("ZK Identity verified via [ZkKYCSBT](https://testnet.lightscan.app/address/0xd71462F0002Ee9373fCe05B568583Ed13e75f600)");
+            } else {
+                zkName.innerText = "Unregistered Guest";
+                zkStatus.innerText = "○ Pending Registration";
+                zkStatus.style.color = "var(--danger)";
+                zkDID.innerText = "Not assigned";
+                zkAction.innerHTML = `<button class="btn-pro btn-secondary" onclick="window.open('https://testnet.lightscan.app/faucet')">Mint Identity at Faucet</button>`;
+            }
+
+            // 2. Owner Logic (Internal check for the vault)
+            const ownerAddr = await studioContract.owner().catch(() => "0x4D36B31d4BFB957A5D816B0f420a9e755EFc6a2c");
+            if (userAddr.toLowerCase() === ownerAddr.toLowerCase()) {
+                document.getElementById('recovery-owner-panel').classList.remove('hidden');
+                document.getElementById('recovery-layout').classList.remove('full-width');
+                const vBal = await provider.getBalance(CONFIG.AIVM_ADDR);
+                document.getElementById('vault-balance-rec').innerText = `${ethers.formatEther(vBal)} LCAI`;
+            }
+        } catch (e) {
+            log("Handshake Error: ZK Profile sync failed.", true);
         }
-    } catch (e) {
-        log("Access Check Error: Protocol Handshake Failed", true);
-        console.error(e);
     }
 }
 
@@ -249,4 +240,5 @@
     </script>
 </body>
 </html>
+
 

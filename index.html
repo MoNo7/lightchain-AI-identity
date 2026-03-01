@@ -163,33 +163,25 @@
             }
         }
 
-        async function scanHistory() {
-            try {
-                log("Scanning Native AIVM History...");
-                const filter = studioContract.filters.ArtGenerated();
-                const events = await studioContract.queryFilter(filter, -10000);
-                const gallery = document.getElementById('art-gallery');
-                gallery.innerHTML = ''; 
-                events.slice(-10).reverse().forEach(ev => { addToGallery(ev.args[1]); });
-                log(`History Sync: ${events.length > 10 ? 10 : events.length} items recovered.`);
-            } catch (e) { log("Native Scan Failed.", true); }
-        }
-
+        // 1. Native LCAI AIVM Gateways
         const GATEWAYS = [
             "https://api.lightchain.ai/v1/aivm/render/",
             "https://gateway.lightchain.ai/ipfs/"
         ];
 
+        // 2. Updated to handle the 4-parameter V2 Event
         function addToGallery(p) {
             const gallery = document.getElementById('art-gallery');
             const item = document.createElement('div');
             item.className = 'gallery-item';
-            const seed = Math.floor(Math.random()*99999);
+            const seed = Math.floor(Math.random() * 99999);
             const promptEncoded = encodeURIComponent(p);
+            
+            // Primary Native URL
             const url = `${GATEWAYS[0]}${promptEncoded}?width=512&height=512&nologo=true&seed=${seed}`;
             
             item.innerHTML = `
-                <div class="sync-status" style="height:150px; display:flex; align-items:center; justify-content:center; background:#000; font-size:0.6rem; color:var(--primary); animation:pulse 1s infinite">Syncing...</div>
+                <div class="sync-status" style="height:150px; display:flex; align-items:center; justify-content:center; background:#000; font-size:0.6rem; color:var(--primary); animation:pulse 1s infinite">LCAI Syncing...</div>
                 <img src="${url}" class="gallery-img" style="display:none" 
                      onload="this.style.display='block'; this.previousElementSibling.style.display='none'; this.nextElementSibling.style.display='flex';"
                      onerror="this.src='https://image.pollinations.ai/prompt/${promptEncoded}?width=512&height=512&nologo=true';">
@@ -200,6 +192,23 @@
             gallery.appendChild(item);
         }
 
+        // 3. Updated scanHistory to pull correct args
+        async function scanHistory() {
+            try {
+                log("Scanning Native AIVM History...");
+                const filter = studioContract.filters.ArtGenerated();
+                const events = await studioContract.queryFilter(filter, -10000);
+                const gallery = document.getElementById('art-gallery');
+                gallery.innerHTML = ''; 
+                
+                events.slice(-10).reverse().forEach(ev => { 
+                    // In V2, ev.args[1] is the prompt string
+                    addToGallery(ev.args[1]); 
+                });
+                log(`History Sync: ${events.length} items recovered.`);
+            } catch (e) { log("Native Scan Failed.", true); }
+        }
+        
         function renderArt(p) {
             const out = document.getElementById('art-output');
             out.innerHTML = `<div id="mint-status" class="mint-overlay" style="display:flex"><div class="mint-spinner"></div>Status: Manifesting Pixels...</div><div style="color:var(--primary); font-weight:bold; animation:pulse 1.5s infinite">AIVM Inference in Progress...</div>`;
@@ -281,3 +290,4 @@
     </script>
 </body>
 </html>
+

@@ -16,16 +16,21 @@
         .btn-gen { background: var(--primary); color: white; border: none; padding: 10px 25px; border-radius: 8px; font-weight: 700; cursor: pointer; transition: 0.2s; }
         .output-view { flex: 1; background: #000; border: 1px solid var(--border); border-radius: 12px; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; }
         .output-img { max-width: 100%; max-height: 100%; object-fit: contain; display: none; }
-        .status-txt { color: var(--text-dim); text-align: center; font-size: 1.1rem; }
+        .status-txt { color: #94a3b8; text-align: center; font-size: 1.1rem; }
 
-        /* History Sidebar */
-        .history-sidebar { width: 260px; background: rgba(0,0,0,0.4); border-left: 1px solid var(--border); padding: 20px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; }
+        /* Gallery Sidebar */
+        .history-sidebar { width: 300px; background: rgba(0,0,0,0.4); border-left: 1px solid var(--border); padding: 20px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; }
         .history-header { font-size: 0.75rem; font-weight: 800; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
-        .history-item { font-size: 0.75rem; color: #94a3b8; padding: 10px; border-radius: 6px; border: 1px solid transparent; cursor: pointer; transition: 0.2s; background: rgba(255,255,255,0.03); }
-        .history-item:hover { border-color: var(--secondary); color: var(--secondary); background: rgba(0,255,128,0.05); }
+        
+        /* Gallery Grid */
+        .gallery-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .gallery-item { aspect-ratio: 1/1; border-radius: 6px; overflow: hidden; cursor: pointer; border: 1px solid var(--border); transition: 0.2s; background: #08090f; position: relative; }
+        .gallery-item:hover { border-color: var(--secondary); transform: scale(1.05); }
+        .gallery-item img { width: 100%; height: 100%; object-fit: cover; }
+        .gallery-item::after { content: "RELOAD"; position: absolute; inset: 0; background: rgba(0,255,128,0.2); display: flex; align-items: center; justify-content: center; font-size: 0.6rem; font-weight: 800; color: var(--secondary); opacity: 0; transition: 0.2s; }
+        .gallery-item:hover::after { opacity: 1; }
 
-        .mint-btn { position: absolute; bottom: 20px; right: 20px; background: var(--secondary); color: black; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 15px rgba(0,255,128,0.3); display: none; }
-        .mint-btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
+        .mint-btn { position: absolute; bottom: 20px; right: 20px; background: var(--secondary); color: black; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 800; cursor: pointer; display: none; }
     </style>
 </head>
 <body>
@@ -34,7 +39,7 @@
             <input type="text" id="prompt-input" class="prompt-input" placeholder="A futuristic cyberpunk city in neon lights...">
             <button class="btn-gen" onclick="generate()">GENERATE</button>
         </div>
-        <div class="output-view" id="output-view">
+        <div class="output-view">
             <p id="status" class="status-txt">Ready for Inference...</p>
             <img id="result-img" class="output-img">
             <button id="mint-btn" class="mint-btn" onclick="mintNFT()">MINT AS NFT</button>
@@ -43,7 +48,7 @@
 
     <div class="history-sidebar">
         <div class="history-header">Recent Inferences (10)</div>
-        <div id="history-list" style="display: flex; flex-direction: column; gap: 10px;"></div>
+        <div id="history-grid" class="gallery-grid"></div>
     </div>
 
     <script>
@@ -58,11 +63,10 @@
         }
 
         function renderHistory() {
-            const list = document.getElementById('history-list');
-            list.innerHTML = history.map((item, i) => `
-                <div class="history-item" onclick="loadHistory(${i})">
-                    <div style="font-weight:bold; margin-bottom:4px;">Inference #${history.length - i}</div>
-                    <div style="opacity:0.8">${item.prompt.slice(0, 45)}...</div>
+            const grid = document.getElementById('history-grid');
+            grid.innerHTML = history.map((item, i) => `
+                <div class="gallery-item" onclick="loadHistory(${i})">
+                    <img src="${item.url}" alt="AIVM Thumbnail">
                 </div>
             `).join('');
         }
@@ -74,59 +78,49 @@
             img.style.display = 'block';
             document.getElementById('status').style.display = 'none';
             document.getElementById('mint-btn').style.display = 'block';
+            window.parent.postMessage({ type: "LCAI_STATUS", message: `Reloading Inference: "${item.prompt}"` }, "*");
         }
 
-async function generate() {
-    const prompt = document.getElementById('prompt-input').value;
-    if(!prompt) return;
+        async function generate() {
+            const prompt = document.getElementById('prompt-input').value;
+            if(!prompt || !window.ethereum) return;
 
-    // Send status to Parent System Console
-    window.parent.postMessage({ type: "LCAI_STATUS", message: `Inference Initiated: "${prompt}"` }, "*");
-    
-    document.getElementById('status').innerText = "Processing..."; // Local minimal status
-    document.getElementById('result-img').style.display = 'none';
+            window.parent.postMessage({ type: "LCAI_STATUS", message: `Inference Initiated: "${prompt}"` }, "*");
+            document.getElementById('status').innerText = "Processing...";
+            document.getElementById('result-img').style.display = 'none';
+            document.getElementById('mint-btn').style.display = 'none';
 
-    try {
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const signer = await provider.getSigner();
-        const contract = new ethers.Contract(CONFIG.AIVM_ADDR, ["function generateArt(string) external payable"], signer);
-        
-        const tx = await contract.generateArt(prompt, { value: ethers.parseEther("1.0") });
-        window.parent.postMessage({ type: "LCAI_STATUS", message: "Transaction Anchored. Awaiting Reveal..." }, "*");
-        await tx.wait();
+            try {
+                const provider = new ethers.BrowserProvider(window.ethereum);
+                const signer = await provider.getSigner();
+                const contract = new ethers.Contract(CONFIG.AIVM_ADDR, ["function generateArt(string) external payable"], signer);
+                
+                const tx = await contract.generateArt(prompt, { value: ethers.parseEther("1.0") });
+                window.parent.postMessage({ type: "LCAI_STATUS", message: "Transaction Anchored. Awaiting Reveal..." }, "*");
+                await tx.wait();
 
-        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?nologo=true`;
-        const img = document.getElementById('result-img');
-        img.src = url;
-        img.onload = () => {
-            img.style.display = 'block';
-            document.getElementById('status').style.display = 'none';
-            document.getElementById('mint-btn').style.display = 'block';
-            
-            // Notify parent to sync history
-            window.parent.postMessage({ type: "LCAI_GEN_SUCCESS" }, "*");
-            saveToLocalHistory(prompt, url);
-        };
-    } catch (e) {
-        window.parent.postMessage({ type: "LCAI_STATUS", message: "AIVM Error: Inference Aborted" }, "*");
-    }
-}
-// Render History as thumbnails
-function renderHistory() {
-    const list = document.getElementById('history-list');
-    list.innerHTML = history.map((item, i) => `
-        <div class="history-item" onclick="loadHistory(${i})" style="display:flex; gap:10px; align-items:center;">
-            <img src="${item.url}" style="width:40px; height:40px; border-radius:4px; object-fit:cover;">
-            <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${item.prompt}</div>
-        </div>
-    `).join('');
-}
+                setTimeout(() => {
+                    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?nologo=true`;
+                    const img = document.getElementById('result-img');
+                    img.src = url;
+                    img.onload = () => {
+                        img.style.display = 'block';
+                        document.getElementById('status').style.display = 'none';
+                        document.getElementById('mint-btn').style.display = 'block';
+                        window.parent.postMessage({ type: "LCAI_GEN_SUCCESS" }, "*");
+                        updateHistory(prompt, url);
+                    };
+                }, 1500);
+            } catch (e) {
+                window.parent.postMessage({ type: "LCAI_STATUS", message: "AIVM Error: Inference Aborted" }, "*");
+            }
+        }
+
         async function mintNFT() {
             try {
                 const provider = new ethers.BrowserProvider(window.ethereum);
                 const signer = await provider.getSigner();
                 const contract = new ethers.Contract(CONFIG.SBT_ADDR, ["function mintIdentity() external"], signer);
-                
                 alert("Anchoring current output to LCAI Identity Registry...");
                 const tx = await contract.mintIdentity();
                 await tx.wait();

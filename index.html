@@ -119,39 +119,30 @@
         function log(m, e) { const out = document.getElementById('console-output'); const div = document.createElement('div'); div.style.color = e ? "#ff4444" : "#7dd3fc"; div.innerText = `> ${m}`; out.appendChild(div); out.scrollTop = out.scrollHeight; }
         async function updateVault() { if (!provider) return; const bal = await provider.getBalance(CONFIG.AIVM_ADDR); document.getElementById('revenue-display').innerText = `${parseFloat(ethers.formatEther(bal)).toFixed(2)} LCAI`; }
         
-     async function connect() {
-    if (!window.ethereum) {
-        log("MetaMask not detected. Please install the extension.", true);
-        return;
-    }
-    try {
-        // Request account access explicitly
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        userAddr = accounts[0];
-        
-        // Initialize Provider and Signer
-        provider = new ethers.BrowserProvider(window.ethereum);
-        signer = await provider.getSigner();
-        
-        // Update UI
-        document.getElementById('address-display').innerText = `${userAddr.slice(0,6)}...${userAddr.slice(-4)}`;
-        const bal = await provider.getBalance(userAddr);
-        document.getElementById('balance-display').innerText = `${parseFloat(ethers.formatEther(bal)).toFixed(2)} LCAI`;
-        document.getElementById('connect-btn').innerText = "Wallet Linked";
-        
-        // Initialize Contracts
-        sbtContract = new ethers.Contract(CONFIG.SBT_ADDR, ABI, signer);
-        studioContract = new ethers.Contract(CONFIG.AIVM_ADDR, ABI, signer);
-        
-        log(`Connected: ${userAddr}`);
-        checkIdentity();
-        updateVault();
-        scanHistory();
-    } catch (err) {
-        console.error(err);
-        log("Connection rejected by user or RPC error.", true);
-    }
-}
+async function connect() {
+            if (!window.ethereum) return log("MetaMask not found", true);
+            try {
+                provider = new ethers.BrowserProvider(window.ethereum);
+                const accounts = await provider.send("eth_requestAccounts", []);
+                userAddr = accounts[0]; signer = await provider.getSigner();
+                sbtContract = new ethers.Contract(CONFIG.SBT_ADDR, ABI, signer);
+                studioContract = new ethers.Contract(CONFIG.AIVM_ADDR, ABI, signer);
+                document.getElementById('address-display').innerText = `${userAddr.slice(0,6)}...${userAddr.slice(-4)}`;
+                const bal = await provider.getBalance(userAddr);
+                document.getElementById('balance-display').innerText = `${parseFloat(ethers.formatEther(bal)).toFixed(2)} LCAI`;
+                document.getElementById('connect-btn').innerText = "Sync Active";
+
+                // Native LCAI AIVM V2 Event Listener
+                studioContract.on("ArtGenerated", (u, p, digest, fee) => { 
+                    log("AIVM Signal Received. Pulling from Native Gateway...");
+                    document.getElementById('mint-status').style.display = 'none';
+                    updateVault(); 
+                    renderArt(p); 
+                });
+
+                log(`Authenticated: ${userAddr}`); checkIdentity(); updateVault(); scanHistory(); 
+            } catch (err) { log("Connection failed.", true); }
+        }
 
         async function scanHistory() {
             try {

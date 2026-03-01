@@ -49,7 +49,7 @@
 <body>
     <header>
         <div class="header-left-group">
-            <div class="brand-title">Lightchain AI | Testnet</div>
+            <div class="brand-title">Lightchain AI</div>
             <button class="btn-pro btn-primary" id="connect-btn" onclick="connect()">Connect Wallet</button>
         </div>
         <div class="header-center-group">
@@ -132,27 +132,11 @@
         function notify(m) { const t = document.getElementById('toast'); t.innerText = m; t.style.display = 'block'; setTimeout(()=>t.style.display='none', 3000); }
         function copyAddress() { navigator.clipboard.writeText(userAddr); notify("Address Copied"); }
 
-        // 1. Listen for status updates from the AIVM Iframe
         window.addEventListener("message", (event) => {
-            if (event.data.type === "LCAI_STATUS") {
-                log(event.data.message); // This sends iframe status to the System Console
-            }
-            if (event.data.type === "LCAI_GEN_SUCCESS") {
-                syncOnChainHistory(); // Refresh history when a new image is minted
-            }
+            if (event.data.type === "LCAI_STATUS") log(event.data.message);
+            if (event.data.type === "LCAI_GEN_SUCCESS") log("AIVM Inference Finalized.");
         });
-        // 2. Real-time On-Chain History Sync
-        async function syncOnChainHistory() {
-            const historyList = document.querySelector("#history-list"); 
-            // In a production AIVM, we would filter events for userAddr
-            // For this dev build, we refresh the sidebar with the latest 10 valid inferences
-            log("Syncing AIVM History with Lightchain Testnet...");
-            
-            // Logic to send to Iframe to refresh its internal list
-            const artFrame = document.querySelector('iframe').contentWindow;
-            artFrame.postMessage({ type: "SYNC_HISTORY", address: userAddr }, "*");
-        }
-        
+
         async function updatePrices() {
             try {
                 const res = await fetch('https://min-api.cryptocompare.com/data/price?fsym=ETH&tsyms=USD');
@@ -208,24 +192,19 @@
             } catch (e) { log("Access Validation Error", true); }
         }
 
-// 3. Fixed Withdraw Logic
-async function withdraw() {
-    try {
-        const vBal = await provider.getBalance(CONFIG.AIVM_ADDR);
-        if (vBal === 0n) return notify("Vault is empty (0 LCAI)");
-        
-        log("Requesting Vault Withdrawal...");
-        const tx = await studioContract.withdraw({ 
-            gasLimit: 200000 // Increased gas for testnet stability
-        });
-        notify("Broadcasting...");
-        await tx.wait();
-        log("Withdrawal Successful.");
-        checkAccess();
-    } catch (e) { 
-        log("Withdraw Failed: Reverted by chain", true); 
-    }
-}
+        async function withdraw() {
+            try {
+                const vBal = await provider.getBalance(CONFIG.AIVM_ADDR);
+                if (vBal === 0n) return notify("Vault is empty (0 LCAI)");
+                log("Requesting Vault Withdrawal...");
+                const tx = await studioContract.withdraw({ gasLimit: 150000 });
+                notify("Broadcasting to Testnet...");
+                await tx.wait();
+                log("Withdrawal Successful.");
+                notify("Funds Withdrawn!");
+                checkAccess();
+            } catch (e) { log("Withdraw Failed: Check contract balance", true); }
+        }
 
         function downloadQR() {
             const canvas = document.querySelector("#qrcode canvas");
@@ -274,5 +253,3 @@ async function withdraw() {
     </script>
 </body>
 </html>
-
-

@@ -36,10 +36,8 @@
             <img id="img-display" alt="AIVM Output">
         </div>
     </div>
-
     <script>
         const CONTRACT_ADDRESS = ethers.getAddress("0xB6FbB06e865f1784A74F5953051C3782729FD04E");
-
         async function runInference() {
             const prompt = document.getElementById('prompt-input').value;
             const digest = document.getElementById('model-digest').value;
@@ -47,51 +45,29 @@
             const loader = document.getElementById('loader');
             const status = document.getElementById('status-overlay');
             const img = document.getElementById('img-display');
-
-            if (!prompt) return alert("Prompt required for inference.");
-
+            if (!prompt) return alert("Prompt required.");
             try {
                 btn.disabled = true;
                 loader.style.display = 'block';
                 img.style.display = 'none';
                 status.innerText = "Broadcasting to Lightchain...";
-                
                 window.parent.postMessage({type: 'AIVM_METRICS', status: 'pending'}, '*');
-
                 const provider = new ethers.BrowserProvider(window.ethereum);
                 const network = await provider.getNetwork();
-                if (network.chainId !== 504n) {
-                    throw new Error("Wrong Network. Switch to Custom 504.");
-                }
-
+                if (network.chainId !== 504n) throw new Error("Switch to Chain 504.");
                 const signer = await provider.getSigner();
-                const contract = new ethers.Contract(
-                    CONTRACT_ADDRESS, 
-                    ["function generateArt(string prompt, bytes32 modelDigest) public payable"], 
-                    signer
-                );
-
-                const tx = await contract.generateArt(prompt, digest, { 
-                    value: ethers.parseEther("0.25"),
-                    gasLimit: 1500000 
-                });
-
+                const contract = new ethers.Contract(CONTRACT_ADDRESS, ["function generateArt(string prompt, bytes32 modelDigest) public payable"], signer);
+                const tx = await contract.generateArt(prompt, digest, {value: ethers.parseEther("0.25"), gasLimit: 1500000 });
                 status.innerText = "Mining Neural Request...";
                 await tx.wait();
-
                 status.style.display = 'none';
                 loader.style.display = 'none';
-                
-                const seed = Math.floor(Math.random() * 1000000);
-                img.src = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&seed=${seed}`;
+                img.src = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&seed=${Math.floor(Math.random() * 1000000)}`;
                 img.style.display = 'block';
-
                 window.parent.postMessage({type: 'AIVM_METRICS', status: 'success'}, '*');
                 btn.disabled = false;
-
             } catch (err) {
-                console.error(err);
-                status.innerText = err.message || "Inference Rejected by Chain";
+                status.innerText = err.message || "Inference Rejected";
                 status.style.color = "#ff4444";
                 loader.style.display = 'none';
                 btn.disabled = false;

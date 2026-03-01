@@ -52,9 +52,40 @@
     </div>
 
     <script>
-        const CONFIG = { AIVM_ADDR: "0xbcA38515887Dc3Ca163398C0Ef7bF02dd156D8FB", SBT_ADDR: "0xd71462F0002Ee9373fCe05B568583Ed13e75f600" };
+const CONFIG = { 
+    AIVM_ADDR: "0xbcA38515887Dc3Ca163398C0Ef7bF02dd156D8FB",
+    SBT_ADDR: "0xd71462F0002Ee9373fCe05B568583Ed13e75f600" 
+};
+        const ABI = [
+            "function generateArt(string) external payable",
+            "event ArtGenerated(address indexed user, string prompt, string timestamp)" 
+        ];
         let history = JSON.parse(localStorage.getItem('ai_history') || '[]');
-
+      
+        async function initHistory() {
+            try {
+                const provider = new ethers.BrowserProvider(window.ethereum);
+                const contract = new ethers.Contract(CONFIG.AIVM_ADDR, ABI, provider);
+                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                const user = accounts[0];
+        
+                window.parent.postMessage({ type: "LCAI_STATUS", message: "Syncing On-Chain Gallery..." }, "*");
+        
+                // Filter events where 'user' is the connected wallet
+                const filter = contract.filters.ArtGenerated(user);
+                const events = await contract.queryFilter(filter, -10000); // Scan last 10k blocks
+        
+                history = events.map(e => ({
+                    prompt: e.args.prompt,
+                    url: `https://image.pollinations.ai/prompt/${encodeURIComponent(e.args.prompt)}?nologo=true`
+                })).reverse().slice(0, 10);
+        
+                renderHistory();
+                window.parent.postMessage({ type: "LCAI_STATUS", message: `Gallery Synced: ${history.length} items found.` }, "*");
+            } catch (e) {
+                console.error("History Sync Failed", e);
+            }
+        }
         function updateHistory(prompt, url) {
             history.unshift({ prompt, url });
             if(history.length > 10) history.pop();
@@ -64,9 +95,13 @@
 
         function renderHistory() {
             const grid = document.getElementById('history-grid');
+            if (!history.length) {
+                grid.innerHTML = '<div style="color:var(--text-dim); font-size:0.6rem;">No on-chain history found.</div>';
+                return;
+            }
             grid.innerHTML = history.map((item, i) => `
                 <div class="gallery-item" onclick="loadHistory(${i})">
-                    <img src="${item.url}" alt="AIVM Thumbnail">
+                    <img src="${item.url}" loading="lazy">
                 </div>
             `).join('');
         }
@@ -115,7 +150,9 @@
                 window.parent.postMessage({ type: "LCAI_STATUS", message: "AIVM Error: Inference Aborted" }, "*");
             }
         }
-
+window.addEventListener('load', () => {
+    if (window.ethereum) initHistory();
+});
         async function mintNFT() {
             try {
                 const provider = new ethers.BrowserProvider(window.ethereum);

@@ -178,26 +178,29 @@ async function connectWallet() {
     } catch (e) { log("HANDSHAKE FAILED"); }
 }
 
+// Fix 2: Reliable Gallery Sync
 async function initGallery() {
     if(!contract) return;
     const grid = document.getElementById('gallery-grid');
     grid.innerHTML = "SCANNING NETWORK...";
     try {
-        // Broad search window to ensure sync
-        const events = await contract.queryFilter("InferenceRequested", -50000); 
+        // Querying from block 0 to catch ALL inferences on this contract
+        const events = await contract.queryFilter("InferenceRequested", 0); 
         if (events.length === 0) { grid.innerHTML = "GALLERY EMPTY"; return; }
+        
         grid.innerHTML = "";
         events.reverse().slice(0, 12).forEach(ev => {
             const promptText = ev.args.prompt;
-            grid.innerHTML += `<div style="background:#000; padding:10px; border-radius:6px; border:1px solid var(--border);">
-                <img src="https://image.pollinations.ai/prompt/${encodeURIComponent(promptText)}?width=400&height=300&nologo=true&seed=${ev.transactionHash}" 
-                style="width:100%; border-radius:4px; cursor:pointer;" onclick="window.open(this.src)">
-                <p style="font-size:0.6rem; color:var(--text-dim); margin-top:5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${promptText}</p>
-            </div>`;
+            grid.innerHTML += `
+                <div style="background:#000; padding:10px; border-radius:6px; border:1px solid var(--border);">
+                    <img src="https://image.pollinations.ai/prompt/${encodeURIComponent(promptText)}?width=400&height=300&nologo=true&seed=${ev.transactionHash}" 
+                         style="width:100%; border-radius:4px; cursor:pointer;" onclick="window.open(this.src)">
+                    <p style="font-size:0.6rem; color:var(--text-dim); margin-top:5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${promptText}</p>
+                </div>`;
         });
     } catch (e) { grid.innerHTML = "OFFLINE"; }
 }
-
+    
 async function verifySelf() {
     try {
         log("INITIATING VERIFICATION...");
@@ -245,3 +248,4 @@ window.addEventListener('load', () => setTimeout(connectWallet, 500));
 </script>
 </body>
 </html>
+

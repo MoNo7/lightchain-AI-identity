@@ -131,9 +131,11 @@ async function connectWallet() {
 }
 
 async function refreshBalances() {
-    const vBal = await provider.getBalance(CONFIG.addr);
-    document.getElementById('nav-rev').innerText = ethers.formatEther(vBal).slice(0,4);
-    document.getElementById('vault-bal').innerText = `${ethers.formatEther(vBal).slice(0,6)} LCAI`;
+    try {
+        const vBal = await provider.getBalance(CONFIG.addr);
+        document.getElementById('nav-rev').innerText = ethers.formatEther(vBal).slice(0,4);
+        document.getElementById('vault-bal').innerText = `${ethers.formatEther(vBal).slice(0,6)} LCAI`;
+    } catch (e) { console.error("Balance Sync Error", e); }
 }
 
 async function runWithdraw() {
@@ -144,21 +146,29 @@ async function runWithdraw() {
 }
 
 function updateIdentity() {
-    const meta = { "identity": user, "role": roles.isOwner ? "OWNER" : "OPERATOR", "status": roles.isVerified ? "VERIFIED" : "GUEST" };
+    const meta = { 
+        "identity": user, 
+        "role": roles.isOwner ? "OWNER" : "OPERATOR", 
+        "status": roles.isVerified ? "VERIFIED" : "GUEST",
+        "auth_method": "ZK-SBT-HANDSHAKE" 
+    };
     document.getElementById('id-json').innerText = JSON.stringify(meta, null, 4);
     document.getElementById('qr-target').innerHTML = "";
-    new QRCode(document.getElementById("qr-target"), { text: user, width: 140, height: 140 });
+    new QRCode(document.getElementById("qr-target"), { text: JSON.stringify(meta), width: 140, height: 140 });
 }
 
 function downloadJSON() {
     const blob = new Blob([document.getElementById('id-json').innerText], {type: 'application/json'});
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob); a.download = 'LCAI_ID.json'; a.click();
+    a.href = URL.createObjectURL(blob); a.download = `LCAI_Identity_${user.slice(0,6)}.json`; a.click();
 }
 
 function downloadQR() {
-    const a = document.createElement('a');
-    a.href = document.querySelector('#qr-target img').src; a.download = 'LCAI_QR.png'; a.click();
+    const canvas = document.querySelector('#qr-target canvas');
+    if(canvas) {
+        const a = document.createElement('a');
+        a.href = canvas.toDataURL("image/png"); a.download = 'LCAI_ZK_QR.png'; a.click();
+    }
 }
 
 function updateMenu() {
@@ -186,10 +196,28 @@ async function verifySelf() {
     } catch (e) { log("VERIFY FAILED", "error"); }
 }
 
+async function runAdmin(type) {
+    const target = document.getElementById('admin-addr').value;
+    if(!target) return;
+    try {
+        if(type === 'query') {
+            const res = await contract.manualVerified(target);
+            log(`USER ${target.slice(0,6)}: ${res ? 'VERIFIED' : 'UNVERIFIED'}`);
+        }
+    } catch (e) { log("ADMIN ACTION FAILED", "error"); }
+}
+
 async function initGallery() {
+    if(!contract) return;
     const grid = document.getElementById('gallery-grid');
     grid.innerHTML = "SCANNING...";
-    // Restoration logic for gallery events...
+    try {
+        const events = await contract.queryFilter("InferenceRequested", -50000);
+        grid.innerHTML = events.length === 0 ? "EMPTY" : "";
+        events.reverse().forEach(ev => {
+            grid.innerHTML += `<div style="background:#000; padding:10px; border-radius:6px; border:1px solid var(--border);"><img src="https://picsum.photos/seed/${ev.transactionHash}/200/150" style="width:100%; border-radius:4px;"></div>`;
+        });
+    } catch (e) { grid.innerHTML = "OFFLINE"; }
 }
 
 window.addEventListener('load', () => setTimeout(connectWallet, 500));

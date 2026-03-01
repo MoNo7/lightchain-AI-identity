@@ -21,16 +21,20 @@
         header { height: 80px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 40px; box-sizing: border-box; }
         .pill { background: #000; border: 1px solid var(--border); border-radius: 50px; padding: 7px 20px; font-size: 0.7rem; color: var(--accent); font-family: monospace; display: flex; align-items: center; gap: 8px; }
         .wallet-pill { background: var(--accent); color: white; border-radius: 50px; padding: 9px 24px; font-weight: 900; cursor: pointer; border: none; font-size: 0.75rem; font-family: monospace; letter-spacing: 1px; }
-        .view-pane { flex: 1; padding: 45px; display: none; overflow: hidden; }
+        .view-pane { flex: 1; padding: 40px; display: none; overflow-y: auto; }
         .view-pane.active { display: block !important; }
-        .card { background: var(--panel); border: 1px solid var(--border); padding: 35px; border-radius: 12px; max-width: 850px; border-top: 4px solid var(--accent); margin-bottom: 20px; height: 90%; }
+        .card { background: var(--panel); border: 1px solid var(--border); padding: 30px; border-radius: 12px; max-width: 900px; border-top: 4px solid var(--accent); margin-bottom: 20px; }
         .panel-input { width: 100%; background: #000; border: 1px solid #333; color: white; padding: 12px; border-radius: 4px; font-size: 0.75rem; margin-bottom: 12px; box-sizing: border-box; font-family: monospace; }
-        .action-btn { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; width: 100%; font-weight: bold; }
-        .action-btn.alt { background: transparent; border: 1px solid var(--accent); color: var(--accent); margin-top: 8px; }
+        .action-btn { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; width: 100%; font-weight: bold; transition: 0.2s; }
+        .action-btn:hover { opacity: 0.8; }
         .status-table { width: 100%; font-size: 0.7rem; border-collapse: collapse; margin-top: 15px; font-family: monospace; }
         .status-table td, .status-table th { border: 1px solid var(--border); padding: 8px; text-align: left; }
         .status-online { color: #00c853; }
-        #aivm-frame { width: 100%; height: 100%; border: none; background: transparent; }
+        /* Inference Result Area */
+        .gen-canvas { width: 100%; min-height: 400px; background: #000; border: 1px solid var(--border); border-radius: 8px; margin-top: 20px; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }
+        #output-img { max-width: 100%; max-height: 100%; display: none; border-radius: 4px; }
+        .loader { border: 4px solid #1a202c; border-top: 4px solid var(--accent); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; display: none; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -41,37 +45,40 @@
         <button class="nav-link active" onclick="showView('gallery-view', this); initGallery();">NETWORK GALLERY</button>
     </div>
 </nav>
+
 <div class="viewport">
     <header>
         <div class="pill">MODEL: <span id="active-model">AIVM-THETA</span> | <span id="status-txt">IDLE</span></div>
         <div class="header-right"><button id="wallet-btn" class="wallet-pill" onclick="connectWallet()">CONNECT WALLET</button></div>
     </header>
+
     <div id="gallery-view" class="view-pane active">
         <div class="card">
             <h2>NETWORK GALLERY</h2>
             <div id="gallery-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; margin-top: 20px;"></div>
         </div>
     </div>
+
     <div id="id-view" class="view-pane">
         <div class="card">
             <h2>ZK-SBT IDENTITY CARD</h2>
             <pre id="id-json" onclick="saveJSON()">// Identity Packet Offline</pre>
-            <div id="qr-target" onclick="saveQR()" style="margin-top:20px; background:white; padding:10px; display:none; border-radius:4px; cursor:pointer;"></div>
+            <div id="qr-target" style="margin-top:20px; background:white; padding:10px; display:none; border-radius:4px; width:140px;"></div>
         </div>
     </div>
+
     <div id="admin-view" class="view-pane">
         <div class="card">
-            <h2>ADMIN & LIVE WATCHER</h2>
+            <h2>ADMIN & TELEMETRY</h2>
             <input type="text" class="panel-input" id="admin-addr" placeholder="Target Address / Model Hash (0x...)">
             <div style="display:flex; gap:10px;">
                 <button class="action-btn" onclick="runAdmin('query')" style="flex:1">QUERY STATUS</button>
-                <button class="action-btn alt" onclick="verifySelf()" style="flex:1; border-color:#00ff88; color:#00ff88;">VERIFY SELF</button>
+                <button class="action-btn" onclick="verifySelf()" style="flex:1; background:#00c853;">VERIFY SELF</button>
             </div>
             <div style="display:flex; gap:10px; margin-top:10px;">
-                <button class="action-btn alt" onclick="runAdmin('verify')" style="flex:1">VERIFY USER</button>
-                <button class="action-btn alt" onclick="registerModelUI(true)" style="flex:1; border-color:#ffaa00; color:#ffaa00;">REGISTER MODEL</button>
+                <button class="action-btn" onclick="runAdmin('verify')" style="flex:1; background:transparent; border:1px solid var(--accent); color:var(--accent);">VERIFY TARGET</button>
+                <button class="action-btn" onclick="registerModelUI()" style="flex:1; background:transparent; border:1px solid #ffaa00; color:#ffaa00;">REGISTER MODEL</button>
             </div>
-            <h3 style="margin-top:30px; font-size:0.9rem;">MODEL TELEMETRY</h3>
             <table class="status-table">
                 <thead><tr><th>MODEL</th><th>DIGEST</th><th>STATE</th></tr></thead>
                 <tbody id="telemetry-body">
@@ -82,35 +89,40 @@
             </table>
         </div>
     </div>
-    <div id="treasury-view" class="view-pane">
-        <div class="card">
-            <h2>TREASURY VAULT</h2>
-            <div style="background:#000; padding:25px; border-radius:8px; margin-bottom:20px; border:1px solid var(--border); text-align:center;">
-                <div id="revenue-val" style="font-size:2rem; color:var(--accent); font-weight:900;">0.00 tLCAI</div>
-            </div>
-            <button class="action-btn" onclick="runOwner()">WITHDRAW ALL FUNDS</button>
-        </div>
-    </div>
+
     <div id="aivm-view" class="view-pane">
-        <div class="card" style="max-width: 1000px; padding: 10px;">
-            <iframe id="aivm-frame" src="artgenerator-ui.html"></iframe>
+        <div class="card">
+            <h2>AIVM INFERENCE</h2>
+            <select id="model-select" class="panel-input" onchange="document.getElementById('active-model').innerText=this.value">
+                <option value="AIVM-THETA" data-hash="0x2bf0539500000000000000000000000000000000000000000000000000000000">AIVM-THETA (Standard)</option>
+                <option value="AIVM-DELTA" data-hash="0x4a8c30d500000000000000000000000000000000000000000000000000000000">AIVM-DELTA (High Speed)</option>
+                <option value="AIVM-SIGMA" data-hash="0x6f63a19b3cf48600000000000000000000000000000000000000000000000000">AIVM-SIGMA (Neural)</option>
+            </select>
+            <textarea id="art-prompt" class="panel-input" placeholder="Describe the neural vision..." style="height:80px;"></textarea>
+            <button class="action-btn" onclick="generateArt()">GENERATE IMAGE (0.25 tLCAI)</button>
+            
+            <div class="gen-canvas">
+                <div class="loader" id="gen-loader"></div>
+                <p id="canvas-status" style="color:var(--text-dim); font-family:monospace; font-size:0.7rem;">AWAITING NEURAL LINK...</p>
+                <img id="output-img" src="" alt="AIVM Result">
+            </div>
         </div>
     </div>
 </div>
+
 <script>
 const CONFIG = {
-    // Normalizing the address to handle checksum issues
-    addr: ethers.getAddress("0xB6FbB06e865f1784A74F5953051C3782729FD04E"),
+    addr: "0xB6FbB06e865f1784A74F5953051C3782729FD04E",
     abi: [
         "function owner() public view returns (address)",
         "function setVerification(address user, bool status) external",
         "function registerModel(bytes32 digest, bool status) external",
-        "function withdraw() external",
         "function manualVerified(address) public view returns (bool)",
         "function generateArt(string prompt, bytes32 modelDigest) public payable",
         "event InferenceRequested(address indexed user, string prompt)"
     ]
 };
+
 let user, provider, signer, contract, roles = { isOwner: false, isVerified: false };
 
 const log = (msg, type = "info") => {
@@ -122,125 +134,123 @@ const log = (msg, type = "info") => {
     cb.scrollTop = cb.scrollHeight;
 };
 
-async function connectWallet(auto = false) {
+async function connectWallet() {
     if (!window.ethereum) return log("METAMASK MISSING", "error");
     try {
-        const accounts = auto ? await window.ethereum.request({ method: 'eth_accounts' }) : await window.ethereum.request({ method: 'eth_requestAccounts' });
-        if (auto && accounts.length === 0) return;
-
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
         user = accounts[0];
         provider = new ethers.BrowserProvider(window.ethereum);
-        
-        const network = await provider.getNetwork();
-        if (network.chainId !== 504n) {
-            log(`WRONG NETWORK (Chain ${network.chainId}) - SWITCH TO 504`, "error");
-            return;
-        }
-
         signer = await provider.getSigner();
         contract = new ethers.Contract(CONFIG.addr, CONFIG.abi, signer);
         
-        try {
-            // Check if address has code (is it a contract?)
-            const code = await provider.getCode(CONFIG.addr);
-            if (code === "0x") {
-                log("WARNING: NO CONTRACT AT THIS ADDRESS ON CURRENT CHAIN", "error");
-                return;
-            }
+        const ownerAddr = await contract.owner();
+        roles.isOwner = (user.toLowerCase() === ownerAddr.toLowerCase());
+        roles.isVerified = await contract.manualVerified(user);
 
-            const ownerAddr = await contract.owner();
-            roles.isOwner = (user.toLowerCase() === ownerAddr.toLowerCase());
-            roles.isVerified = await contract.manualVerified(user);
-            
-            log(`SYNCED: ${user.slice(0, 10)}`, "success");
-            updateMenu(); updateIdentity(); initGallery(); refreshBalance(); updateWalletPill(); probeModels(); 
-        } catch (callError) {
-            log("CONTRACT CALL REVERTED - IS ADDRESS CORRECT?", "error");
-        }
-    } catch (e) { 
-        log("HANDSHAKE FAILED", "error"); 
-    }
+        log(`STREAK_SYNC: ${user.slice(0, 10)}`, "success");
+        updateMenu(); updateIdentity(); initGallery(); probeModels(); updateWalletPill();
+    } catch (e) { log("HANDSHAKE FAILED", "error"); console.error(e); }
 }
 
-// Add 1 second delay to ensure MetaMask is injected
-window.addEventListener('load', () => setTimeout(() => connectWallet(true), 1000));
-
-window.addEventListener('message', (e) => {
-    if (e.data.type === 'AIVM_METRICS') {
-        document.getElementById('status-txt').innerText = e.data.status.toUpperCase();
-        if(e.data.status === 'success') {
-            log("INFERENCE SUCCESSFUL", "success");
-            initGallery();
-        }
-    }
-});
-
-async function registerModelUI(status) {
-    const hash = document.getElementById('admin-addr').value;
-    if(!hash.startsWith('0x') || hash.length !== 66) return log("INVALID HASH", "error");
-    try {
-        log("REGISTERING MODEL...");
-        const tx = await contract.registerModel(hash, status);
-        await tx.wait(); log("MODEL REGISTERED", "success");
-        probeModels();
-    } catch (e) { log("REGISTRATION REVERTED", "error"); }
-}
-async function verifySelf() {
-    try {
-        log("SELF-VERIFYING...");
-        const tx = await contract.setVerification(user, true);
-        await tx.wait(); log("SELF-VERIFIED", "success");
-        roles.isVerified = true; updateMenu();
-    } catch (e) { log("VERIFY FAILED", "error"); }
-}
 async function probeModels() {
     const hashes = {theta: "0x2bf0539500000000000000000000000000000000000000000000000000000000", delta: "0x4a8c30d500000000000000000000000000000000000000000000000000000000", sigma: "0x6f63a19b3cf48600000000000000000000000000000000000000000000000000"};
     for (let m in hashes) {
         const el = document.getElementById(`stat-${m}`);
         try {
             await contract.generateArt.staticCall("probe", hashes[m], { value: ethers.parseEther("0.25") });
-            el.innerText = "ACTIVE"; el.className = "status-online";
-        } catch (e) {
-            el.innerText = "LOCKED"; el.style.color = "#ff4444";
-        }
+            el.innerText = "ACTIVE"; el.style.color = "#00c853";
+        } catch (e) { el.innerText = "LOCKED"; el.style.color = "#ff4444"; }
     }
 }
+
+async function generateArt() {
+    const prompt = document.getElementById('art-prompt').value;
+    const sel = document.getElementById('model-select');
+    const hash = sel.options[sel.selectedIndex].getAttribute('data-hash');
+    const img = document.getElementById('output-img');
+    const loader = document.getElementById('gen-loader');
+    const status = document.getElementById('canvas-status');
+
+    if(!prompt) return log("PROMPT REQUIRED", "error");
+    
+    try {
+        log("INITIATING INFERENCE...");
+        img.style.display = 'none';
+        loader.style.display = 'block';
+        status.innerText = "MINING TRANSACTION...";
+        document.getElementById('status-txt').innerText = "PENDING";
+        
+        const tx = await contract.generateArt(prompt, hash, { value: ethers.parseEther("0.25"), gasLimit: 2000000 });
+        await tx.wait();
+        
+        log("INFERENCE SUCCESS", "success");
+        status.innerText = "NEURAL RENDER COMPLETE";
+        loader.style.display = 'none';
+        img.src = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&seed=${Math.floor(Math.random()*10000)}`;
+        img.style.display = 'block';
+        document.getElementById('status-txt').innerText = "IDLE";
+        initGallery();
+    } catch (e) {
+        log("CONTRACT REVERTED", "error");
+        loader.style.display = 'none';
+        status.innerText = "REJECTED BY CHAIN";
+        document.getElementById('status-txt').innerText = "ERROR";
+    }
+}
+
+async function verifySelf() {
+    try {
+        log("SELF-VERIFYING...");
+        const tx = await contract.setVerification(user, true);
+        await tx.wait();
+        log("VERIFIED SUCCESS", "success");
+        roles.isVerified = true; updateMenu(); probeModels();
+    } catch (e) { log("VERIFY FAILED", "error"); }
+}
+
+async function registerModelUI() {
+    const hash = document.getElementById('admin-addr').value;
+    if(!hash || hash.length !== 66) return log("INVALID HASH", "error");
+    try {
+        const tx = await contract.registerModel(hash, true);
+        await tx.wait(); log("MODEL REGISTERED", "success");
+        probeModels();
+    } catch (e) { log("REGISTRATION FAILED", "error"); }
+}
+
 async function runAdmin(type) {
     const target = document.getElementById('admin-addr').value;
+    if(!target) return;
     try {
         if(type === 'query') {
             const res = await contract.manualVerified(target);
-            log(`USER ${target.slice(0, 6)}: ${res ? "VERIFIED" : "UNVERIFIED"}`);
+            log(`USER ${target.slice(0,6)}: ${res ? 'VERIFIED' : 'UNVERIFIED'}`);
         } else {
             const tx = await contract.setVerification(target, true);
             await tx.wait(); log("USER VERIFIED", "success");
         }
     } catch (e) { log("ADMIN ACTION FAILED", "error"); }
 }
-async function updateWalletPill() {
-    if(!provider || !user) return;
-    const bal = await provider.getBalance(user);
-    document.getElementById('wallet-btn').innerText = `${user.slice(0, 6).toUpperCase()} | ${ethers.formatEther(bal).slice(0, 4)} LCAI`;
-}
+
 function updateMenu() {
     const menu = document.getElementById('side-menu');
     let html = `<button class="nav-link active" onclick="showView('gallery-view', this); initGallery();">NETWORK GALLERY</button>`;
     if(user) {
         html += `<button class="nav-link" onclick="showView('id-view', this)">ZK IDENTITY</button>`;
-        if(roles.isOwner) {
-            html += `<button class="nav-link" onclick="showView('admin-view', this)">ADMIN PANEL</button>`;
-            html += `<button class="nav-link" onclick="showView('treasury-view', this)">TREASURY VAULT</button>`;
-        }
-        if(roles.isVerified || roles.isOwner) {
-            html += `<button class="nav-link" onclick="showView('aivm-view', this)">LCAI AIVM ART</button>`;
-        }
+        if(roles.isOwner) html += `<button class="nav-link" onclick="showView('admin-view', this)">ADMIN PANEL</button>`;
+        if(roles.isVerified || roles.isOwner) html += `<button class="nav-link" onclick="showView('aivm-view', this)">LCAI AIVM ART</button>`;
     }
     menu.innerHTML = html;
 }
+
 function updateIdentity() {
-    const idData = {"identity": {"operator_id": `LCAI-${user.slice(2, 8).toUpperCase()}`, "role": roles.isOwner ? "SYSTEM_OWNER" : (roles.isVerified ? "VERIFIED_OPERATOR" : "GUEST_NODE"), "access_tier": roles.isOwner ? "OMEGA" : (roles.isVerified ? "STANDARD" : "LIMITED"), "auth_method": "ZK_SBT_HANDSHAKE", "timestamp": Math.floor(Date.now() / 1000)}};
+    const idData = {"identity": {"operator": user, "role": roles.isOwner ? "OWNER" : "OPERATOR", "status": roles.isVerified ? "VERIFIED" : "GUEST"}};
     document.getElementById('id-json').innerText = JSON.stringify(idData, null, 4);
+    document.getElementById('qr-target').innerHTML = "";
+    document.getElementById('qr-target').style.display = "block";
+    new QRCode(document.getElementById("qr-target"), { text: user, width: 140, height: 140 });
 }
+
 async function initGallery() {
     if(!contract) return;
     const grid = document.getElementById('gallery-grid');
@@ -248,24 +258,25 @@ async function initGallery() {
     try {
         const events = await contract.queryFilter("InferenceRequested", -50000);
         grid.innerHTML = events.length === 0 ? "EMPTY" : "";
-        events.reverse().forEach(ev => { grid.innerHTML += `<div style="background:#000; padding:10px; border-radius:6px; border:1px solid var(--border);"><img src="https://picsum.photos/seed/${ev.transactionHash}/200/150" style="width:100%; border-radius:4px;"></div>`; });
+        events.reverse().forEach(ev => {
+            grid.innerHTML += `<div style="background:#000; padding:10px; border-radius:6px; border:1px solid var(--border);"><img src="https://picsum.photos/seed/${ev.transactionHash}/200/150" style="width:100%; border-radius:4px;"></div>`;
+        });
     } catch (e) { grid.innerHTML = "OFFLINE"; }
 }
-async function runOwner() {
-    try { await contract.withdraw(); log("VAULT WITHDRAWN", "success"); refreshBalance(); } catch (e) { log("FAILED", "error"); }
+
+async function updateWalletPill() {
+    const bal = await provider.getBalance(user);
+    document.getElementById('wallet-btn').innerText = `${user.slice(0,6).toUpperCase()} | ${ethers.formatEther(bal).slice(0,5)} LCAI`;
 }
-async function refreshBalance() {
-    if(!provider) return;
-    const bal = await provider.getBalance(CONFIG.addr);
-    document.getElementById('revenue-val').innerText = `${ethers.formatEther(bal).slice(0, 6)} tLCAI`;
-}
+
 function showView(id, btn) {
     document.querySelectorAll('.view-pane').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
     document.getElementById(id).classList.add('active');
     btn.classList.add('active');
 }
-initGallery();
+
+window.addEventListener('load', () => setTimeout(() => connectWallet(), 500));
 </script>
 </body>
 </html>

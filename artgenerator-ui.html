@@ -34,17 +34,28 @@
     </style>
 </head>
 <body>
-    <div class="workspace">
-        <div class="input-group">
-            <input type="text" id="prompt-input" class="prompt-input" placeholder="A futuristic cyberpunk city in neon lights...">
-            <button class="btn-gen" onclick="generate()">GENERATE</button>
-        </div>
-        <div class="output-view">
-            <p id="status" class="status-txt">Ready for Inference...</p>
-            <img id="result-img" class="output-img">
-            <button id="mint-btn" class="mint-btn" onclick="mintNFT()">MINT AS NFT</button>
+<div class="workspace">
+    <div class="input-group" style="flex-direction: column; gap: 10px; background: none; border: none;">
+        <input type="text" id="prompt-input" class="prompt-input" 
+               style="width: 100%; background: var(--card); border: 1px solid var(--border); border-radius: 8px;" 
+               placeholder="A futuristic cyberpunk city in neon lights...">
+        
+        <div style="display: flex; justify-content:建设; gap: 10px; align-items: center;">
+            <select id="model-select" style="flex: 1; background: var(--card); color: var(--secondary); border: 1px solid var(--border); border-radius: 6px; padding: 10px; font-size: 0.8rem;">
+                <option value="0x123456...7890">SDXL-Turbo (LCAI Default)</option>
+                <option value="0x888888...8888">Flux.1-Lightning</option>
+                <option value="0x999999...9999">Stable Diffusion 3</option>
+            </select>
+            <button class="btn-gen" onclick="generate()" style="height: 40px; padding: 0 30px;">GENERATE</button>
         </div>
     </div>
+    
+    <div class="output-view">
+        <p id="status" class="status-txt">Ready for Inference...</p>
+        <img id="result-img" class="output-img">
+        <button id="mint-btn" class="mint-btn" onclick="mintNFT()">MINT AS NFT</button>
+    </div>
+</div>
 
     <div class="history-sidebar">
         <div class="history-header">Recent Inferences (10)</div>
@@ -66,41 +77,30 @@ const CONFIG = {
         ];
         let history = JSON.parse(localStorage.getItem('ai_history') || '[]');
       
-        async function initHistory() {
-            try {
-                const provider = new ethers.BrowserProvider(window.ethereum);
-                const contract = new ethers.Contract(CONFIG.AIVM_ADDR, [
-                    "event ArtGenerated(address indexed user, string prompt, bytes32 modelDigest, uint256 fee)"
-                ], provider);
-                
-                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-                const user = accounts[0];
+async function initHistory() {
+    try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const contract = new ethers.Contract(CONFIG.AIVM_ADDR, [
+            "event ArtGenerated(address indexed user, string prompt, bytes32 modelDigest, uint256 fee)"
+        ], provider);
         
-                // Fetching the last 5000 blocks for the current user
-                const filter = contract.filters.ArtGenerated(user);
-                const events = await contract.queryFilter(filter, -5000); 
-        
-                history = events.map(e => ({
-                    prompt: e.args.prompt,
-                    // Extracting the digest from the event for the badge
-                    digest: e.args.modelDigest.slice(0, 10), 
-                    url: `https://image.pollinations.ai/prompt/${encodeURIComponent(e.args.prompt)}?nologo=true`
-                })).reverse().slice(0, 10);
-        
-                const grid = document.getElementById('history-grid');
-                grid.innerHTML = history.map((item, i) => `
-                    <div class="gallery-item" onclick="loadHistory(${i})" style="position:relative; width:80px; height:80px; border:1px solid var(--border); border-radius:8px; overflow:hidden; background:#000;">
-                        <img src="${item.url}" style="width:100%; height:100%; object-fit:cover;">
-                        <div style="position:absolute; top:2px; right:2px; background:var(--primary); color:white; font-size:8px; padding:2px 4px; border-radius:3px; font-weight:bold; box-shadow: 0 0 5px rgba(0,0,0,0.5);">
-                            ${item.digest}
-                        </div>
-                    </div>
-                `).join('');
-                
-                window.parent.postMessage({ type: "LCAI_STATUS", message: `Gallery Synced: ${history.length} on-chain inferences found.` }, "*");
-            } catch (e) { console.error(e); }
-        }
-        
+        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        const user = accounts[0];
+
+        // Increased block depth to ensure we catch the recent ones
+        const filter = contract.filters.ArtGenerated(user);
+        const events = await contract.queryFilter(filter, -20000); 
+
+        history = events.map(e => ({
+            prompt: e.args.prompt,
+            digest: e.args.modelDigest.slice(0, 10),
+            url: `https://image.pollinations.ai/prompt/${encodeURIComponent(e.args.prompt)}?nologo=true`
+        })).reverse().slice(0, 10);
+
+        renderHistory();
+        window.parent.postMessage({ type: "LCAI_STATUS", message: `Gallery Refreshed: Found ${history.length} inferences.` }, "*");
+    } catch (e) { console.error(e); }
+}
         function updateHistory(prompt, url) {
             history.unshift({ prompt, url });
             if(history.length > 10) history.pop();

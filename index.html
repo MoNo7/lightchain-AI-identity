@@ -8,6 +8,8 @@
     <style>
         :root { --accent: #0070ff; --bg: #020408; --panel: #0b0e14; --border: #1e2633; --text-dim: #6a768a; --console-bg: #05070a; }
         body { margin: 0; background: var(--bg); color: white; font-family: 'Inter', sans-serif; display: flex; height: 100vh; overflow: hidden; }
+        
+        /* Sidebar */
         nav { width: 280px; border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 25px; background: var(--panel); box-sizing: border-box; }
         .nav-logo { font-weight: 900; letter-spacing: 2px; color: var(--accent); margin-bottom: 25px; font-size: 1.1rem; text-align: center; }
         .system-console { background: var(--console-bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: monospace; font-size: 0.65rem; height: 180px; overflow-y: auto; margin-bottom: 20px; color: #4e5d75; line-height: 1.5; }
@@ -17,24 +19,33 @@
         .nav-menu { display: flex; flex-direction: column; gap: 5px; }
         .nav-link { color: var(--text-dim); padding: 12px 15px; cursor: pointer; border-radius: 6px; border: none; background: none; text-align: left; font-size: 0.75rem; font-family: monospace; width: 100%; font-weight: 600; transition: 0.2s; }
         .nav-link:hover, .nav-link.active { color: white; background: var(--accent); }
+
+        /* Main Viewport */
         .viewport { flex: 1; display: flex; flex-direction: column; }
         header { height: 80px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 40px; box-sizing: border-box; }
-        .pill { background: #000; border: 1px solid var(--border); border-radius: 50px; padding: 7px 20px; font-size: 0.7rem; color: var(--accent); font-family: monospace; display: flex; align-items: center; gap: 12px; }
-        .price-pill { color: #00c853; font-weight: bold; margin-left: 8px; }
+        
+        /* Separate Pills Layout */
+        .header-left { display: flex; gap: 10px; }
+        .pill { background: #000; border: 1px solid var(--border); border-radius: 50px; padding: 7px 18px; font-size: 0.65rem; font-family: monospace; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+        .pill.sys { color: var(--accent); }
+        .pill.price { color: #00c853; border-color: #00c85344; }
+        
         .wallet-pill { background: var(--accent); color: white; border-radius: 50px; padding: 9px 24px; font-weight: 900; cursor: pointer; border: none; font-size: 0.75rem; font-family: monospace; letter-spacing: 1px; }
+
         .view-pane { flex: 1; padding: 40px; display: none; overflow-y: auto; }
         .view-pane.active { display: block !important; }
         .card { background: var(--panel); border: 1px solid var(--border); padding: 30px; border-radius: 12px; max-width: 900px; border-top: 4px solid var(--accent); margin-bottom: 20px; }
+        
         .panel-input { width: 100%; background: #000; border: 1px solid #333; color: white; padding: 12px; border-radius: 4px; font-size: 0.75rem; margin-bottom: 12px; box-sizing: border-box; font-family: monospace; }
         .action-btn { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; width: 100%; font-weight: bold; }
-        .status-table { width: 100%; font-size: 0.7rem; border-collapse: collapse; margin-top: 15px; font-family: monospace; color: var(--text-dim); }
+        
+        #id-json { background: #05070a; padding: 20px; border: 1px solid #1e2633; border-radius: 6px; font-size: 0.7rem; color: #4e5d75; overflow-x: auto; white-space: pre-wrap; }
+        .status-table { width: 100%; font-size: 0.7rem; border-collapse: collapse; margin-top: 15px; font-family: monospace; }
         .status-table td, .status-table th { border: 1px solid var(--border); padding: 10px; text-align: left; }
-        .gen-canvas { width: 100%; height: 450px; background: #000; border: 1px solid var(--border); border-radius: 8px; margin-top: 20px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
-        #output-img { max-width: 100%; max-height: 100%; display: none; }
-        #id-json { background: #05070a; padding: 20px; border: 1px solid #1e2633; border-radius: 6px; font-size: 0.7rem; color: #4e5d75; overflow-x: auto; }
     </style>
 </head>
 <body>
+
 <nav>
     <div class="nav-logo">LCAI <span>IAM</span></div>
     <div class="system-console" id="console"><div class="console-line">>> KERNEL_READY</div></div>
@@ -45,12 +56,10 @@
 
 <div class="viewport">
     <header>
-        <div class="pill">
-            MODEL: <span id="active-model">AIVM-THETA</span> | 
-            STATE: <span id="status-txt">IDLE</span> | 
-            LOAD: <span id="sys-load">42%</span>
-            <span class="price-pill">ETH: <span id="eth-price">$...</span></span>
-            <span class="price-pill">LCAI: <span id="lcai-price">$...</span></span>
+        <div class="header-left">
+            <div class="pill sys">MODEL: <span id="active-model">THETA</span> | STATE: <span id="status-txt">IDLE</span> | LOAD: <span id="sys-load">42%</span></div>
+            <div class="pill price">ETH: <span id="eth-price">$2,451</span></div>
+            <div class="pill price">LCAI: <span id="lcai-price">$0.142</span></div>
         </div>
         <div class="header-right"><button id="wallet-btn" class="wallet-pill" onclick="connectWallet()">CONNECT WALLET</button></div>
     </header>
@@ -67,11 +76,11 @@
             <h2>ZK-SBT IDENTITY CARD</h2>
             <div style="display: flex; gap: 30px; align-items: flex-start;">
                 <div style="flex: 1;">
-                    <pre id="id-json" onclick="downloadJSON()">// Identity Offline</pre>
+                    <pre id="id-json">// Identity Offline</pre>
                     <button class="action-btn" onclick="downloadJSON()" style="margin-top: 15px; background: #1a202c;">DOWNLOAD JSON</button>
                 </div>
                 <div id="qr-container" style="text-align: center;">
-                    <div id="qr-target" onclick="downloadQR()" style="background:white; padding:15px; border-radius:8px; cursor:pointer;"></div>
+                    <div id="qr-target" style="background:white; padding:15px; border-radius:8px; cursor:pointer;" onclick="downloadQR()"></div>
                     <p style="font-size: 0.6rem; color: var(--text-dim); margin-top: 10px;">CLICK TO DOWNLOAD QR</p>
                 </div>
             </div>
@@ -87,43 +96,26 @@
                 <button class="action-btn" onclick="runAdmin('verify')" style="flex:1">VERIFY TARGET</button>
                 <button class="action-btn" onclick="registerModelUI()" style="flex:1; background:transparent; border:1px solid #ffaa00; color:#ffaa00;">REGISTER MODEL</button>
             </div>
-            <h3>MODEL STATUS</h3>
+            <h3>ACTIVE CLUSTERS</h3>
             <table class="status-table">
-                <thead><tr><th>MODEL</th><th>HASH</th><th>STATUS</th></tr></thead>
-                <tbody id="model-table-body">
-                    <tr><td>THETA</td><td>0x2bf0...</td><td style="color:#00c853">ONLINE</td></tr>
-                    <tr><td>DELTA</td><td>0x4a8c...</td><td>STANDBY</td></tr>
+                <thead><tr><th>MODEL</th><th>DIGEST</th><th>STATUS</th></tr></thead>
+                <tbody>
+                    <tr><td>THETA-1</td><td>0x2bf0...</td><td style="color:#00c853">ONLINE</td></tr>
+                    <tr><td>DELTA-2</td><td>0x4a8c...</td><td>STANDBY</td></tr>
                 </tbody>
             </table>
-        </div>
-    </div>
-
-    <div id="aivm-view" class="view-pane">
-        <div class="card">
-            <h2>AIVM INFERENCE</h2>
-            <select id="model-select" class="panel-input" onchange="document.getElementById('active-model').innerText=this.value">
-                <option value="AIVM-THETA" data-hash="0x2bf0539500000000000000000000000000000000000000000000000000000000">AIVM-THETA (Standard)</option>
-                <option value="AIVM-DELTA" data-hash="0x4a8c30d500000000000000000000000000000000000000000000000000000000">AIVM-DELTA (High Speed)</option>
-            </select>
-            <textarea id="art-prompt" class="panel-input" placeholder="Prompt the AIVM..." style="height:80px;"></textarea>
-            <button class="action-btn" onclick="generateArt()">REQUEST INFERENCE (0.25 tLCAI)</button>
-            <div class="gen-canvas">
-                <div id="gen-loader" style="display:none;" class="loader"></div>
-                <img id="output-img" src="" alt="AIVM Result">
-            </div>
         </div>
     </div>
 </div>
 
 <script>
 const CONFIG = {
-    addr: "0xB6FbB06e865f1784A74F5953051C3782729FD04E",
+    addr: "0xB6f1E497D6879C325c65fa77cB717227976fd04E",
     abi: [
         "function owner() public view returns (address)",
         "function setVerification(address user, bool status) external",
         "function registerModel(bytes32 digest, bool status) external",
         "function manualVerified(address) public view returns (bool)",
-        "function generateArt(string prompt, bytes32 modelDigest) public payable",
         "event InferenceRequested(address indexed user, string prompt)"
     ]
 };
@@ -153,24 +145,19 @@ async function connectWallet() {
         roles.isVerified = await contract.manualVerified(user);
 
         log(`STREAK_SYNC: ${user.slice(0, 10)}`, "success");
-        updateMenu(); updateIdentity(); initGallery(); updatePrices();
+        updateMenu(); updateIdentity(); initGallery();
+        
+        const bal = await provider.getBalance(user);
+        document.getElementById('wallet-btn').innerText = `${user.slice(0,6).toUpperCase()} | ${ethers.formatEther(bal).slice(0,4)} LCAI`;
     } catch (e) { log("HANDSHAKE FAILED", "error"); }
-}
-
-async function updatePrices() {
-    try {
-        // Simulated prices based on Testnet context
-        document.getElementById('eth-price').innerText = "$2,450.12";
-        document.getElementById('lcai-price').innerText = "$0.142";
-    } catch (e) { console.error("Price Sync Error", e); }
 }
 
 function updateIdentity() {
     const meta = { 
-        "id": user, 
+        "identity": user, 
         "role": roles.isOwner ? "OWNER" : "OPERATOR", 
         "status": roles.isVerified ? "VERIFIED" : "GUEST",
-        "auth_type": "ZK-SBT-HANDSHAKE",
+        "auth_protocol": "ZK-SBT-V2",
         "timestamp": new Date().toISOString()
     };
     document.getElementById('id-json').innerText = JSON.stringify(meta, null, 4);
@@ -192,32 +179,12 @@ function downloadQR() {
     }
 }
 
-async function generateArt() {
-    const prompt = document.getElementById('art-prompt').value;
-    const hash = document.getElementById('model-select').selectedOptions[0].getAttribute('data-hash');
-    const img = document.getElementById('output-img');
-    const loader = document.getElementById('gen-loader');
-    if(!prompt) return log("PROMPT REQ", "error");
-    try {
-        log("MINING INFERENCE...");
-        img.style.display = 'none'; loader.style.display = 'block';
-        const tx = await contract.generateArt(prompt, hash, { value: ethers.parseEther("0.25") });
-        await tx.wait();
-        log("RENDER SUCCESS", "success");
-        loader.style.display = 'none';
-        img.src = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true`;
-        img.style.display = 'block';
-        initGallery();
-    } catch (e) { log("REJECTED", "error"); loader.style.display = 'none'; }
-}
-
 function updateMenu() {
     const menu = document.getElementById('side-menu');
     let html = `<button class="nav-link active" onclick="showView('gallery-view', this); initGallery();">NETWORK GALLERY</button>`;
     if(user) {
         html += `<button class="nav-link" onclick="showView('id-view', this)">ZK IDENTITY</button>`;
         if(roles.isOwner) html += `<button class="nav-link" onclick="showView('admin-view', this)">ADMIN PANEL</button>`;
-        if(roles.isVerified || roles.isOwner) html += `<button class="nav-link" onclick="showView('aivm-view', this)">LCAI AIVM ART</button>`;
     }
     menu.innerHTML = html;
 }
@@ -241,16 +208,16 @@ async function registerModelUI() {
     const hash = document.getElementById('admin-addr').value;
     try {
         const tx = await contract.registerModel(hash, true);
-        await tx.wait(); log("MODEL REG OK", "success");
-    } catch (e) { log("REG FAILED", "error"); }
+        await tx.wait(); log("MODEL REGISTERED", "success");
+    } catch (e) { log("REGISTRATION FAILED", "error"); }
 }
 
 async function runAdmin(type) {
     const target = document.getElementById('admin-addr').value;
     try {
         const tx = await contract.setVerification(target, true);
-        await tx.wait(); log("TARGET VERIFIED", "success");
-    } catch (e) { log("ADMIN ERR", "error"); }
+        await tx.wait(); log("USER VERIFIED", "success");
+    } catch (e) { log("ADMIN ACTION FAILED", "error"); }
 }
 
 async function initGallery() {
@@ -258,7 +225,7 @@ async function initGallery() {
     const grid = document.getElementById('gallery-grid');
     grid.innerHTML = "SCANNING...";
     try {
-        const events = await contract.queryFilter("InferenceRequested", -50000);
+        const events = await contract.queryFilter("InferenceRequested", -5000);
         grid.innerHTML = events.length === 0 ? "EMPTY" : "";
         events.reverse().forEach(ev => {
             grid.innerHTML += `<div style="background:#000; padding:10px; border-radius:6px; border:1px solid var(--border);"><img src="https://picsum.photos/seed/${ev.transactionHash}/200/150" style="width:100%; border-radius:4px;"></div>`;

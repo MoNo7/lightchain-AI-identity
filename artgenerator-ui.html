@@ -8,19 +8,16 @@
         .workspace { flex: 1; display: flex; flex-direction: column; gap: 20px; padding: 20px; }
         .input-group { display: flex; flex-direction: column; gap: 12px; }
         .prompt-input { width: 100%; background: #111; border: 1px solid #444; border-radius: 10px; padding: 18px; color: white; font-size: 1rem; box-sizing: border-box; outline: none; }
-        .prompt-input:focus { border-color: #00ff80; }
         .controls-row { display: flex; gap: 12px; width: 100%; }
         select { flex: 1; background: #111; color: #00ff80; border: 1px solid #444; border-radius: 8px; padding: 10px; font-weight: bold; cursor: pointer; }
-        .btn-gen { height: 50px; padding: 0 40px; background: #00ff80; color: black; border: none; border-radius: 8px; font-weight: 800; cursor: pointer; letter-spacing: 1px; transition: 0.2s; }
+        .btn-gen { height: 50px; padding: 0 40px; background: #00ff80; color: black; border: none; border-radius: 8px; font-weight: 800; cursor: pointer; transition: 0.2s; }
         .btn-gen:hover { background: #00cc66; transform: translateY(-1px); }
-        .btn-gen:disabled { background: #333; color: #666; cursor: not-allowed; }
         .output-view { flex: 1; background: #000; border: 1px solid #333; border-radius: 12px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
         .output-img { max-width: 100%; max-height: 100%; display: none; object-fit: contain; }
-        .status-txt { color: #888; text-align: center; padding: 20px; font-size: 0.9rem; max-width: 80%; }
+        .status-txt { color: #888; text-align: center; padding: 20px; }
         .history-sidebar { width: 280px; border-left: 1px solid #333; background: rgba(0,0,0,0.3); padding: 20px; display: flex; flex-direction: column; }
         #history-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; overflow-y: auto; }
         .gallery-item { position: relative; aspect-ratio: 1/1; background: #080808; border: 1px solid #444; border-radius: 8px; cursor: pointer; overflow: hidden; }
-        .gallery-item:hover { border-color: #00ff80; }
         .gallery-item img { width: 100%; height: 100%; object-fit: cover; }
         .gallery-item .digest { position: absolute; bottom: 0; width: 100%; background: rgba(0,0,0,0.8); color: #00ff80; font-size: 8px; text-align: center; padding: 4px 0; }
     </style>
@@ -29,7 +26,7 @@
 
 <div class="workspace">
     <div class="input-group">
-        <input type="text" id="prompt-input" class="prompt-input" placeholder="Enter your prompt for the AI cluster...">
+        <input type="text" id="prompt-input" class="prompt-input" placeholder="Enter inference prompt...">
         <div class="controls-row">
             <select id="model-select">
                 <option value="0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef">SDXL-Turbo (LCAI Default)</option>
@@ -40,80 +37,68 @@
         </div>
     </div>
     <div class="output-view">
-        <p id="status" class="status-txt">Ready for Inference...</p>
+        <p id="status" class="status-txt">Awaiting AIVM Instruction...</p>
         <img id="result-img" class="output-img">
     </div>
 </div>
 
 <div class="history-sidebar">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h3 style="font-size: 0.7rem; color: #00ff80; letter-spacing: 1px; font-weight: 900; margin:0;">ON-CHAIN GALLERY</h3>
+        <h3 style="font-size: 0.7rem; color: #00ff80; font-weight: 900; margin:0;">ON-CHAIN REVEALS</h3>
         <button onclick="initHistory()" style="background: #333; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.6rem; cursor: pointer;">SYNC ↻</button>
     </div>
     <div id="history-grid"></div>
 </div>
 
 <script>
-// ENSURE THIS MATCHES THE INDEX.HTML CONFIG
 const CONFIG = { AIVM_ADDR: "0xbcA38515887Dc3Ca163398C0Ef7bF02dd156D8FB" };
 
+// Broad ABI to catch any version of the contract
 const ABI = [
     "function generateArt(string prompt, bytes32 modelDigest) public payable",
-    "event ArtGenerated(address indexed user, string prompt, bytes32 modelDigest, uint256 fee)"
+    "function generateArt(string prompt) public payable",
+    "event ArtGenerated(address indexed user, string prompt, bytes32 modelDigest, uint256 fee)",
+    "event ArtGenerated(address indexed user, string prompt, uint256 timestamp)"
 ];
 
 let history = [];
 
 async function generate() {
-    const promptInput = document.getElementById('prompt-input');
-    const modelSelect = document.getElementById('model-select');
-    const statusEl = document.getElementById('status');
-    const imgEl = document.getElementById('result-img');
-    const btn = document.getElementById('gen-button');
+    const prompt = document.getElementById('prompt-input').value;
+    const model = document.getElementById('model-select').value;
+    const status = document.getElementById('status');
+    const img = document.getElementById('result-img');
 
-    if (!promptInput.value) return;
+    if (!prompt) return;
 
     try {
-        btn.disabled = true;
-        statusEl.innerText = "Check MetaMask to sign transaction...";
-        statusEl.style.display = "block";
-        imgEl.style.display = "none";
-
+        status.innerText = "Requesting Signature...";
         const provider = new ethers.BrowserProvider(window.ethereum);
         const signer = await provider.getSigner();
         const contract = new ethers.Contract(CONFIG.AIVM_ADDR, ABI, signer);
 
-        // MANUALLY SPECIFY GAS TO PREVENT ESTIMATION ERRORS
-        const tx = await contract.generateArt(
-            promptInput.value, 
-            modelSelect.value, 
-            { 
-                value: ethers.parseEther("0.1"),
-                gasLimit: 500000 
-            }
-        );
-        
-        statusEl.innerText = "Anchoring Inference on Lightchain...";
-        window.parent.postMessage({ type: "LCAI_STATUS", message: "Inference Broadcasted..." }, "*");
+        // Try 2-arg version, fallback to 1-arg if it fails
+        let tx;
+        try {
+            tx = await contract.generateArt(prompt, model, { value: ethers.parseEther("0.1"), gasLimit: 400000 });
+        } catch (e) {
+            console.log("Falling back to 1-arg call...");
+            tx = await contract.generateArt(prompt, { value: ethers.parseEther("0.1"), gasLimit: 400000 });
+        }
 
+        status.innerText = "Mining Inference Block...";
         await tx.wait();
         
-        // Immediate Reveal
-        const safePrompt = encodeURIComponent(promptInput.value.trim());
-        imgEl.src = `https://image.pollinations.ai/prompt/${safePrompt}?nologo=true&seed=${Date.now()}`;
-        imgEl.onload = () => {
-            statusEl.style.display = "none";
-            imgEl.style.display = "block";
-        };
-
+        // Show Image
+        const safePrompt = encodeURIComponent(prompt.trim());
+        img.src = `https://image.pollinations.ai/prompt/${safePrompt}?nologo=true&seed=${Date.now()}`;
+        img.style.display = "block";
+        status.style.display = "none";
+        
         setTimeout(initHistory, 2000);
     } catch (e) {
-        console.error("INFERENCE ERROR:", e);
-        // Display the actual error message if possible
-        const errMsg = e.reason || e.message || "Unknown Transaction Error";
-        statusEl.innerText = "Error: " + errMsg.substring(0, 100);
-    } finally {
-        btn.disabled = false;
+        status.innerText = "Inference Failed: Check LCAI Balance.";
+        console.error(e);
     }
 }
 
@@ -121,33 +106,29 @@ async function initHistory() {
     try {
         const provider = new ethers.BrowserProvider(window.ethereum);
         const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-        if (!accounts[0]) return;
-
         const contract = new ethers.Contract(CONFIG.AIVM_ADDR, ABI, provider);
         
-        // Scan a huge block range to find all 16+ inferences
+        // Scan the last 10k blocks for speed
         const filter = contract.filters.ArtGenerated(accounts[0]);
-        const events = await contract.queryFilter(filter, -50000); 
+        const events = await contract.queryFilter(filter, -10000); 
 
-        history = events.map(e => ({
-            prompt: e.args.prompt,
-            digest: e.args.modelDigest.slice(0, 10),
-            url: `https://image.pollinations.ai/prompt/${encodeURIComponent(e.args.prompt.trim())}?nologo=true&seed=${e.blockNumber}`
-        })).reverse();
+        history = events.map(e => {
+            // Smart extraction of prompt and digest
+            const p = e.args.prompt || e.args[1];
+            const d = e.args.modelDigest ? e.args.modelDigest.slice(0, 10) : "LCAI-v1";
+            return {
+                prompt: p,
+                digest: d,
+                url: `https://image.pollinations.ai/prompt/${encodeURIComponent(p.trim())}?nologo=true&seed=${e.blockNumber}`
+            };
+        }).reverse();
 
         renderHistory();
-        window.parent.postMessage({ type: "LCAI_STATUS", message: `Synced ${history.length} Inferences.` }, "*");
-    } catch (e) { 
-        console.error("SYNC ERROR:", e);
-    }
+    } catch (e) { console.error("Sync Failed", e); }
 }
 
 function renderHistory() {
     const grid = document.getElementById('history-grid');
-    if (!history.length) {
-        grid.innerHTML = "<div style='color:#555; grid-column:span 2; font-size:0.7rem;'>No reveals found.</div>";
-        return;
-    }
     grid.innerHTML = history.map((item, i) => `
         <div class="gallery-item" onclick="loadHistory(${i})">
             <img src="${item.url}" onerror="this.src='https://placehold.co/150x150/111/00ff80?text=AIVM'">
@@ -156,14 +137,12 @@ function renderHistory() {
     `).join('');
 }
 
-function loadHistory(index) {
-    const item = history[index];
+function loadHistory(i) {
+    const item = history[i];
     document.getElementById('prompt-input').value = item.prompt;
-    const imgEl = document.getElementById('result-img');
-    const statusEl = document.getElementById('status');
-    statusEl.style.display = "none";
-    imgEl.style.display = "block";
-    imgEl.src = item.url;
+    document.getElementById('result-img').src = item.url;
+    document.getElementById('result-img').style.display = "block";
+    document.getElementById('status').style.display = "none";
 }
 
 window.addEventListener('load', () => { if (window.ethereum) initHistory(); });

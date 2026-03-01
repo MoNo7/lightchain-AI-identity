@@ -87,8 +87,10 @@ const CONFIG = {
                 const user = accounts[0];
         
                 // Scanning 50,000 blocks to ensure we hit all 16 inferences
+                const currentBlock = await provider.getBlockNumber();
+                const startBlock = currentBlock - 10000; // Scan last 10k blocks only
                 const filter = contract.filters.ArtGenerated(user);
-                const events = await contract.queryFilter(filter, -50000); 
+                const events = await contract.queryFilter(filter, startBlock, "latest");
         
                 history = events.map(e => {
                     // FIX: Ensure prompt is a string and not empty

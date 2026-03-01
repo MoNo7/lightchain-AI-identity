@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LCAI AI ART | Control Center</title>
+    <title>Lightchain AI Testnet | Portal</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <style>
         :root {
@@ -15,6 +15,7 @@
             --border: #30363d;
             --success: #238636;
             --locked: #484f58;
+            --warning: #d29922;
         }
 
         body {
@@ -28,24 +29,72 @@
             overflow: hidden;
         }
 
-        /* TOP NAVIGATION (Release Version Style) */
+        /* TOP NAVIGATION (Release Style) */
         header {
             width: 100%;
             background: var(--nav-bg);
             border-bottom: 1px solid var(--border);
-            padding: 12px 24px;
+            padding: 8px 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             box-sizing: border-box;
-            z-index: 100;
         }
 
-        .brand {
-            font-size: 1.2rem;
-            font-weight: bold;
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .brand-title {
+            font-weight: 600;
+            font-size: 1.1rem;
             color: white;
-            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .cluster-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: var(--success);
+            background: rgba(35, 134, 54, 0.1);
+            padding: 4px 10px;
+            border-radius: 20px;
+            border: 1px solid rgba(35, 134, 54, 0.3);
+        }
+
+        .dot {
+            height: 8px;
+            width: 8px;
+            background-color: var(--success);
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 5px var(--success);
+        }
+
+        .wallet-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 0.85rem;
+            color: var(--text);
+        }
+
+        .address-pill {
+            cursor: pointer;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            padding: 4px 12px;
+            border-radius: 6px;
+            transition: 0.2s;
+        }
+
+        .address-pill:hover {
+            border-color: var(--accent);
+            color: white;
         }
 
         /* LAYOUT WRAPPER */
@@ -55,7 +104,7 @@
             overflow: hidden;
         }
 
-        /* LEFT SIDEBAR MENU */
+        /* SIDEBAR */
         #sidebar {
             width: 260px;
             background: var(--nav-bg);
@@ -63,39 +112,26 @@
             padding: 20px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 8px;
         }
 
         .nav-item {
             color: var(--text);
             text-decoration: none;
-            font-size: 0.95rem;
-            padding: 12px 15px;
+            font-size: 0.9rem;
+            padding: 10px 15px;
             border-radius: 6px;
-            transition: 0.2s;
             cursor: pointer;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
-        .nav-item:hover:not(.locked) {
-            background: var(--border);
-        }
+        .nav-item:hover:not(.locked) { background: var(--border); }
+        .nav-item.locked { color: var(--locked); cursor: not-allowed; opacity: 0.7; }
+        .badge { font-size: 0.7rem; background: #383e47; padding: 2px 6px; border-radius: 4px; }
 
-        .nav-item.locked {
-            color: var(--locked);
-            cursor: not-allowed;
-        }
-
-        .badge {
-            font-size: 0.7rem;
-            background: #383e47;
-            padding: 2px 6px;
-            border-radius: 4px;
-        }
-
-        /* MAIN CONTENT AREA */
+        /* MAIN CONTENT */
         main {
             flex: 1;
             padding: 40px;
@@ -112,16 +148,12 @@
             border-radius: 12px;
             display: none;
             width: 100%;
-            max-width: 600px;
+            max-width: 550px;
             text-align: center;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
 
         .status-card.active { display: block; }
-
-        h2 { margin-top: 0; color: white; }
-        p { color: #8b949e; line-height: 1.6; }
-
         button {
             background: var(--success);
             color: white;
@@ -130,25 +162,19 @@
             border-radius: 6px;
             font-weight: bold;
             cursor: pointer;
-            font-size: 1rem;
             margin-top: 20px;
         }
 
-        button:hover { filter: brightness(1.1); }
-        button.secondary { background: #21262d; border: 1px solid var(--border); }
-
-        /* ADMIN & OWNER */
         .admin-section {
-            margin-top: 40px;
+            margin-top: 30px;
             border-top: 1px solid var(--border);
             padding-top: 20px;
             width: 100%;
-            max-width: 600px;
+            max-width: 550px;
             display: none;
         }
 
         .admin-section.visible { display: block; }
-
         input {
             background: var(--bg);
             border: 1px solid var(--border);
@@ -165,7 +191,7 @@
             right: 20px;
             background: #21262d;
             border: 1px solid var(--accent);
-            padding: 15px 25px;
+            padding: 12px 20px;
             border-radius: 8px;
             display: none;
             z-index: 1000;
@@ -175,8 +201,18 @@
 <body>
 
     <header>
-        <a href="#" class="brand">LCAI AI ART</a>
-        <button id="btn-connect" class="secondary" onclick="connect()">Connect Wallet</button>
+        <div class="header-left">
+            <span class="brand-title">Lightchain AI Testnet</span>
+            <div class="cluster-status">
+                <span class="dot"></span>
+                <span>AIVM Cluster: Active</span>
+            </div>
+            <div id="wallet-display" class="wallet-info" style="display: none;">
+                <span id="balance-amt" style="color: var(--accent); font-weight: bold;">0.00 LCAI</span>
+                <span id="user-addr-pill" class="address-pill" onclick="copyAddress()">0x...</span>
+            </div>
+        </div>
+        <button id="btn-connect" style="margin-top:0; padding: 6px 15px;" onclick="connect()">Connect Wallet</button>
     </header>
 
     <div class="app-container">
@@ -193,45 +229,40 @@
 
         <main>
             <div id="state-disconnected" class="status-card active">
-                <h2>Welcome to Lightchain AI</h2>
-                <p>Connect your wallet to begin the identity verification process and unlock the AIVM creative suite.</p>
+                <h2>AIVM Gateway</h2>
+                <p>Welcome. Please connect your wallet to access the Lightchain AI Testnet decentralized infrastructure.</p>
                 <button onclick="connect()">Connect Wallet</button>
             </div>
 
             <div id="state-register" class="status-card">
-                <h2>Identity Registration</h2>
-                <p>Register your address on the Lightchain Identity network to proceed.</p>
+                <h2>Registration Required</h2>
+                <p>You are connected, but your on-chain identity is not yet registered on the network.</p>
                 <button onclick="register()">Register Identity</button>
             </div>
 
             <div id="state-verify" class="status-card">
-                <h2>ZK-Verification Pending</h2>
-                <p>Identity registered. Please wait for an administrator to verify your ZK-proofs.</p>
-                <button class="secondary" onclick="checkStatus()">Refresh Status</button>
+                <h2>Verifying ZK-Proofs</h2>
+                <p>Identity registered. Awaiting node verification of your ZK-proofs. Please refresh status shortly.</p>
+                <button style="background: var(--nav-bg); border: 1px solid var(--border);" onclick="checkStatus()">Refresh Status</button>
             </div>
 
             <div id="state-mint" class="status-card">
-                <h2>Verification Confirmed</h2>
-                <p>Your ZK-proofs are verified. Mint your Soulbound Token (SBT) to activate your account.</p>
+                <h2>Proof Verified</h2>
+                <p>Verification successful. Mint your Soulbound ZK-Pass to unlock AIVM Cluster resources.</p>
                 <button onclick="mintSBT()">Mint ZK-Pass SBT</button>
             </div>
 
             <div id="state-unlocked" class="status-card">
-                <h2 style="color: var(--accent)">System Active</h2>
-                <p>✅ Your ZK-Pass is active. The AIVM Generator and Marketplace are now accessible via the left menu.</p>
+                <h2 style="color: var(--accent)">Access Granted</h2>
+                <p>✅ Your ZK-Pass is active. The AIVM Generator and Marketplace have been unlocked in the sidebar.</p>
             </div>
 
             <div id="admin-panel" class="admin-section">
-                <h3>Admin Portal</h3>
-                <input type="text" id="admin-target" placeholder="User 0x address">
+                <h3>Network Admin</h3>
+                <input type="text" id="admin-target" placeholder="Target 0x address">
                 <div style="display: flex; gap: 10px;">
-                    <button class="secondary" style="flex:1" onclick="adminAction('verify')">Verify User</button>
-                    <button class="secondary" style="flex:1; color:#ff7b72" onclick="adminAction('revoke')">Revoke</button>
-                </div>
-                
-                <div id="owner-vault" style="display:none; margin-top:20px;">
-                    <p>Vault Balance: <span id="vault-bal">0</span> LCAI</p>
-                    <button onclick="withdraw()">Withdraw to Vault</button>
+                    <button style="flex:1; background: var(--bg); border: 1px solid var(--border);" onclick="adminAction('verify')">Verify User</button>
+                    <button style="flex:1; background: var(--bg); border: 1px solid var(--border); color:#ff7b72" onclick="adminAction('revoke')">Revoke</button>
                 </div>
             </div>
         </main>
@@ -240,23 +271,11 @@
     <div id="toast">Message</div>
 
     <script>
-        // CONTRACT CONFIGURATION
         const ADDR_IDENTITY = "0x8300C9072Bc9F926703f8E26Ff0a5D963d88Ae01";
-        const ADDR_SBT = "0xd711582E66699392603336feB27B8a83a5F600";
+        const ADDR_SBT = "0xd71462F0002Ee9373fCe05B568583Ed13e75f600";
 
-        const ABI_ID = [
-            "function isVerified(address) view returns (bool)",
-            "function registerIdentity() external",
-            "function verifyIdentity(address) external",
-            "function revokeIdentity(address) external",
-            "function owner() view returns (address)",
-            "function isAdmin(address) view returns (bool)"
-        ];
-
-        const ABI_SBT = [
-            "function balanceOf(address) view returns (uint256)",
-            "function mintIdentity() external"
-        ];
+        const ABI_ID = ["function isVerified(address) view returns (bool)","function registerIdentity() external","function verifyIdentity(address) external","function revokeIdentity(address) external","function owner() view returns (address)","function isAdmin(address) view returns (bool)"];
+        const ABI_SBT = ["function balanceOf(address) view returns (uint256)","function mintIdentity() external"];
 
         let provider, signer, userAddress;
 
@@ -266,8 +285,25 @@
             const accounts = await provider.send("eth_requestAccounts", []);
             userAddress = accounts[0];
             signer = provider.getSigner();
-            document.getElementById('btn-connect').innerText = userAddress.slice(0,6)+"..."+userAddress.slice(-4);
+            
+            // Update Top Nav UI
+            document.getElementById('btn-connect').style.display = 'none';
+            document.getElementById('wallet-display').style.display = 'flex';
+            document.getElementById('user-addr-pill').innerText = `${userAddress.slice(0,6)}...${userAddress.slice(-4)}`;
+            
+            updateBalance();
             checkStatus();
+        }
+
+        async function updateBalance() {
+            const bal = await provider.getBalance(userAddress);
+            const ethBal = ethers.utils.formatEther(bal);
+            document.getElementById('balance-amt').innerText = `${parseFloat(ethBal).toFixed(2)} LCAI`;
+        }
+
+        function copyAddress() {
+            navigator.clipboard.writeText(userAddress);
+            notify("Address copied to clipboard!");
         }
 
         async function checkStatus() {
@@ -277,10 +313,7 @@
 
             try {
                 const verified = await idContract.isVerified(userAddress);
-                if (!verified) {
-                    showState('state-verify'); 
-                    return;
-                }
+                if (!verified) { showState('state-verify'); return; }
 
                 const sbtBal = await sbtContract.balanceOf(userAddress);
                 if (sbtBal.toNumber() === 0) {
@@ -290,37 +323,26 @@
                     unlockNav();
                 }
 
-                const admin = await idContract.isAdmin(userAddress);
-                if (admin) document.getElementById('admin-panel').classList.add('visible');
-                
-                const owner = await idContract.owner();
-                if (userAddress.toLowerCase() === owner.toLowerCase()) {
-                    document.getElementById('owner-vault').style.display = 'block';
-                }
-
-            } catch (e) {
-                showState('state-register');
-            }
+                if (await idContract.isAdmin(userAddress)) document.getElementById('admin-panel').classList.add('visible');
+            } catch (e) { showState('state-register'); }
         }
 
         async function register() {
-            const contract = new ethers.Contract(ADDR_IDENTITY, ABI_ID, signer);
             try {
-                const tx = await contract.registerIdentity();
-                notify("Registering...");
+                const tx = await (new ethers.Contract(ADDR_IDENTITY, ABI_ID, signer)).registerIdentity();
+                notify("Registering Identity...");
                 await tx.wait();
                 checkStatus();
-            } catch (e) { notify("Registration failed"); }
+            } catch (e) { notify("Transaction Failed"); }
         }
 
         async function mintSBT() {
-            const contract = new ethers.Contract(ADDR_SBT, ABI_SBT, signer);
             try {
-                const tx = await contract.mintIdentity();
+                const tx = await (new ethers.Contract(ADDR_SBT, ABI_SBT, signer)).mintIdentity();
                 notify("Minting ZK-Pass...");
                 await tx.wait();
                 checkStatus();
-            } catch (e) { notify("Minting failed"); }
+            } catch (e) { notify("Minting Failed"); }
         }
 
         function showState(id) {
@@ -338,20 +360,16 @@
 
         function handleLockedNav(name) {
             const el = event.currentTarget;
-            if (el.classList.contains('locked')) {
-                notify(`Verification required for ${name}`);
-            } else {
-                notify(`Opening ${name}...`);
-            }
+            if (el.classList.contains('locked')) notify(`ZK-Pass required for ${name}`);
+            else notify(`Accessing ${name}...`);
         }
 
         async function adminAction(type) {
             const target = document.getElementById('admin-target').value;
-            if (!target) return notify("Enter target address");
-            const contract = new ethers.Contract(ADDR_IDENTITY, ABI_ID, signer);
+            if (!target) return notify("Enter address");
             try {
+                const contract = new ethers.Contract(ADDR_IDENTITY, ABI_ID, signer);
                 const tx = type === 'verify' ? await contract.verifyIdentity(target) : await contract.revokeIdentity(target);
-                notify("Processing Admin Action...");
                 await tx.wait();
                 notify("Success");
             } catch (e) { notify("Admin action failed"); }

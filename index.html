@@ -3,408 +3,344 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AIVM Control Center | Lightchain AI</title>
+    <title>LCAI AI ART | Identity & Governance</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <style>
         :root {
-            --bg-color: #0d1117;
-            --panel-bg: #161b22;
-            --text-main: #c9d1d9;
+            --bg: #0d1117;
+            --nav-bg: #161b22;
+            --card-bg: #1c2128;
+            --text: #c9d1d9;
             --accent: #58a6ff;
-            --accent-hover: #1f6feb;
             --border: #30363d;
-            --locked: #8b949e;
-            --success: #2ea043;
-            --danger: #da3633;
+            --success: #238636;
+            --locked: #484f58;
         }
 
         body {
             margin: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            display: flex;
-            height: 100vh;
-        }
-
-        /* Sidebar Styling */
-        #sidebar {
-            width: 250px;
-            background-color: var(--panel-bg);
-            border-right: 1px solid var(--border);
-            padding: 20px;
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, system-ui, sans-serif;
             display: flex;
             flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
         }
 
-        #sidebar h2 {
-            font-size: 1.2rem;
-            color: var(--text-main);
-            margin-bottom: 30px;
+        /* TOP NAVIGATION */
+        header {
+            width: 100%;
+            background: var(--nav-bg);
+            border-bottom: 1px solid var(--border);
+            padding: 10px 0;
+            display: flex;
+            justify-content: center;
         }
 
-        .nav-item {
-            padding: 10px 15px;
-            margin-bottom: 10px;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: background 0.2s;
+        .nav-container {
+            width: 90%;
+            max-width: 1200px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
-        .nav-item:hover {
-            background-color: rgba(88, 166, 255, 0.1);
+        .brand {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--accent);
+            text-decoration: none;
         }
 
-        .nav-item.locked {
-            color: var(--locked);
-            cursor: not-allowed;
-            opacity: 0.6;
-        }
-
-        .nav-item.locked:hover {
-            background-color: transparent;
-        }
-
-        .badge {
-            font-size: 0.7rem;
-            background: var(--border);
-            padding: 2px 6px;
-            border-radius: 10px;
-        }
-
-        /* Main Content Styling */
-        #main-content {
-            flex-grow: 1;
-            padding: 40px;
-            overflow-y: auto;
-        }
-
-        .top-bar {
+        nav {
             display: flex;
-            justify-content: flex-end;
-            margin-bottom: 40px;
+            gap: 20px;
         }
 
-        button {
-            background-color: var(--panel-bg);
-            color: var(--text-main);
-            border: 1px solid var(--border);
-            padding: 8px 16px;
+        .nav-link {
+            color: var(--text);
+            text-decoration: none;
+            font-size: 0.9rem;
+            padding: 8px 12px;
             border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
             transition: 0.2s;
         }
 
-        button.primary {
-            background-color: var(--success);
-            color: white;
-            border-color: var(--success);
+        .nav-link.locked {
+            color: var(--locked);
+            cursor: not-allowed;
         }
 
-        button.primary:hover {
-            background-color: #3fb950;
+        .nav-link:not(.locked):hover {
+            background: var(--border);
         }
 
-        .view-section {
-            display: none; /* Hidden by default */
-            background-color: var(--panel-bg);
+        .badge {
+            font-size: 0.6rem;
+            background: #383e47;
+            padding: 2px 5px;
+            border-radius: 4px;
+            margin-left: 5px;
+        }
+
+        /* MAIN BODY */
+        main {
+            width: 90%;
+            max-width: 700px;
+            margin-top: 50px;
+            text-align: center;
+        }
+
+        .status-card {
+            background: var(--card-bg);
             border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 30px;
-            max-width: 600px;
-            margin-bottom: 20px;
+            padding: 40px;
+            border-radius: 12px;
+            display: none;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
 
-        .view-section.active {
-            display: block;
+        .status-card.active { display: block; }
+
+        h2 { margin-top: 0; color: white; }
+        p { color: #8b949e; line-height: 1.6; }
+
+        button {
+            background: var(--success);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-top: 20px;
         }
+
+        button:hover { filter: brightness(1.1); }
+        button.secondary { background: var(--nav-bg); border: 1px solid var(--border); }
+
+        /* ADMIN & OWNER */
+        .admin-section {
+            margin-top: 40px;
+            border-top: 1px solid var(--border);
+            padding-top: 20px;
+            width: 100%;
+            display: none;
+        }
+
+        .admin-section.visible { display: block; }
 
         input {
-            background-color: var(--bg-color);
+            background: var(--bg);
             border: 1px solid var(--border);
-            color: var(--text-main);
-            padding: 8px 12px;
+            color: white;
+            padding: 10px;
             border-radius: 6px;
-            width: calc(100% - 26px);
-            margin-bottom: 15px;
+            width: 70%;
+            margin-bottom: 10px;
         }
 
-        /* Toast Notifications */
         #toast {
             position: fixed;
             bottom: 20px;
-            right: 20px;
-            background: var(--accent);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 6px;
+            background: #21262d;
+            border: 1px solid var(--accent);
+            padding: 15px 25px;
+            border-radius: 8px;
             display: none;
+            z-index: 1000;
         }
     </style>
 </head>
 <body>
 
-    <div id="sidebar">
-        <h2>Lightchain AIVM</h2>
-        <div id="nav-generator" class="nav-item locked" onclick="handleNavClick('generator')">
-            <span>LCAI Generator</span>
-            <span class="lock-icon">🔒</span>
+    <header>
+        <div class="nav-container">
+            <a href="#" class="brand">LCAI AI ART</a>
+            <nav>
+                <a href="#" id="nav-gen" class="nav-link locked" onclick="handleLockedNav('AIVM Generator')">AIVM Generator 🔒</a>
+                <a href="#" id="nav-market" class="nav-link locked" onclick="handleLockedNav('Marketplace')">Marketplace <span class="badge">WIP</span> 🔒</a>
+                <button id="btn-connect" class="secondary" style="margin-top:0" onclick="connect()">Connect Wallet</button>
+            </nav>
         </div>
-        <div id="nav-market" class="nav-item locked" onclick="handleNavClick('market')">
-            <span>Marketplace</span>
+    </header>
+
+    <main>
+        <div id="state-disconnected" class="status-card active">
+            <h2>Welcome to Lightchain AI</h2>
+            <p>Access the AIVM Generator and Marketplace by connecting your Lightchain Testnet wallet and verifying your identity.</p>
+            <button onclick="connect()">Connect Wallet</button>
+        </div>
+
+        <div id="state-register" class="status-card">
+            <h2>Identity Registration</h2>
+            <p>Your wallet is connected, but you are not yet part of the Lightchain Identity network.</p>
+            <button onclick="register()">Register Identity</button>
+        </div>
+
+        <div id="state-verify" class="status-card">
+            <h2>ZK-Verification Pending</h2>
+            <p>You have registered your identity. Please wait for an administrator to verify your ZK-proofs or refresh to check status.</p>
+            <button class="secondary" onclick="checkStatus()">Refresh Verification Status</button>
+        </div>
+
+        <div id="state-mint" class="status-card">
+            <h2>Verified! Mint your ZK-Pass</h2>
+            <p>Your identity is verified. To unlock full access to the AI Art Generator, mint your Soulbound Token (SBT).</p>
+            <button onclick="mintSBT()">Mint ZK-Pass SBT</button>
+        </div>
+
+        <div id="state-unlocked" class="status-card">
+            <h2 style="color: var(--accent)">Access Granted</h2>
+            <p>✅ Your ZK-Pass is active. Use the top navigation menu to access the LCAI AIVM Generator.</p>
+            <button onclick="window.location.reload()">Refresh System</button>
+        </div>
+
+        <div id="admin-panel" class="admin-section">
+            <h3>Admin Portal</h3>
+            <input type="text" id="admin-target" placeholder="0x target address">
             <div>
-                <span class="badge">WIP</span>
-                <span class="lock-icon">🔒</span>
+                <button class="secondary" onclick="adminAction('verify')">Verify User</button>
+                <button class="secondary" onclick="adminAction('revoke')" style="color:#ff7b72">Revoke</button>
+            </div>
+            
+            <div id="owner-vault" style="display:none; margin-top:20px;">
+                <p>Owner Vault Balance: <span id="vault-bal">0</span> LCAI</p>
+                <button onclick="withdraw()">Withdraw to Vault</button>
             </div>
         </div>
-    </div>
-
-    <div id="main-content">
-        <div class="top-bar">
-            <button id="btn-connect" onclick="connectWallet()">Connect Wallet</button>
-        </div>
-
-        <div id="view-disconnected" class="view-section active">
-            <h3>System Offline</h3>
-            <p>Please connect your wallet to access the Lightchain AI Testnet.</p>
-        </div>
-
-        <div id="view-register" class="view-section">
-            <h3>Identity Required</h3>
-            <p>Your address is not registered on the Lightchain Identity network.</p>
-            <button class="primary" onclick="registerIdentity()">Register On-Chain Identity</button>
-        </div>
-
-        <div id="view-verify" class="view-section">
-            <h3>Awaiting ZK Verification</h3>
-            <p>You are registered! Please wait for a network admin to confirm your ZK-proof verification.</p>
-            <button onclick="checkIdentityState()">Refresh Status</button>
-        </div>
-
-        <div id="view-mint" class="view-section">
-            <h3>Verification Confirmed</h3>
-            <p>Your identity is verified. Mint your Soulbound Token (SBT) to unlock network features.</p>
-            <button class="primary" onclick="mintSBT()">Mint ZK-Pass SBT</button>
-        </div>
-
-        <div id="view-success" class="view-section">
-            <h3 style="color: var(--success);">System Online</h3>
-            <p>You hold a valid ZK-Pass SBT. All primary systems are unlocked via the menu on the left.</p>
-        </div>
-
-        <div id="view-admin" class="view-section" style="border-color: var(--accent);">
-            <h3>Admin Management</h3>
-            <input type="text" id="target-address" placeholder="Enter 0x address...">
-            <div style="display: flex; gap: 10px;">
-                <button onclick="adminQuery()">Query Status</button>
-                <button class="primary" onclick="adminVerify()">Verify Identity</button>
-                <button style="background: var(--danger); border-color: var(--danger);" onclick="adminRevoke()">Revoke</button>
-            </div>
-        </div>
-
-        <div id="view-owner" class="view-section" style="border-color: #d2a8ff;">
-            <h3>Owner Vault</h3>
-            <p>Accumulated Revenue: <span id="revenue-display">0.00</span> LCAI</p>
-            <button onclick="withdrawFunds()">Withdraw Funds</button>
-        </div>
-
-    </div>
+    </main>
 
     <div id="toast">Message</div>
 
     <script>
-        // ==========================================
-        // CONFIGURATION (Update these with your Remix deployments)
-        // ==========================================
-        const IDENTITY_CONTRACT_ADDRESS = "0x8300C9072Bc9F926703f8E26Ff0a5D963d88Ae01"; 
-        const SBT_CONTRACT_ADDRESS = "0xd71462F0002Ee9373fCe05B568583Ed13e75f600";
-        
-        // Minimal ABIs required for the flow
-        const identityABI = [
-            "function isVerified(address _user) view returns (bool)",
+        // CONTRACT CONFIGURATION
+        const ADDR_IDENTITY = "0x8300C9072Bc9F926703f8E26Ff0a5D963d88Ae01";
+        const ADDR_SBT = "0xd71462F0002Ee9373fCe05B568583Ed13e75f600"; // Updated from your scan tab
+
+        const ABI_ID = [
+            "function isVerified(address) view returns (bool)",
             "function registerIdentity() external",
-            "function verifyIdentity(address _user) external",
-            "function revokeIdentity(address _user) external",
+            "function verifyIdentity(address) external",
+            "function revokeIdentity(address) external",
             "function owner() view returns (address)",
-            "function isAdmin(address _user) view returns (bool)"
+            "function isAdmin(address) view returns (bool)"
         ];
 
-        const sbtABI = [
-            "function balanceOf(address owner) view returns (uint256)",
+        const ABI_SBT = [
+            "function balanceOf(address) view returns (uint256)",
             "function mintIdentity() external"
         ];
 
         let provider, signer, userAddress;
-        let identityContract, sbtContract;
 
-        // ==========================================
-        // INITIALIZATION & STATE MANAGEMENT
-        // ==========================================
-        async function connectWallet() {
-            if (!window.ethereum) {
-                showToast("Please install a Web3 wallet like MetaMask.");
-                return;
-            }
-            try {
-                await window.ethereum.request({ method: 'eth_requestAccounts' });
-                provider = new ethers.providers.Web3Provider(window.ethereum);
-                signer = provider.getSigner();
-                userAddress = await signer.getAddress();
-                
-                document.getElementById('btn-connect').innerText = `Connected: ${userAddress.substring(0,6)}...${userAddress.slice(-4)}`;
-                
-                // Init Contracts
-                identityContract = new ethers.Contract(IDENTITY_CONTRACT_ADDRESS, identityABI, signer);
-                sbtContract = new ethers.Contract(SBT_CONTRACT_ADDRESS, sbtABI, signer);
-
-                await checkIdentityState();
-                await checkAdminRoles();
-            } catch (error) {
-                console.error("Connection error:", error);
-            }
+        async function connect() {
+            if (!window.ethereum) return notify("Install MetaMask");
+            provider = new ethers.providers.Web3Provider(window.ethereum);
+            const accounts = await provider.send("eth_requestAccounts", []);
+            userAddress = accounts[0];
+            signer = provider.getSigner();
+            document.getElementById('btn-connect').innerText = userAddress.slice(0,6)+"..."+userAddress.slice(-4);
+            checkStatus();
         }
 
-        async function checkIdentityState() {
+        async function checkStatus() {
             if (!userAddress) return;
+            const idContract = new ethers.Contract(ADDR_IDENTITY, ABI_ID, signer);
+            const sbtContract = new ethers.Contract(ADDR_SBT, ABI_SBT, signer);
 
             try {
-                // Determine Registration/Verification
-                // *Note: Adjust this logic if your contract handles 'isRegistered' differently.
-                // Here we assume if 'isVerified' throws or fails, they aren't registered.
-                let verified = false;
-                try {
-                    verified = await identityContract.isVerified(userAddress);
-                } catch (e) {
-                    // Contract might throw if identity doesn't exist
-                    switchView('view-register');
-                    return;
-                }
-
+                const verified = await idContract.isVerified(userAddress);
                 if (!verified) {
-                    // We assume they are registered but not verified yet if it didn't throw
-                    switchView('view-verify');
+                    // Note: Logic assumes if isVerified is false, user needs to reg or wait for verify
+                    // You can refine this by checking a separate 'isRegistered' mapping if your .sol has it
+                    showState('state-verify'); 
                     return;
                 }
 
-                // If Verified, check SBT Balance
-                const sbtBalance = await sbtContract.balanceOf(userAddress);
-                if (sbtBalance.toNumber() === 0) {
-                    switchView('view-mint');
+                const sbtBal = await sbtContract.balanceOf(userAddress);
+                if (sbtBal.toNumber() === 0) {
+                    showState('state-mint');
                 } else {
-                    switchView('view-success');
-                    unlockMenu();
+                    showState('state-unlocked');
+                    unlockNav();
                 }
 
-            } catch (error) {
-                console.error("State check failed:", error);
-                switchView('view-register'); // Fallback to state 1
-            }
-        }
-
-        async function checkAdminRoles() {
-            try {
-                const isAdmin = await identityContract.isAdmin(userAddress);
-                if (isAdmin) {
-                    document.getElementById('view-admin').classList.add('active');
-                }
-                const owner = await identityContract.owner();
+                // Check Admin/Owner
+                const admin = await idContract.isAdmin(userAddress);
+                if (admin) document.getElementById('admin-panel').classList.add('visible');
+                
+                const owner = await idContract.owner();
                 if (userAddress.toLowerCase() === owner.toLowerCase()) {
-                    document.getElementById('view-owner').classList.add('active');
+                    document.getElementById('owner-vault').style.display = 'block';
                 }
-            } catch(e) { console.log("Role check failed or unsupported."); }
+
+            } catch (e) {
+                console.error(e);
+                showState('state-register');
+            }
         }
 
-        // ==========================================
-        // USER ACTIONS
-        // ==========================================
-        async function registerIdentity() {
+        async function register() {
+            const contract = new ethers.Contract(ADDR_IDENTITY, ABI_ID, signer);
             try {
-                const tx = await identityContract.registerIdentity();
-                showToast("Transaction sent! Waiting for confirmation...");
+                const tx = await contract.registerIdentity();
+                notify("Registering...");
                 await tx.wait();
-                showToast("Registration successful!");
-                checkIdentityState();
-            } catch (error) {
-                showToast("Registration failed. See console.");
-                console.error(error);
-            }
+                checkStatus();
+            } catch (e) { notify("Registration failed"); }
         }
 
         async function mintSBT() {
+            const contract = new ethers.Contract(ADDR_SBT, ABI_SBT, signer);
             try {
-                const tx = await sbtContract.mintIdentity();
-                showToast("Minting SBT! Waiting for confirmation...");
+                const tx = await contract.mintIdentity();
+                notify("Minting ZK-Pass...");
                 await tx.wait();
-                showToast("SBT Minted Successfully!");
-                checkIdentityState();
-            } catch (error) {
-                showToast("Minting failed. See console.");
-                console.error(error);
-            }
+                checkStatus();
+            } catch (e) { notify("Minting failed"); }
         }
 
-        // ==========================================
-        // ADMIN ACTIONS
-        // ==========================================
-        async function adminVerify() {
-            const target = document.getElementById('target-address').value;
-            if(!target) return showToast("Enter an address first.");
-            try {
-                const tx = await identityContract.verifyIdentity(target);
-                await tx.wait();
-                showToast(`Verified ${target}`);
-            } catch(e) { console.error(e); showToast("Admin verify failed."); }
+        function showState(id) {
+            document.querySelectorAll('.status-card').forEach(c => c.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
         }
 
-        async function adminRevoke() {
-            const target = document.getElementById('target-address').value;
-            if(!target) return showToast("Enter an address first.");
-            try {
-                const tx = await identityContract.revokeIdentity(target);
-                await tx.wait();
-                showToast(`Revoked ${target}`);
-            } catch(e) { console.error(e); showToast("Admin revoke failed."); }
-        }
-
-        // ==========================================
-        // UI HELPERS
-        // ==========================================
-        function switchView(viewId) {
-            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
-            document.getElementById(viewId).classList.add('active');
-            
-            // Re-add admin/owner panels if they apply
-            checkAdminRoles(); 
-        }
-
-        function unlockMenu() {
-            const items = document.querySelectorAll('.nav-item');
-            items.forEach(item => {
-                item.classList.remove('locked');
-                const lockIcon = item.querySelector('.lock-icon');
-                if (lockIcon) lockIcon.style.display = 'none';
+        function unlockNav() {
+            document.querySelectorAll('.nav-link').forEach(l => {
+                l.classList.remove('locked');
+                l.innerHTML = l.innerHTML.replace('🔒', '');
             });
         }
 
-        function handleNavClick(destination) {
-            const el = document.getElementById(`nav-${destination}`);
+        function handleLockedNav(name) {
+            const el = event.target;
             if (el.classList.contains('locked')) {
-                showToast("Please complete your Identity setup to unlock this feature.");
-                return;
+                notify(`Identity Verification required for ${name}`);
+            } else {
+                notify(`Opening ${name}...`);
             }
-            // Add your routing/navigation logic here
-            showToast(`Navigating to ${destination}...`);
         }
 
-        function showToast(msg) {
-            const toast = document.getElementById('toast');
-            toast.innerText = msg;
-            toast.style.display = 'block';
-            setTimeout(() => toast.style.display = 'none', 4000);
+        async function adminAction(type) {
+            const target = document.getElementById('admin-target').value;
+            if (!target) return notify("Enter target address");
+            const contract = new ethers.Contract(ADDR_IDENTITY, ABI_ID, signer);
+            try {
+                const tx = type === 'verify' ? await contract.verifyIdentity(target) : await contract.revokeIdentity(target);
+                notify("Processing Admin Action...");
+                await tx.wait();
+                notify("Success");
+            } catch (e) { notify("Admin action failed"); }
+        }
+
+        function notify(msg) {
+            const t = document.getElementById('toast');
+            t.innerText = msg;
+            t.style.display = 'block';
+            setTimeout(() => t.style.display = 'none', 3000);
         }
     </script>
 </body>

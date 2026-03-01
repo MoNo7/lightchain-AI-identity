@@ -9,47 +9,38 @@
         :root { --primary: #5865f2; --secondary: #00ff80; --danger: #ff4444; --bg: #0f1016; --nav-bg: #13141f; --card: #1a1b26; --border: #2d2f45; --text: #ffffff; --text-dim: #94a3b8; }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
         body { background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-        
         header { height: 64px; background: var(--nav-bg); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; z-index: 100; }
         .header-left-group { display: flex; align-items: center; gap: 20px; flex: 1; }
         .brand-title { font-weight: 800; color: var(--primary); font-size: 1.1rem; }
-        
-        /* PRICE TICKER STYLES */
         .header-center-group { display: flex; align-items: center; gap: 20px; flex: 1; justify-content: center; }
         .ticker-item { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; font-family: monospace; background: rgba(0,0,0,0.3); padding: 4px 12px; border-radius: 6px; border: 1px solid var(--border); }
-        .ticker-label { color: var(--text-dim); font-weight: bold; }
         .ticker-val { color: var(--secondary); }
-
         .header-right { display: flex; align-items: center; gap: 16px; flex: 1; justify-content: flex-end; }
         .cluster-pill { background: #000; padding: 6px 14px; border-radius: 20px; border: 1px solid #1e293b; font-size: 0.75rem; display: flex; align-items: center; gap: 8px; }
         .status-dot { width: 8px; height: 8px; background: var(--secondary); border-radius: 50%; box-shadow: 0 0 6px var(--secondary); }
         .wallet-pill { background: #1e293b; padding: 6px 14px; border-radius: 8px; font-family: monospace; border: 1px solid var(--border); font-size: 0.75rem; display: flex; align-items: center; gap: 10px; cursor: pointer; }
         .balance-txt { color: var(--secondary); font-weight: 700; border-right: 1px solid var(--border); padding-right: 10px; }
-        
         .container { display: flex; flex: 1; overflow: hidden; }
         .sidebar { width: 420px; background: var(--nav-bg); border-right: 1px solid var(--border); padding: 24px; display: flex; flex-direction: column; gap: 20px; }
         .main-content { flex: 1; padding: 32px; overflow-y: auto; background: radial-gradient(circle at top right, #1a1b26 0%, #0f1016 100%); }
-
         .nav-menu { display: flex; flex-direction: column; gap: 8px; }
         .nav-item { padding: 12px 16px; border-radius: 8px; color: var(--text-dim); text-decoration: none; font-size: 0.9rem; transition: 0.2s; cursor: pointer; display: flex; align-items: center; gap: 12px; border: 1px solid transparent; }
         .nav-item:hover { background: #1e2030; color: white; }
         .nav-item.active { background: rgba(88, 101, 242, 0.1); color: var(--primary); border-color: rgba(88, 101, 242, 0.3); font-weight: 600; }
-
         .console { height: 280px; background: #000; border: 1px solid var(--border); border-radius: 8px; padding: 16px; font-family: monospace; font-size: 0.75rem; color: #7dd3fc; overflow-y: auto; white-space: pre-wrap; word-break: break-all; }
         .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 24px; }
         .card-title { font-size: 0.7rem; font-weight: 800; color: var(--text-dim); text-transform: uppercase; margin-bottom: 20px; letter-spacing: 1px; display: flex; align-items: center; gap: 10px; }
         .card-title::after { content: ""; flex: 1; height: 1px; background: var(--border); }
-        
-        .profile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
-        .info-label { font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; margin-bottom: 4px; }
-        .info-value { font-family: monospace; font-size: 1rem; color: var(--secondary); word-break: break-all; }
-
+        .input-pro { background: #0f111a; border: 1px solid var(--border); border-radius: 6px; padding: 12px; color: white; outline: none; width: 100%; }
         .btn-pro { padding: 12px; border-radius: 6px; font-weight: 700; border: none; cursor: pointer; transition: 0.2s; }
         .btn-primary { background: var(--primary); color: white; }
         .btn-secondary { background: var(--secondary); color: black; }
-        
         .hidden { display: none !important; }
-        iframe { width: 100%; height: 80vh; border: none; border-radius: 12px; }
+        iframe { width: 100%; height: 85vh; border: none; border-radius: 12px; }
+        .profile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+        .info-label { font-size: 0.65rem; color: var(--text-dim); text-transform: uppercase; margin-bottom: 4px; }
+        .info-value { font-family: monospace; font-size: 0.95rem; color: var(--secondary); word-break: break-all; }
+        .split-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
         #toast { position: fixed; bottom: 24px; right: 24px; background: var(--nav-bg); border: 1px solid var(--primary); color: white; padding: 12px 20px; border-radius: 8px; display: none; z-index: 1000; }
     </style>
 </head>
@@ -59,12 +50,10 @@
             <div class="brand-title">Lightchain AI</div>
             <button class="btn-pro btn-primary" id="connect-btn" onclick="connect()">Connect Wallet</button>
         </div>
-
         <div class="header-center-group">
-            <div class="ticker-item"><span class="ticker-label">ETH</span><span id="eth-price" class="ticker-val">$---</span></div>
-            <div class="ticker-item"><span class="ticker-label">LCAI</span><span id="lcai-price" class="ticker-val">$0.0021</span></div>
+            <div class="ticker-item"><span style="color:var(--text-dim)">ETH</span><span id="eth-price" class="ticker-val">$---</span></div>
+            <div class="ticker-item"><span style="color:var(--text-dim)">LCAI</span><span class="ticker-val">$0.0021</span></div>
         </div>
-
         <div class="header-right">
             <div class="cluster-pill"><span class="status-dot"></span><span>SDXL-Turbo Cluster</span></div>
             <div class="wallet-pill" id="wallet-pill" onclick="copyAddress()" style="display:none">
@@ -89,11 +78,16 @@
         <main class="main-content">
             <div id="view-iam" class="hidden">
                 <div id="zk-profile-card" class="card" style="border-left: 4px solid var(--secondary)">
-                    <div class="card-title">ZK Identity Profile</div>
-                    <div class="profile-grid">
-                        <div><div class="info-label">Identity Name</div><div id="zk-profile-name" class="info-value">LCAI Voyager</div></div>
-                        <div><div class="info-label">Verification Status</div><div id="zk-status-text" class="info-value" style="color: var(--secondary)">● ZK-Verified</div></div>
-                        <div style="grid-column: 1 / -1;"><div class="info-label">Decentralized Identifier (DID)</div><div id="zk-did-value" class="info-value">did:lcai:0x0000...0000</div></div>
+                    <div class="card-title">ZK Identity Status</div>
+                    <div id="zk-registration-area" class="hidden">
+                        <h3 style="margin-bottom:10px; color:var(--primary)">Unregistered Identity</h3>
+                        <p style="color:var(--text-dim); margin-bottom:20px;">You do not have a ZK-Pass. Register now to unlock AIVM cluster permissions.</p>
+                        <button class="btn-pro btn-primary" onclick="window.open('https://testnet.lightscan.app/faucet')">Mint ZK-Pass (Faucet)</button>
+                    </div>
+                    <div id="zk-info-area" class="profile-grid hidden">
+                        <div><div class="info-label">Identity Name</div><div id="zk-name" class="info-value">LCAI Voyager</div></div>
+                        <div><div class="info-label">ZK Verification</div><div class="info-value">● ACTIVE</div></div>
+                        <div style="grid-column: 1 / -1;"><div class="info-label">Decentralized Identifier (DID)</div><div id="zk-did" class="info-value">did:lcai:0x...</div></div>
                     </div>
                 </div>
             </div>
@@ -101,7 +95,24 @@
             <div id="view-art" class="hidden"><iframe src="artgenerator-ui.html"></iframe></div>
 
             <div id="view-recovery" class="hidden">
-                <div class="card"><div class="card-title">Identity Recovery</div><p>Accessing Recovery protocols...</p></div>
+                <div id="recovery-layout" class="split-grid">
+                    <div class="card" style="border-left: 4px solid var(--danger)">
+                        <div class="card-title" style="color:var(--danger)">Identity Recovery Panel</div>
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <input type="text" id="rec-addr" class="input-pro" placeholder="Target Wallet Address">
+                            <button class="btn-pro btn-primary" onclick="queryAccess()">Query Access Status</button>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                <button class="btn-pro btn-secondary" onclick="updateVerify(true)">Restore Access</button>
+                                <button class="btn-pro" style="background:var(--danger); color:white" onclick="updateVerify(false)">Revoke Access</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="recovery-owner-panel" class="card hidden" style="border-color: #f59e0b">
+                        <div class="card-title" style="color:#f59e0b">Master Owner Vault</div>
+                        <div id="vault-balance-rec" style="font-size: 2.2rem; font-weight: 900; color: #f59e0b">0.00 LCAI</div>
+                        <button class="btn-pro" style="background:#f59e0b; color:black; width:100%; margin-top:20px;" onclick="withdraw()">Withdraw All Funds</button>
+                    </div>
+                </div>
             </div>
         </main>
     </div>
@@ -109,49 +120,103 @@
 
     <script>
         const CONFIG = { SBT_ADDR: "0xd71462F0002Ee9373fCe05B568583Ed13e75f600", AIVM_ADDR: "0xbcA38515887Dc3Ca163398C0Ef7bF02dd156D8FB" };
-        let provider, signer, userAddr;
+        const ABI = ["function isAdmin(address) view returns (bool)", "function owner() view returns (address)", "function setVerification(address,bool) external", "function withdraw() external"];
+        let provider, signer, userAddr, studioContract;
 
         function log(m) { const out = document.getElementById('console-output'); const d = document.createElement('div'); d.innerText = `> ${m}`; out.appendChild(d); out.scrollTop = out.scrollHeight; }
         function notify(m) { const t = document.getElementById('toast'); t.innerText = m; t.style.display = 'block'; setTimeout(()=>t.style.display='none', 3000); }
-        
-        // PRICE TICKER LOGIC
+        function copyAddress() { navigator.clipboard.writeText(userAddr); notify("Address Copied"); }
+
         async function updatePrices() {
             try {
-                const response = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT');
-                const data = await response.json();
+                const res = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT');
+                const data = await res.json();
                 document.getElementById('eth-price').innerText = `$${parseFloat(data.price).toFixed(2)}`;
             } catch (e) { document.getElementById('eth-price').innerText = "Offline"; }
         }
-        setInterval(updatePrices, 30000);
-        updatePrices();
+        setInterval(updatePrices, 30000); updatePrices();
+
+        function showView(viewId) {
+            ['iam', 'art', 'recovery'].forEach(v => {
+                document.getElementById('view-' + v).classList.add('hidden');
+                document.getElementById('nav-' + v).classList.remove('active');
+            });
+            document.getElementById('view-' + viewId).classList.remove('hidden');
+            document.getElementById('nav-' + viewId).classList.add('active');
+        }
 
         async function connect() {
             if (!window.ethereum) return notify("MetaMask Required");
             const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
             userAddr = accounts[0];
             provider = new ethers.BrowserProvider(window.ethereum);
+            signer = await provider.getSigner();
+            studioContract = new ethers.Contract(CONFIG.AIVM_ADDR, ABI, signer);
+            
             document.getElementById('connect-btn').classList.add('hidden');
             document.getElementById('wallet-pill').style.display = 'flex';
             document.getElementById('address-display').innerText = `${userAddr.slice(0,6)}...${userAddr.slice(-4)}`;
+            const bal = await provider.getBalance(userAddr);
+            document.getElementById('balance-display').innerText = `${parseFloat(ethers.formatEther(bal)).toFixed(2)} LCAI`;
             
-            // UNHIDE IDENTITY PROFILE ON CONNECT
             document.getElementById('view-iam').classList.remove('hidden');
-            log(`Authorized: ${userAddr}`);
-            checkIdentity();
+            log(`Session Authorized: ${userAddr}`);
+            checkAccess();
         }
 
-        async function checkIdentity() {
-            const sbtContract = new ethers.Contract(CONFIG.SBT_ADDR, ["function hasSBT(address) view returns (bool)"], provider);
-            const verified = await sbtContract.hasSBT(userAddr);
-            if (verified) {
-                document.getElementById('zk-profile-name').innerText = `Member #${userAddr.slice(-4)}`;
-                document.getElementById('zk-did-value').innerText = `did:lcai:eth:${userAddr}`;
-            }
+        async function checkAccess() {
+            try {
+                const sbt = new ethers.Contract(CONFIG.SBT_ADDR, ["function hasSBT(address) view returns (bool)"], provider);
+                const isVerified = await sbt.hasSBT(userAddr);
+                
+                if (isVerified) {
+                    document.getElementById('zk-info-area').classList.remove('hidden');
+                    document.getElementById('zk-registration-area').classList.add('hidden');
+                    document.getElementById('zk-name').innerText = `Verified Member #${userAddr.slice(-4)}`;
+                    document.getElementById('zk-did').innerText = `did:lcai:eth:${userAddr}`;
+                } else {
+                    document.getElementById('zk-registration-area').classList.remove('hidden');
+                    document.getElementById('zk-info-area').classList.add('hidden');
+                }
+
+                const owner = await studioContract.owner().catch(() => "0x4D36B31d4BFB957A5D816B0f420a9e755EFc6a2c");
+                if (userAddr.toLowerCase() === owner.toLowerCase()) {
+                    document.getElementById('recovery-owner-panel').classList.remove('hidden');
+                    const vBal = await provider.getBalance(CONFIG.AIVM_ADDR);
+                    document.getElementById('vault-balance-rec').innerText = `${parseFloat(ethers.formatEther(vBal)).toFixed(2)} LCAI`;
+                }
+            } catch (e) { log("Access Validation Error", true); }
         }
 
-        function showView(viewId) {
-            ['iam', 'art', 'recovery'].forEach(v => document.getElementById('view-' + v).classList.add('hidden'));
-            document.getElementById('view-' + viewId).classList.remove('hidden');
+        async function queryAccess() {
+            const addr = document.getElementById('rec-addr').value;
+            if(!ethers.isAddress(addr)) return notify("Invalid Address");
+            try {
+                const isA = await studioContract.isAdmin(addr);
+                log(`Query [${addr.slice(0,6)}]: Admin Status = ${isA}`);
+                notify(isA ? "Verified Admin" : "No Admin Access");
+            } catch (e) { log("Query Failed", true); }
+        }
+
+        async function updateVerify(state) {
+            const addr = document.getElementById('rec-addr').value;
+            if(!ethers.isAddress(addr)) return notify("Invalid Address");
+            try {
+                log(`Updating access for ${addr.slice(0,6)}...`);
+                const tx = await studioContract.setVerification(addr, state);
+                await tx.wait();
+                log(`Success: Status = ${state}`);
+                notify("Status Updated");
+            } catch (e) { log("Action Denied", true); }
+        }
+
+        async function withdraw() {
+            try {
+                const tx = await studioContract.withdraw();
+                await tx.wait();
+                notify("Funds Withdrawn");
+                checkAccess();
+            } catch (e) { log("Withdraw Failed", true); }
         }
 
         log("LCAI IAM Kernel Online...");

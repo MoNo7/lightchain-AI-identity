@@ -49,14 +49,18 @@
                 document.getElementById('result-img').style.display = 'none';
 
                 // Send Transaction to AIArtStudio
-                const tx = await contract.generateArt(prompt, { value: ethers.parseEther("1.0") });
-                document.getElementById('status-txt').innerText = "Transaction Sent. Waiting for Block Finalization...";
+                const tx = await contract.generateArt(prompt, { 
+                    value: ethers.parseEther("1.0"),
+                    gasLimit: 300000
+                });
+
                 await tx.wait();
                 
                 // REVEAL LOGIC: Pulling from AIVM Worker
                 document.getElementById('status-txt').innerText = "Inference Signal Anchored. Revealing Result...";
                 
                 // We use a deterministic seed based on the prompt for the demo reveal
+                setTimeout(() => {
                 const seed = Math.floor(Math.random() * 1000000);
                 const imgUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?seed=${seed}&nologo=true`;
                 
@@ -67,6 +71,7 @@
                     img.style.display = 'block';
                     document.getElementById('mint-status').style.display = 'none';
                 };
+                }, 2000);     
             } catch (e) {
                 console.error(e);
                 document.getElementById('status-txt').innerText = "Error: Protocol Reverted.";

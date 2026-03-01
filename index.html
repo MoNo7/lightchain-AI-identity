@@ -10,35 +10,45 @@
         :root { --primary: #5865f2; --secondary: #00ff80; --danger: #ff4444; --bg: #0f1016; --nav-bg: #13141f; --card: #1a1b26; --border: #2d2f45; --text: #ffffff; --text-dim: #94a3b8; }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
         body { background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        
         header { height: 64px; background: var(--nav-bg); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; z-index: 100; }
         .header-left-group { display: flex; align-items: center; gap: 20px; flex: 1; }
         .brand-title { font-weight: 800; color: var(--primary); font-size: 1.1rem; }
+        
         .header-center-group { display: flex; align-items: center; gap: 20px; flex: 1; justify-content: center; }
         .ticker-item { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; font-family: monospace; background: rgba(0,0,0,0.3); padding: 4px 12px; border-radius: 6px; border: 1px solid var(--border); }
         .ticker-val { color: var(--secondary); }
+
         .header-right { display: flex; align-items: center; gap: 16px; flex: 1; justify-content: flex-end; }
         .wallet-pill { background: #1e293b; padding: 6px 14px; border-radius: 8px; font-family: monospace; border: 1px solid var(--border); font-size: 0.75rem; display: flex; align-items: center; gap: 10px; cursor: pointer; }
         .balance-txt { color: var(--secondary); font-weight: 700; border-right: 1px solid var(--border); padding-right: 10px; }
+        
         .container { display: flex; flex: 1; overflow: hidden; }
         .sidebar { width: 420px; background: var(--nav-bg); border-right: 1px solid var(--border); padding: 24px; display: flex; flex-direction: column; gap: 20px; }
-        .main-content { flex: 1; padding: 32px; overflow-y: auto; background: radial-gradient(circle at top right, #1a1b26 0%, #0f1016 100%); }
+        .main-content { flex: 1; padding: 32px; overflow-y: auto; background: radial-gradient(circle at top right, #1a1b26 0%, #0f1016 100%); display: flex; flex-direction: column; }
+
         .nav-menu { display: flex; flex-direction: column; gap: 8px; }
         .nav-item { padding: 12px 16px; border-radius: 8px; color: var(--text-dim); text-decoration: none; font-size: 0.9rem; transition: 0.2s; cursor: pointer; display: flex; align-items: center; gap: 12px; border: 1px solid transparent; }
         .nav-item:hover { background: #1e2030; color: white; }
         .nav-item.active { background: rgba(88, 101, 242, 0.1); color: var(--primary); border-color: rgba(88, 101, 242, 0.3); font-weight: 600; }
+
         .console { height: 280px; background: #000; border: 1px solid var(--border); border-radius: 8px; padding: 16px; font-family: monospace; font-size: 0.75rem; color: #7dd3fc; overflow-y: auto; white-space: pre-wrap; word-break: break-all; }
-        .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 24px; }
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 24px; width: 100%; }
         .card-title { font-size: 0.7rem; font-weight: 800; color: var(--text-dim); text-transform: uppercase; margin-bottom: 20px; letter-spacing: 1px; display: flex; align-items: center; gap: 10px; }
         .card-title::after { content: ""; flex: 1; height: 1px; background: var(--border); }
-        .btn-pro { padding: 12px; border-radius: 6px; font-weight: 700; border: none; cursor: pointer; transition: 0.2s; }
-        .btn-primary { background: var(--primary); color: white; }
-        .btn-secondary { background: var(--secondary); color: black; }
-        .hidden { display: none !important; }
+        
         .profile-grid { display: grid; grid-template-columns: 1fr auto; gap: 24px; }
-        .info-col { display: flex; flex-direction: column; gap: 20px; }
         .qr-col { background: #fff; padding: 12px; border-radius: 8px; align-self: start; }
         .info-label { font-size: 0.65rem; color: var(--text-dim); text-transform: uppercase; margin-bottom: 4px; }
         .info-value { font-family: monospace; font-size: 0.95rem; color: var(--secondary); word-break: break-all; }
+
+        .btn-pro { padding: 12px; border-radius: 6px; font-weight: 700; border: none; cursor: pointer; transition: 0.2s; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-secondary { background: var(--secondary); color: black; }
+        
+        .hidden { display: none !important; }
+        #view-art { flex: 1; width: 100%; display: flex; flex-direction: column; }
+        iframe { flex: 1; width: 100%; height: 100%; border: none; border-radius: 12px; background: #000; }
         .split-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
         #toast { position: fixed; bottom: 24px; right: 24px; background: var(--nav-bg); border: 1px solid var(--primary); color: white; padding: 12px 20px; border-radius: 8px; display: none; z-index: 1000; }
     </style>
@@ -77,12 +87,7 @@
             <div id="view-iam" class="hidden">
                 <div class="card" style="border-left: 4px solid var(--secondary)">
                     <div class="card-title">ZK Identity Profile</div>
-                    <div id="zk-registration-area" class="hidden">
-                        <h3 style="margin-bottom:10px; color:var(--primary)">Unregistered Identity</h3>
-                        <p style="color:var(--text-dim); margin-bottom:20px;">Register a ZK-Pass to unlock AIVM cluster permissions.</p>
-                        <button class="btn-pro btn-primary" onclick="window.open('https://testnet.lightscan.app/faucet')">Mint ZK-Pass</button>
-                    </div>
-                    <div id="zk-info-area" class="profile-grid hidden">
+                    <div id="zk-info-area" class="profile-grid">
                         <div class="info-col">
                             <div><div class="info-label">Identity Name</div><div id="zk-name" class="info-value">LCAI Voyager</div></div>
                             <div><div class="info-label">DID Status</div><div class="info-value">● ACTIVE (ZK-Verified)</div></div>
@@ -92,10 +97,7 @@
                                 <button class="btn-pro btn-secondary" onclick="showView('art')">Launch AIVM</button>
                             </div>
                         </div>
-                        <div class="qr-col">
-                            <div id="qrcode"></div>
-                            <div style="color: #000; font-size: 0.6rem; text-align: center; margin-top: 8px; font-weight: 800;">WALLET QR</div>
-                        </div>
+                        <div class="qr-col"><div id="qrcode"></div></div>
                     </div>
                 </div>
             </div>
@@ -107,7 +109,7 @@
                     <div class="card" style="border-left: 4px solid var(--danger)">
                         <div class="card-title" style="color:var(--danger)">Identity Recovery Panel</div>
                         <div style="display: flex; flex-direction: column; gap: 12px;">
-                            <input type="text" id="rec-addr" class="input-pro" placeholder="Target Wallet Address">
+                            <input type="text" id="rec-addr" class="input-pro" placeholder="Target Wallet Address" style="background:#0f111a; color:white; border:1px solid var(--border); padding:12px;">
                             <button class="btn-pro btn-primary" onclick="queryAccess()">Query Access Status</button>
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                                 <button class="btn-pro btn-secondary" onclick="updateVerify(true)">Restore Access</button>
@@ -137,12 +139,12 @@
 
         async function updatePrices() {
             try {
-                const res = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT');
+                const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd');
                 const data = await res.json();
-                document.getElementById('eth-price').innerText = `$${parseFloat(data.price).toFixed(2)}`;
+                document.getElementById('eth-price').innerText = `$${data.ethereum.usd.toFixed(2)}`;
             } catch (e) { document.getElementById('eth-price').innerText = "Offline"; }
         }
-        setInterval(updatePrices, 30000); updatePrices();
+        setInterval(updatePrices, 60000); updatePrices();
 
         function showView(viewId) {
             ['iam', 'art', 'recovery'].forEach(v => {
@@ -171,7 +173,7 @@
                 document.getElementById('view-iam').classList.remove('hidden');
                 log(`Session Authorized: ${userAddr}`);
                 
-                if(!qrcode) qrcode = new QRCode(document.getElementById("qrcode"), { width: 120, height: 120 });
+                if(!qrcode) qrcode = new QRCode(document.getElementById("qrcode"), { width: 100, height: 100 });
                 qrcode.makeCode(userAddr);
                 
                 checkAccess();
@@ -180,52 +182,14 @@
 
         async function checkAccess() {
             try {
-                const sbt = new ethers.Contract(CONFIG.SBT_ADDR, ["function hasSBT(address) view returns (bool)"], provider);
-                const isVerified = await sbt.hasSBT(userAddr);
-                if (isVerified) {
-                    document.getElementById('zk-info-area').classList.remove('hidden');
-                    document.getElementById('zk-registration-area').classList.add('hidden');
-                    document.getElementById('zk-name').innerText = `Verified Member #${userAddr.slice(-4)}`;
-                    document.getElementById('zk-did').innerText = `did:lcai:eth:${userAddr}`;
-                    log("Identity Status: Verified.");
-                } else {
-                    document.getElementById('zk-registration-area').classList.remove('hidden');
-                    document.getElementById('zk-info-area').classList.add('hidden');
-                }
-
                 const owner = await studioContract.owner().catch(() => "0x4D36B31d4BFB957A5D816B0f420a9e755EFc6a2c");
                 if (userAddr.toLowerCase() === owner.toLowerCase()) {
                     document.getElementById('recovery-owner-panel').classList.remove('hidden');
                     const vBal = await provider.getBalance(CONFIG.AIVM_ADDR);
                     document.getElementById('vault-balance-rec').innerText = `${parseFloat(ethers.formatEther(vBal)).toFixed(2)} LCAI`;
                 }
+                document.getElementById('zk-did').innerText = `did:lcai:eth:${userAddr}`;
             } catch (e) { log("Access Validation Error", true); }
-        }
-
-        function exportIdentity() {
-            const didDoc = {
-                "@context": "https://www.w3.org/ns/did/v1",
-                "id": `did:lcai:eth:${userAddr}`,
-                "verificationMethod": [{
-                    "id": `did:lcai:eth:${userAddr}#keys-1`,
-                    "type": "EcdsaSecp256k1RecoveryMethod2020",
-                    "controller": `did:lcai:eth:${userAddr}`,
-                    "blockchainAccountId": `eip155:504:${userAddr}`
-                }],
-                "authentication": [`did:lcai:eth:${userAddr}#keys-1`],
-                "service": [{
-                    "id": "#lcai-aivm",
-                    "type": "AIVMInferenceService",
-                    "serviceEndpoint": "https://chat2.lightchain.ai/api/v1"
-                }]
-            };
-            const blob = new Blob([JSON.stringify(didDoc, null, 2)], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `lcai-identity-${userAddr.slice(0,6)}.json`;
-            a.click();
-            log("Identity Exported: DID Document Generated.");
         }
 
         async function queryAccess() {
@@ -247,7 +211,6 @@
                 await tx.wait();
                 log(`Success: Status = ${state}`);
                 notify("Status Updated");
-                checkAccess();
             } catch (e) { log("Action Denied", true); }
         }
 
@@ -256,7 +219,6 @@
                 const tx = await studioContract.withdraw();
                 await tx.wait();
                 notify("Funds Withdrawn");
-                checkAccess();
             } catch (e) { log("Withdraw Failed", true); }
         }
 

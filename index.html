@@ -17,11 +17,16 @@
         .nav-link { color: var(--text-dim); padding: 12px 15px; cursor: pointer; border-radius: 6px; border: none; background: none; text-align: left; font-size: 0.75rem; font-family: monospace; width: 100%; font-weight: 600; transition: 0.2s; }
         .nav-link:hover, .nav-link.active { color: white; background: var(--accent); }
         .viewport { flex: 1; display: flex; flex-direction: column; }
-        header { height: 80px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 40px; box-sizing: border-box; }
+        
+        /* Updated Header for Centered Tickers */
+        header { height: 80px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 40px; box-sizing: border-box; position: relative; }
         .header-left { display: flex; gap: 10px; }
-        .pill { background: #000; border: 1px solid var(--border); border-radius: 50px; padding: 7px 18px; font-size: 0.65rem; font-family: monospace; display: flex; align-items: center; gap: 8px; }
+        .header-center { position: absolute; left: 50%; transform: translateX(-50%); display: flex; align-items: center; }
+        
+        .pill { background: #000; border: 1px solid var(--border); border-radius: 50px; padding: 7px 18px; font-size: 0.65rem; font-family: monospace; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
         .pill.sys { color: var(--accent); }
-        .pill.price { color: #00c853; border-color: #00c85344; }
+        .pill.price { color: #00c853; border-color: #00c85344; gap: 15px; } /* Unified Price Pill */
+        
         .wallet-pill { background: var(--accent); color: white; border-radius: 50px; padding: 9px 24px; font-weight: 900; cursor: pointer; border: none; font-size: 0.75rem; font-family: monospace; letter-spacing: 1px; }
         .view-pane { flex: 1; padding: 40px; display: none; overflow-y: auto; }
         .view-pane.active { display: block !important; }
@@ -49,16 +54,23 @@
     <header>
         <div class="header-left">
             <div class="pill sys">MODEL: <span id="active-model">THETA</span> | STATE: <span id="status-txt">IDLE</span> | LOAD: <span id="sys-load">42%</span></div>
-            <div class="pill price">ETH: <span id="eth-price">...</span></div>
-            <div class="pill price">LCAI: <span id="lcai-price">...</span></div>
         </div>
+        
+        <div class="header-center">
+            <div class="pill price">
+                <span>ETH: <span id="eth-price">...</span></span>
+                <span style="border-left: 1px solid #00c85344; height: 12px;"></span>
+                <span>LCAI: <span id="lcai-price">...</span></span>
+            </div>
+        </div>
+
         <div class="header-right"><button id="wallet-btn" class="wallet-pill" onclick="connectWallet()">CONNECT WALLET</button></div>
     </header>
 
     <div id="gallery-view" class="view-pane active">
         <div class="card">
             <h2>NETWORK GALLERY</h2>
-            <div id="gallery-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-top: 20px;"></div>
+            <div id="gallery-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; margin-top: 20px;"></div>
         </div>
     </div>
 
@@ -67,7 +79,7 @@
             <h2>ZK-SBT IDENTITY CARD</h2>
             <div style="display: flex; gap: 30px; align-items: flex-start;">
                 <div style="flex: 1;">
-                    <pre id="id-json" style="background: #05070a; padding: 20px; border: 1px solid #1e2633; font-size: 0.7rem; color: #4e5d75;">// Identity Packet Offline</pre>
+                    <pre id="id-json" style="background: #05070a; padding: 20px; border: 1px solid #1e2633; font-size: 0.7rem; color: #4e5d75; white-space: pre-wrap;">// Identity Packet Offline</pre>
                     <button class="action-btn" onclick="downloadJSON()" style="margin-top: 15px; background: #1a202c;">DOWNLOAD JSON</button>
                 </div>
                 <div id="qr-container" style="text-align: center;">
@@ -107,7 +119,7 @@
                 <option value="AIVM-DELTA" data-hash="0x4a8c30d500000000000000000000000000000000000000000000000000000000">AIVM-DELTA (High Speed)</option>
                 <option value="AIVM-SIGMA" data-hash="0x6f63a19b3cf48600000000000000000000000000000000000000000000000000">AIVM-SIGMA (Neural)</option>
             </select>
-            <textarea id="art-prompt" class="panel-input" placeholder="Neural vision..." style="height:80px;"></textarea>
+            <textarea id="art-prompt" class="panel-input" placeholder="Neural vision of a digital horizon..." style="height:80px;"></textarea>
             <button class="action-btn" onclick="generateArt()">REQUEST INFERENCE (0.25 tLCAI)</button>
             <div class="gen-canvas">
                 <div class="loader" id="gen-loader"></div>
@@ -121,7 +133,6 @@
 <script>
 const CONFIG = {
     addr: "0xB6f1E497D6879C325c65fa77cB717227976fd04E",
-    lcai_token: "0x9ca8530ca349c966fe9ef903df17a75b8a778927",
     abi: [
         "function owner() public view returns (address)",
         "function setVerification(address user, bool status) external",
@@ -145,13 +156,12 @@ const log = (msg, type = "info") => {
 
 async function updatePrices() {
     try {
-        // Fetching ETH and mapping correct LCAI (lightchain-ai) asset
         const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum,lightchain-ai&vs_currencies=usd');
         const data = await res.json();
         document.getElementById('eth-price').innerText = `$${data.ethereum.usd.toLocaleString()}`;
-        document.getElementById('lcai-price').innerText = `$${data['lightchain-ai'].usd.toFixed(4)}`;
+        document.getElementById('lcai-price').innerText = `$${data['lightchain-ai'] ? data['lightchain-ai'].usd.toFixed(4) : "0.1420"}`;
     } catch (e) { 
-        document.getElementById('eth-price').innerText = "$2,450"; 
+        document.getElementById('eth-price').innerText = "$2,451"; 
         document.getElementById('lcai-price').innerText = "$0.1420";
     }
 }
@@ -171,7 +181,9 @@ async function connectWallet() {
         log(`STREAK_SYNC: ${user.slice(0, 10)}`, "success");
         updateMenu(); updateIdentity(); initGallery(); updatePrices();
         const bal = await provider.getBalance(user);
-        document.getElementById('wallet-btn').innerText = `${user.slice(0,6).toUpperCase()} | ${ethers.formatEther(bal).slice(0,4)} LCAI`;
+        document.getElementById('wallet-btn').innerText = `${user.slice(0,6).toUpperCase()} | ${ethers.formatEther(bal).slice(0,0)} LCAI`;
+        // Handle 0 fraction formatting correctly
+        document.getElementById('wallet-btn').innerText = `${user.slice(0,6).toUpperCase()} | ${Math.floor(Number(ethers.formatEther(bal)))} LCAI`;
     } catch (e) { log("HANDSHAKE FAILED"); }
 }
 
@@ -180,15 +192,19 @@ async function initGallery() {
     const grid = document.getElementById('gallery-grid');
     grid.innerHTML = "SCANNING NETWORK...";
     try {
-        const events = await contract.queryFilter("InferenceRequested", -50000);
+        // Broad range to capture inferences from AIARTSTUDIO AT 0XB6F...FD04E
+        const events = await contract.queryFilter("InferenceRequested", -100000); 
         if (events.length === 0) { grid.innerHTML = "GALLERY EMPTY"; return; }
+        
         grid.innerHTML = "";
-        events.reverse().forEach(ev => {
+        events.reverse().slice(0, 12).forEach(ev => {
             const promptText = ev.args.prompt;
-            grid.innerHTML += `<div style="background:#000; padding:10px; border-radius:6px; border:1px solid var(--border);">
-                <img src="https://image.pollinations.ai/prompt/${encodeURIComponent(promptText)}?width=400&height=300&nologo=true&seed=${ev.transactionHash}" style="width:100%; border-radius:4px; cursor:pointer;" onclick="window.open(this.src)">
-                <p style="font-size:0.6rem; color:var(--text-dim); margin-top:5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${promptText}</p>
-            </div>`;
+            grid.innerHTML += `
+                <div style="background:#000; padding:10px; border-radius:6px; border:1px solid var(--border);">
+                    <img src="https://image.pollinations.ai/prompt/${encodeURIComponent(promptText)}?width=400&height=300&nologo=true&seed=${ev.transactionHash}" 
+                         style="width:100%; border-radius:4px; cursor:pointer;" onclick="window.open(this.src)">
+                    <p style="font-size:0.6rem; color:var(--text-dim); margin-top:5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${promptText}</p>
+                </div>`;
         });
     } catch (e) { grid.innerHTML = "OFFLINE"; }
 }
@@ -275,4 +291,3 @@ window.addEventListener('load', () => setTimeout(connectWallet, 500));
 </script>
 </body>
 </html>
-

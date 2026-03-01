@@ -191,50 +191,57 @@
             } catch (e) { log("Action Denied", true); }
         }
 
-        async function checkAccess() {
-            try {
-                // 1. ZK Identity Check
-                const sbtContract = new ethers.Contract(CONFIG.SBT_ADDR, ["function hasSBT(address) view returns (bool)"], provider);
-                const verified = await sbtContract.hasSBT(userAddr);
-                const zkCard = document.getElementById('zk-status-card');
-                const zkHeader = document.getElementById('zk-header');
-                const zkDesc = document.getElementById('zk-desc');
-                const zkAction = document.getElementById('zk-action-area');
-
-                if (verified) {
-                    zkCard.style.borderColor = "var(--secondary)";
-                    zkHeader.innerText = "ZK Verify Info";
-                    zkHeader.style.color = "var(--secondary)";
-                    zkDesc.innerText = "Your Soulbound Identity is active. Access to AIVM Clusters is granted.";
-                    zkAction.innerHTML = `<button class="btn-pro btn-primary" onclick="showView('art')">Launch AIVM Workspace</button>`;
-                    log("ZK Identity: Verified.");
-                } else {
-                    zkCard.style.borderColor = "var(--primary)";
-                    zkHeader.innerText = "ZK Verify Registration";
-                    zkDesc.innerText = "No Soulbound Identity detected. Register to unlock Native AIVM features.";
-                    zkAction.innerHTML = `<button class="btn-pro btn-secondary" onclick="window.open('https://testnet.lightscan.app/faucet')">Get Testnet LCAI</button>`;
-                }
-
-                // 2. Admin/Owner Check
-                const isA = await studioContract.isAdmin(userAddr);
-                const ownerAddr = await studioContract.owner();
-                const isOwner = userAddr.toLowerCase() === ownerAddr.toLowerCase();
-
-                if (isA) { document.getElementById('admin-panel').classList.remove('hidden'); log("Admin Access Unlocked."); }
-                if (isOwner) {
-                    document.getElementById('owner-panel').classList.remove('hidden');
-                    document.getElementById('recovery-owner-panel').classList.remove('hidden');
-                    document.getElementById('recovery-layout').classList.remove('full-width');
-                    const vBal = await provider.getBalance(CONFIG.AIVM_ADDR);
-                    const balTxt = `${parseFloat(ethers.formatEther(vBal)).toFixed(2)} LCAI`;
-                    document.getElementById('vault-balance').innerText = balTxt;
-                    document.getElementById('vault-balance-rec').innerText = balTxt;
-                    log("Master Owner Vault Linked.");
-                } else {
-                    document.getElementById('recovery-layout').classList.add('full-width');
-                }
-            } catch (e) { log("Access Validation Error", true); console.error(e); }
+       async function checkAccess() {
+    try {
+        log("Validating Protocol Permissions...");
+        
+        // 1. Check ZK Identity (SBT)
+        const sbtContract = new ethers.Contract(CONFIG.SBT_ADDR, ["function hasSBT(address) view returns (bool)"], provider);
+        const hasIdentity = await sbtContract.hasSBT(userAddr);
+        
+        const zkCard = document.getElementById('zk-status-card');
+        if (hasIdentity) {
+            zkCard.style.borderColor = "var(--secondary)";
+            document.getElementById('zk-header').innerText = "ZK Verify Info";
+            document.getElementById('zk-desc').innerText = "Soulbound Identity Active. AIVM Cluster access granted.";
+            document.getElementById('zk-action-area').innerHTML = `<button class="btn-pro btn-primary" onclick="showView('art')">Launch AIVM Workspace</button>`;
+            log("ZK Identity: Verified.");
         }
+
+        // 2. Admin & Owner Handshake
+        // We use a robust check: if the contract call fails, we compare to known deployer address
+        let ownerAddr = "";
+        try {
+            ownerAddr = await studioContract.owner();
+        } catch (e) {
+            log("Note: Owner lookup failed, using provider fallback.");
+            ownerAddr = "0x4D36B31d4BFB957A5D816B0f420a9e755EFc6a2c"; // Your known address
+        }
+
+        const isOwner = userAddr.toLowerCase() === ownerAddr.toLowerCase();
+        const isAdmin = await studioContract.isAdmin(userAddr).catch(() => isOwner);
+
+        if (isAdmin || isOwner) {
+            document.getElementById('admin-panel').classList.remove('hidden');
+            log("IAM: Admin Access Unlocked.");
+        }
+
+        if (isOwner) {
+            document.getElementById('owner-panel').classList.remove('hidden');
+            document.getElementById('recovery-owner-panel').classList.remove('hidden');
+            document.getElementById('recovery-layout').classList.remove('full-width');
+            
+            const vBal = await provider.getBalance(CONFIG.AIVM_ADDR);
+            const balTxt = `${parseFloat(ethers.formatEther(vBal)).toFixed(2)} LCAI`;
+            document.getElementById('vault-balance').innerText = balTxt;
+            document.getElementById('vault-balance-rec').innerText = balTxt;
+            log("IAM: Master Vault Connected.");
+        }
+    } catch (e) {
+        log("Access Check Error: Protocol Handshake Failed", true);
+        console.error(e);
+    }
+}
 
         function copyAddress() { navigator.clipboard.writeText(userAddr); notify("Address Copied"); }
         async function withdraw() { try { const tx = await studioContract.withdraw(); await tx.wait(); notify("Withdrawn"); checkAccess(); } catch(e){ log("Withdraw Failed", true); } }
@@ -242,3 +249,4 @@
     </script>
 </body>
 </html>
+

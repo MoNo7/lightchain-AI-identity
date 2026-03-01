@@ -134,40 +134,28 @@ const CONFIG = {
             window.parent.postMessage({ type: "LCAI_STATUS", message: `Reloading Inference: "${item.prompt}"` }, "*");
         }
 
-        async function generate() {
-            const prompt = document.getElementById('prompt-input').value;
-            if(!prompt || !window.ethereum) return;
+async function generate() {
+    const prompt = document.getElementById('prompt-input').value;
+    if (!prompt) return;
 
-            window.parent.postMessage({ type: "LCAI_STATUS", message: `Inference Initiated: "${prompt}"` }, "*");
-            document.getElementById('status').innerText = "Processing...";
-            document.getElementById('result-img').style.display = 'none';
-            document.getElementById('mint-btn').style.display = 'none';
-
-            try {
-                const provider = new ethers.BrowserProvider(window.ethereum);
-                const signer = await provider.getSigner();
-                const contract = new ethers.Contract(CONFIG.AIVM_ADDR, ["function generateArt(string) external payable"], signer);
-                
-                const tx = await contract.generateArt(prompt, { value: ethers.parseEther("1.0") });
-                window.parent.postMessage({ type: "LCAI_STATUS", message: "Transaction Anchored. Awaiting Reveal..." }, "*");
-                await tx.wait();
-
-                setTimeout(() => {
-                    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?nologo=true`;
-                    const img = document.getElementById('result-img');
-                    img.src = url;
-                    img.onload = () => {
-                        img.style.display = 'block';
-                        document.getElementById('status').style.display = 'none';
-                        document.getElementById('mint-btn').style.display = 'block';
-                        window.parent.postMessage({ type: "LCAI_GEN_SUCCESS" }, "*");
-                        updateHistory(prompt, url);
-                    };
-                }, 1500);
-            } catch (e) {
-                window.parent.postMessage({ type: "LCAI_STATUS", message: "AIVM Error: Inference Aborted" }, "*");
-            }
-        }
+    try {
+        const signer = await provider.getSigner(); // Ensure fresh signer
+        const contractWithSigner = studioContract.connect(signer);
+        
+        // Match the 3-argument call for your ArtStudio contract
+        const tx = await contractWithSigner.generateArt(
+            prompt, 
+            "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef", // modelDigest
+            { value: ethers.parseEther("0.1") } // fee
+        );
+        
+        notify("Inference Anchored! Waiting for block...");
+        await tx.wait();
+        initHistory(); // Trigger the gallery sync
+    } catch (e) {
+        log("Inference Failed: Check LCAI Balance", true);
+    }
+}
 window.addEventListener('load', () => {
     if (window.ethereum) initHistory();
 });

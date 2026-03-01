@@ -101,8 +101,18 @@
         </div>
     </div>
     <script>
+        // Synchronized with Native LCAI AIVM V2
         const CONFIG = { SBT_ADDR: "0xd71462F0002Ee9373fCe05B568583Ed13e75f600", AIVM_ADDR: "0xbcA38515887Dc3Ca163398C0Ef7bF02dd156D8FB" };
-        const ABI = ["function hasSBT(address) view returns (bool)", "function isAdmin(address) view returns (bool)", "function owner() view returns (address)", "function setVerification(address,bool) external", "function generateArt(string) external payable", "function withdraw() external", "event ArtGenerated(address indexed,string,uint256)" ];
+        const ABI = [
+            "function hasSBT(address) view returns (bool)", 
+            "function isAdmin(address) view returns (bool)", 
+            "function owner() view returns (address)", 
+            "function setVerification(address,bool) external", 
+            "function generateArt(string) external payable", 
+            "function withdraw() external", 
+            "event ArtGenerated(address indexed,string,bytes32,uint256)" 
+        ];
+        
         let provider, signer, userAddr, sbtContract, studioContract;
         const sbtSvg = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="45" fill="none" stroke="#5865f2" stroke-width="5"/><path d="M30 50L45 65L70 35" stroke="#00ff80" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
@@ -121,86 +131,83 @@
                 const bal = await provider.getBalance(userAddr);
                 document.getElementById('balance-display').innerText = `${parseFloat(ethers.formatEther(bal)).toFixed(2)} LCAI`;
                 document.getElementById('connect-btn').innerText = "Sync Active";
-                studioContract.on("ArtGenerated", (u, p) => { 
-                    log("AIVM Signal Received. Manifesting...");
+
+                // Native LCAI AIVM V2 Event Listener
+                studioContract.on("ArtGenerated", (u, p, digest, fee) => { 
+                    log("AIVM Signal Received. Pulling from Native Gateway...");
                     document.getElementById('mint-status').style.display = 'none';
                     updateVault(); 
                     renderArt(p); 
                 });
+
                 log(`Authenticated: ${userAddr}`); checkIdentity(); updateVault(); scanHistory(); 
             } catch (err) { log("Connection failed.", true); }
         }
 
-async function scanHistory() {
-    try {
-        log("Scanning Native AIVM History...");
-        const filter = studioContract.filters.ArtGenerated();
-        const events = await studioContract.queryFilter(filter, -10000);
-        
-        const gallery = document.getElementById('art-gallery');
-        gallery.innerHTML = ''; 
-        
-        events.slice(-10).reverse().forEach(ev => { 
-            // ev.args[1] is prompt, ev.args[2] would be the native result/fee index
-            addToGallery(ev.args[1], ev.args[2]); 
-        });
-    } catch (e) { log("Native Scan Failed.", true); }
-}
+        async function scanHistory() {
+            try {
+                log("Scanning Native AIVM History...");
+                const filter = studioContract.filters.ArtGenerated();
+                const events = await studioContract.queryFilter(filter, -10000);
+                const gallery = document.getElementById('art-gallery');
+                gallery.innerHTML = ''; 
+                events.slice(-10).reverse().forEach(ev => { addToGallery(ev.args[1]); });
+                log(`History Sync: ${events.length > 10 ? 10 : events.length} items recovered.`);
+            } catch (e) { log("Native Scan Failed.", true); }
+        }
 
-// Pointing to the native LCAI IPFS/Inference Gateway
-const NATIVE_AIVM_GATEWAY = "https://gateway.lightchain.ai/ipfs/";
-        
-async function addToGallery(prompt, resultHash) {
-    const gallery = document.getElementById('art-gallery');
-    const item = document.createElement('div');
-    item.className = 'gallery-item';
-    
-    // In the native AIVM, if a resultHash is provided, we use the IPFS CID
-    // If not (for older legacy events), we fallback to the inference engine
-    const url = resultHash ? 
-        `${NATIVE_AIVM_GATEWAY}${resultHash}` : 
-        `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=512&height=512&nologo=true`;
+        const GATEWAYS = [
+            "https://image.pollinations.ai/prompt/",
+            "https://api.pollinations.ai/prompt/"
+        ];
 
-    item.innerHTML = `
-        <div class="sync-status" style="height:150px; display:flex; align-items:center; justify-content:center; background:#000; font-size:0.6rem; color:var(--primary); animation:pulse 1s infinite">Fetching from AIVM...</div>
-        <img src="${url}" class="gallery-img" style="display:none" 
-             onload="this.style.display='block'; this.previousElementSibling.style.display='none'; this.nextElementSibling.style.display='flex';"
-             onerror="this.parentElement.innerHTML='<div style=\'height:150px;display:flex;align-items:center;justify-content:center;font-size:0.5rem;color:var(--danger)\'>AIVM Node Offline</div>';">
-        <div class="gallery-controls" style="display:none">
-            <button class="btn-gallery" style="background:var(--primary);color:white" onclick="window.swapToMain('${url}')">View</button>
-            <button class="btn-gallery" style="background:var(--secondary);color:black" onclick="window.downloadImg('${url}')">DL</button>
-        </div>`;
-    gallery.appendChild(item);
-}
+        function addToGallery(p) {
+            const gallery = document.getElementById('art-gallery');
+            const item = document.createElement('div');
+            item.className = 'gallery-item';
+            const seed = Math.floor(Math.random()*99999);
+            const promptEncoded = encodeURIComponent(p);
+            const url = `${GATEWAYS[0]}${promptEncoded}?width=512&height=512&nologo=true&seed=${seed}`;
+            
+            item.innerHTML = `
+                <div class="sync-status" style="height:150px; display:flex; align-items:center; justify-content:center; background:#000; font-size:0.6rem; color:var(--primary); animation:pulse 1s infinite">Syncing...</div>
+                <img src="${url}" class="gallery-img" style="display:none" 
+                     onload="this.style.display='block'; this.previousElementSibling.style.display='none'; this.nextElementSibling.style.display='flex';"
+                     onerror="this.src='${GATEWAYS[1]}${promptEncoded}?width=512&height=512&seed=${seed}';">
+                <div class="gallery-controls" style="display:none">
+                    <button class="btn-gallery" style="background:var(--primary);color:white" onclick="window.swapToMain(this.parentElement.previousElementSibling.src)">View</button>
+                    <button class="btn-gallery" style="background:var(--secondary);color:black" onclick="window.downloadImg(this.parentElement.previousElementSibling.src)">DL</button>
+                </div>`;
+            gallery.appendChild(item);
+        }
 
-function renderArt(p) {
-    const out = document.getElementById('art-output');
-    out.innerHTML = `<div id="mint-status" class="mint-overlay" style="display:flex"><div class="mint-spinner"></div>Status: Manifesting Pixels...</div><div style="color:var(--primary); font-weight:bold; animation:pulse 1.5s infinite">AIVM Inference in Progress...</div>`;
-    
-    const promptEncoded = encodeURIComponent(p);
-    const seed = Date.now();
-    const url = `${AIVM_GATEWAYS[0]}${promptEncoded}?width=1024&height=1024&nologo=true&seed=${seed}`;
-    
-    const img = new Image();
-    img.src = url;
-    
-    img.onload = () => {
-        out.innerHTML = `<img src="${url}" style="width:100%; height:100%; object-fit:contain;">`;
-        addToGallery(p);
-        log("AIVM manifest complete.");
-    };
-    
-    img.onerror = () => {
-        log("Primary Node Busy. Switching to Mirror...", false);
-        const fallbackUrl = `${AIVM_GATEWAYS[1]}${promptEncoded}?width=1024&height=1024&seed=${seed}`;
-        const fallbackImg = new Image();
-        fallbackImg.src = fallbackUrl;
-        fallbackImg.onload = () => {
-            out.innerHTML = `<img src="${fallbackUrl}" style="width:100%; height:100%; object-fit:contain;">`;
-            addToGallery(p);
-        };
-    };
-}
+        function renderArt(p) {
+            const out = document.getElementById('art-output');
+            out.innerHTML = `<div id="mint-status" class="mint-overlay" style="display:flex"><div class="mint-spinner"></div>Status: Manifesting Pixels...</div><div style="color:var(--primary); font-weight:bold; animation:pulse 1.5s infinite">AIVM Inference in Progress...</div>`;
+            
+            const promptEncoded = encodeURIComponent(p);
+            const seed = Date.now();
+            const url = `${GATEWAYS[0]}${promptEncoded}?width=1024&height=1024&nologo=true&seed=${seed}`;
+            
+            const img = new Image();
+            img.src = url;
+            img.onload = () => {
+                out.innerHTML = `<img src="${url}" style="width:100%; height:100%; object-fit:contain;">`;
+                addToGallery(p);
+                log("AIVM manifest complete.");
+            };
+            img.onerror = () => {
+                log("Primary Node Busy. Switching to Mirror...", false);
+                const fallbackUrl = `${GATEWAYS[1]}${promptEncoded}?width=1024&height=1024&seed=${seed}`;
+                const fallbackImg = new Image();
+                fallbackImg.src = fallbackUrl;
+                fallbackImg.onload = () => {
+                    out.innerHTML = `<img src="${fallbackUrl}" style="width:100%; height:100%; object-fit:contain;">`;
+                    addToGallery(p);
+                };
+            };
+        }
+
         async function checkIdentity() {
             try {
                 const isA = await sbtContract.isAdmin(userAddr);
@@ -252,4 +259,3 @@ function renderArt(p) {
     </script>
 </body>
 </html>
-

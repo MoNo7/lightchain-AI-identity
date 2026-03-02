@@ -67,7 +67,7 @@
             </div>
 
             <div class="pill-group">
-                <div class="pill" style="border-color:#627EEA">ETH/USD: <span id="ethTicker" style="color:#627EEA">$0.00</span></div>
+                <div class="pill" style="border-color:#627EEA">WETH/USD: <span id="wethTicker" style="color:#627EEA">$0.00</span></div>
                 <div class="pill" style="border-color:var(--green)">LCAI/USD: <span id="lcaiTicker" style="color:var(--green)">$0.000000</span></div>
             </div>
 
@@ -158,9 +158,9 @@ async function fetchPrices() {
             
             // Find ETH - Target the highest liquidity pair automatically
             const ethPair = data.pairs.find(p => p.baseToken.address.toLowerCase() === WETH_TOKEN.toLowerCase());
-            if (ethPair && document.getElementById('ethTicker')) {
-                const price = parseFloat(ethPair.priceUsd);
-                document.getElementById('ethTicker').innerText = "$" + price.toLocaleString(undefined, {
+            if (ethPair && document.getElementById('wethTicker')) {
+                const price = parseFloat(wethPair.priceUsd);
+                document.getElementById('wethTicker').innerText = "$" + price.toLocaleString(undefined, {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2
                 });
@@ -214,6 +214,7 @@ document.addEventListener('DOMContentLoaded', () => {
     </script>
 </body>
 </html>
+
 
 
 

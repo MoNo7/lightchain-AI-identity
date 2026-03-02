@@ -8,29 +8,36 @@
     <style>
         :root { --accent: #0070ff; --bg: #020408; --panel: #0b0e14; --border: #1e2633; --text-dim: #6a768a; --console-bg: #05070a; }
         body { margin: 0; background: var(--bg); color: white; font-family: 'Inter', sans-serif; display: flex; height: 100vh; overflow: hidden; }
-        nav { width: 280px; border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 25px; background: var(--panel); box-sizing: border-box; }
+        
+        /* Sidebar Restored */
+        nav { width: 280px; border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 25px; background: var(--panel); box-sizing: border-box; z-index: 10; }
         .nav-logo { font-weight: 900; letter-spacing: 2px; color: var(--accent); margin-bottom: 25px; font-size: 1.1rem; text-align: center; }
         .system-console { background: var(--console-bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: monospace; font-size: 0.65rem; height: 180px; overflow-y: auto; margin-bottom: 20px; color: #4e5d75; line-height: 1.5; }
         .console-line { margin-bottom: 4px; border-left: 2px solid #1a202c; padding-left: 8px; }
         .console-line.success { border-left-color: var(--accent); color: #fff; }
-        .nav-menu { display: flex; flex-direction: column; gap: 5px; }
-        .nav-link { color: var(--text-dim); padding: 12px 15px; cursor: pointer; border-radius: 6px; border: none; background: none; text-align: left; font-size: 0.75rem; font-family: monospace; width: 100%; font-weight: 600; transition: 0.2s; }
-        .nav-link:hover, .nav-link.active { color: white; background: var(--accent); }
-        .viewport { flex: 1; display: flex; flex-direction: column; }
+        .nav-menu { display: flex; flex-direction: column; gap: 8px; }
+        .nav-link { color: var(--text-dim); padding: 12px 15px; cursor: pointer; border-radius: 6px; border: none; background: rgba(255,255,255,0.03); text-align: left; font-size: 0.75rem; font-family: monospace; width: 100%; font-weight: 600; transition: 0.2s; }
+        .nav-link:hover { color: white; background: rgba(0,112,255,0.2); }
+        .nav-link.active { color: white; background: var(--accent); }
+
+        /* Header & Tickers */
+        .viewport { flex: 1; display: flex; flex-direction: column; position: relative; }
         header { height: 80px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 40px; box-sizing: border-box; }
         .header-left, .header-center, .header-right { flex: 1; display: flex; align-items: center; }
         .header-center { justify-content: center; }
         .header-right { justify-content: flex-end; }
-        .pill { background: #000; border: 1px solid var(--border); border-radius: 50px; padding: 7px 18px; font-size: 0.65rem; font-family: monospace; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+        
+        .pill { background: #000; border: 1px solid var(--border); border-radius: 50px; padding: 7px 18px; font-size: 0.65rem; font-family: monospace; display: flex; align-items: center; gap: 8px; }
         .pill.sys { color: var(--accent); }
         .pill.price { color: #00c853; border-color: #00c85344; gap: 15px; }
-        .wallet-pill { background: var(--accent); color: white; border-radius: 50px; padding: 9px 24px; font-weight: 900; cursor: pointer; border: none; font-size: 0.75rem; font-family: monospace; letter-spacing: 1px; }
+        .wallet-pill { background: var(--accent); color: white; border-radius: 50px; padding: 9px 24px; font-weight: 900; cursor: pointer; border: none; font-size: 0.75rem; font-family: monospace; }
+
         .view-pane { flex: 1; padding: 40px; display: none; overflow-y: auto; }
         .view-pane.active { display: block !important; }
-        .card { background: var(--panel); border: 1px solid var(--border); padding: 30px; border-radius: 12px; max-width: 900px; border-top: 4px solid var(--accent); margin-bottom: 20px; }
-        .panel-input { width: 100%; background: #000; border: 1px solid #333; color: white; padding: 12px; border-radius: 4px; font-size: 0.75rem; margin-bottom: 12px; box-sizing: border-box; font-family: monospace; }
-        .action-btn { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; width: 100%; font-weight: bold; }
-        #gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; margin-top: 20px; }
+        .card { background: var(--panel); border: 1px solid var(--border); padding: 30px; border-radius: 12px; max-width: 900px; border-top: 4px solid var(--accent); }
+        #gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-top: 20px; }
+        .thumb { background: #000; padding: 8px; border-radius: 6px; border: 1px solid var(--border); }
+        .thumb img { width: 100%; border-radius: 4px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -39,19 +46,17 @@
     <div class="nav-logo">LCAI <span>IAM</span></div>
     <div class="system-console" id="console"><div class="console-line">>> KERNEL_READY</div></div>
     <div id="side-menu" class="nav-menu">
-        <button class="nav-link active" onclick="showView('gallery-view', this); initGallery();">NETWORK GALLERY</button>
-    </div>
+        </div>
 </nav>
 
 <div class="viewport">
     <header>
         <div class="header-left">
-            <div class="pill sys">MODEL: <span id="active-model">THETA</span> | STATE: <span id="status-txt">IDLE</span> | LOAD: <span id="sys-load">42%</span></div>
+            <div class="pill sys">MODEL: <span id="active-model">THETA</span> | STATE: <span id="status-txt">IDLE</span></div>
         </div>
         <div class="header-center">
             <div class="pill price">
                 <span>ETH: <span id="eth-price">...</span></span>
-                <span style="border-left: 1px solid #00c85344; height: 12px;"></span>
                 <span>LCAI: <span id="lcai-price">...</span></span>
             </div>
         </div>
@@ -67,10 +72,10 @@
 
     <div id="aivm-view" class="view-pane">
         <div class="card">
-            <h2>LCAI AIVM ART</h2>
-            <textarea id="art-prompt" class="panel-input" placeholder="Neural vision..."></textarea>
-            <button class="action-btn" onclick="generateArt()">REQUEST INFERENCE (0.25 tLCAI)</button>
-            <div style="margin-top:20px; text-align:center;">
+            <h2>AIVM ART GENERATOR</h2>
+            <textarea id="art-prompt" style="width:100%; background:#000; border:1px solid #333; color:white; padding:15px; border-radius:4px; margin-bottom:15px;" placeholder="Prompt..."></textarea>
+            <button class="wallet-pill" style="width:100%;" onclick="generateArt()">GENERATE INFERENCE</button>
+            <div id="result-box" style="margin-top:20px; text-align:center;">
                 <img id="output-img" style="max-width:100%; border-radius:8px; display:none;">
             </div>
         </div>
@@ -79,7 +84,7 @@
 
 <script>
 const CONFIG = {
-    addr: "0xB6f1E497D6879C325c65fa77cB717227976fd04E", // THE CORRECT CONTRACT
+    addr: "0xB6f1E497D6879C325c65fa77cB717227976fd04E",
     abi: [
         "function owner() public view returns (address)",
         "function manualVerified(address) public view returns (bool)",
@@ -90,10 +95,10 @@ const CONFIG = {
 
 let user, provider, signer, contract;
 
-const log = (msg, type = "info") => {
+const log = (msg, type = "") => {
     const cb = document.getElementById('console');
     const l = document.createElement('div');
-    l.className = `console-line ${type === 'success' ? 'success' : ''}`;
+    l.className = `console-line ${type}`;
     l.innerText = `>> ${msg}`;
     cb.appendChild(l);
     cb.scrollTop = cb.scrollHeight;
@@ -103,43 +108,62 @@ async function updatePrices() {
     try {
         const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum,lightchain-ai&vs_currencies=usd&precision=6');
         const data = await res.json();
-        document.getElementById('eth-price').innerText = `$${data.ethereum.usd.toLocaleString()}`;
+        document.getElementById('eth-price').innerText = `$${data.ethereum.usd.toFixed(2)}`;
+        // FIXED: Exact price without rounding
         document.getElementById('lcai-price').innerText = `$${data['lightchain-ai'].usd.toFixed(6)}`;
-    } catch (e) { 
-        document.getElementById('lcai-price').innerText = "$0.001974"; 
-    }
+    } catch (e) { document.getElementById('lcai-price').innerText = "$0.001974"; }
 }
 
 async function connectWallet() {
-    if (!window.ethereum) return;
+    if (!window.ethereum) return log("INSTALL METAMASK", "error");
     const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
     user = accounts[0];
     provider = new ethers.BrowserProvider(window.ethereum);
     signer = await provider.getSigner();
     contract = new ethers.Contract(CONFIG.addr, CONFIG.abi, signer);
-    log(`STREAK_SYNC: ${user.slice(0, 10)}`, "success");
-    updatePrices(); initGallery();
+    
+    log(`SYNCED: ${user.slice(0,10)}`, "success");
+    updateMenu();
+    updatePrices();
+    initGallery();
+    
     const bal = await provider.getBalance(user);
     document.getElementById('wallet-btn').innerText = `${user.slice(0,6).toUpperCase()} | ${Math.floor(Number(ethers.formatEther(bal)))} LCAI`;
 }
 
+function updateMenu() {
+    const menu = document.getElementById('side-menu');
+    menu.innerHTML = `
+        <button class="nav-link active" onclick="showView('gallery-view', this)">NETWORK GALLERY</button>
+        <button class="nav-link" onclick="showView('aivm-view', this)">AIVM ART GEN</button>
+    `;
+}
+
+function showView(id, btn) {
+    document.querySelectorAll('.view-pane').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    if(btn) btn.classList.add('active');
+}
+
 async function initGallery() {
-    if(!contract) return;
     const grid = document.getElementById('gallery-grid');
-    grid.innerHTML = "SCANNING NETWORK...";
+    grid.innerHTML = "FETCHING ON-CHAIN DATA...";
     try {
-        const events = await contract.queryFilter("InferenceRequested", 1600000); 
-        if (events.length === 0) { grid.innerHTML = "GALLERY EMPTY"; return; }
+        // Deep scan from block 1.6M to ensure we find the 13+ explorer transactions
+        const events = await contract.queryFilter("InferenceRequested", 1600000);
+        if (events.length === 0) return grid.innerHTML = "NO EVENTS FOUND";
+        
         grid.innerHTML = "";
         events.reverse().forEach(ev => {
-            const promptText = ev.args.prompt;
-            grid.innerHTML += `<div style="background:#000; padding:10px; border-radius:6px; border:1px solid var(--border);">
-                <img src="https://pollinations.ai/p/${encodeURIComponent(promptText)}?width=400&height=300&seed=${ev.transactionHash}" 
-                style="width:100%; border-radius:4px; cursor:pointer;" onclick="window.open(this.src)">
-                <p style="font-size:0.6rem; color:var(--text-dim); margin-top:5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${promptText}</p>
-            </div>`;
+            const prompt = ev.args.prompt;
+            grid.innerHTML += `
+                <div class="thumb">
+                    <img src="https://pollinations.ai/p/${encodeURIComponent(prompt)}?width=400&height=300&seed=${ev.transactionHash}" onclick="window.open(this.src)">
+                    <p style="font-size:0.6rem; color:#6a768a; margin-top:5px; overflow:hidden;">${prompt}</p>
+                </div>`;
         });
-    } catch (e) { grid.innerHTML = "OFFLINE"; }
+    } catch (e) { grid.innerHTML = "SYNC ERROR"; }
 }
 
 async function generateArt() {
@@ -150,20 +174,17 @@ async function generateArt() {
         const tx = await contract.generateArt(prompt, ethers.ZeroHash, { value: ethers.parseEther("0.25") });
         await tx.wait();
         log("RENDER SUCCESS", "success");
-        document.getElementById('output-img').src = `https://pollinations.ai/p/${encodeURIComponent(prompt)}?width=1024&height=1024&seed=${Math.random()}`;
-        document.getElementById('output-img').style.display = 'block';
+        const out = document.getElementById('output-img');
+        out.src = `https://pollinations.ai/p/${encodeURIComponent(prompt)}?width=1024&height=1024&seed=${Math.random()}`;
+        out.style.display = "block";
         initGallery();
-    } catch (e) { log("REJECTED"); }
+    } catch (e) { log("TX REJECTED", "error"); }
 }
 
-function showView(id, btn) {
-    document.querySelectorAll('.view-pane').forEach(el => el.classList.remove('active'));
-    document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
-    if(btn) btn.classList.add('active');
-}
-
-window.addEventListener('load', () => setTimeout(connectWallet, 500));
+window.onload = () => {
+    updatePrices();
+    updateMenu();
+};
 </script>
 </body>
 </html>

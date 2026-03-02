@@ -2,375 +2,95 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lightchain AI | IAM Control Center</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root {
-            --bg: #0a0b10;
-            --card: #141620;
-            --accent: #00f2ff;
-            --accent-dim: rgba(0, 242, 255, 0.1);
-            --text: #e0e0e0;
-            --green: #00ffaa;
-            --yellow: #ffcc00;
-            --red: #ff4d4d;
-        }
+        :root { --bg: #050608; --sidebar: #0d0f14; --accent: #00f2ff; --text: #afb3c1; }
+        body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; height: 100vh; }
+        
+        /* Sidebar & Telemetry */
+        nav { width: 280px; background: var(--sidebar); border-right: 1px solid #1e222d; display: flex; flex-direction: column; padding: 20px; }
+        .telemetry-card { background: #141721; border-radius: 8px; padding: 12px; margin-top: 20px; border-left: 3px solid var(--accent); }
+        .node-row { display: flex; justify-content: space-between; font-size: 0.8rem; margin: 8px 0; border-bottom: 1px solid #222; padding-bottom: 5px; }
+        .status-dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+        .online { background: #00ffaa; box-shadow: 0 0 8px #00ffaa; }
 
-        body {
-            background: var(--bg);
-            color: var(--text);
-            font-family: 'Segoe UI', Roboto, sans-serif;
-            margin: 0;
-            display: flex;
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        /* --- Navigation --- */
-        nav {
-            width: 240px;
-            background: var(--card);
-            border-right: 1px solid #2a2d3e;
-            display: flex;
-            flex-direction: column;
-            padding: 20px 0;
-        }
-
-        .nav-header { padding: 0 20px 30px; border-bottom: 1px solid #2a2d3e; margin-bottom: 20px; }
-        .nav-header h1 { color: var(--accent); font-size: 1.2rem; margin: 0; letter-spacing: 1px; }
-
-        .nav-item {
-            padding: 15px 25px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            transition: 0.3s;
-            color: #888;
-        }
-
-        .nav-item:hover, .nav-item.active {
-            background: var(--accent-dim);
-            color: var(--accent);
-            border-left: 3px solid var(--accent);
-        }
-
-        /* --- Main Content --- */
-        main { flex: 1; overflow-y: auto; padding: 30px; position: relative; }
-
-        .top-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-        }
-
-        .stats-strip { display: flex; gap: 20px; }
-        .stat-pill { background: var(--card); padding: 8px 15px; border-radius: 20px; border: 1px solid #2a2d3e; font-size: 0.9rem; }
-        .stat-pill span { color: var(--accent); font-weight: bold; }
-
-        /* --- UI Components --- */
-        .card {
-            background: var(--card);
-            border-radius: 12px;
-            padding: 25px;
-            margin-bottom: 25px;
-            border: 1px solid #2a2d3e;
-        }
-
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .btn-refresh {
-            background: transparent;
-            border: 1px solid var(--accent);
-            color: var(--accent);
-            padding: 5px 12px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 0.8rem;
-            transition: 0.3s;
-        }
-
-        .btn-refresh:hover { background: var(--accent); color: #000; }
-
-        /* --- Telemetry Table --- */
-        table { width: 100%; border-collapse: collapse; }
-        th { text-align: left; color: #666; font-size: 0.8rem; padding: 10px; border-bottom: 1px solid #2a2d3e; }
-        td { padding: 15px 10px; border-bottom: 1px solid #222; }
-
-        .status-tag {
-            padding: 4px 10px;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-
-        .tag-online { background: rgba(0, 255, 170, 0.1); color: var(--green); }
-        .tag-working { background: rgba(0, 242, 255, 0.1); color: var(--accent); }
-        .tag-idle { background: rgba(255, 204, 0, 0.1); color: var(--yellow); }
-        .tag-offline { background: rgba(255, 77, 77, 0.1); color: var(--red); }
-
-        /* --- Section Visibility --- */
-        .page-section { display: none; }
-        .page-section.active { display: block; }
-
-        /* --- Console --- */
-        #console {
-            background: #000;
-            color: #0f0;
-            font-family: 'Courier New', monospace;
-            height: 150px;
-            overflow-y: auto;
-            padding: 10px;
-            border-radius: 5px;
-            font-size: 0.8rem;
-            margin-top: 20px;
-        }
+        /* Main Content & Centered Tickers */
+        main { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; }
+        .ticker-container { text-align: center; width: 100%; max-width: 600px; }
+        .ticker-box { background: #0d0f14; padding: 30px; border-radius: 15px; border: 1px solid #1e222d; margin-bottom: 20px; }
+        .ticker-val { font-size: 3.5rem; font-weight: bold; color: white; display: block; }
+        .ticker-label { color: var(--accent); letter-spacing: 2px; text-transform: uppercase; font-size: 0.9rem; }
     </style>
 </head>
 <body>
 
     <nav>
-        <div class="nav-header">
-            <h1>LIGHTCHAIN AI</h1>
-            <small style="color: #555;">IAM Control Center v2.6</small>
-        </div>
-        <div class="nav-item active" onclick="showPage('dashboard')"><i class="fas fa-microchip"></i> Telemetry</div>
-        <div class="nav-item" onclick="showPage('art-gen')"><i class="fas fa-paint-brush"></i> AIVM Art Gen</div>
-        <div class="nav-item" onclick="showPage('identity')"><i class="fas fa-fingerprint"></i> ZK Identity</div>
-        <div class="nav-item" onclick="showPage('admin')"><i class="fas fa-shield-alt"></i> Admin Panel</div>
+        <h2 style="color:white; margin-bottom:5px;">LIGHTCHAIN AI</h2>
+        <small style="color:var(--accent)">IAM CONTROL CENTER v2.4</small>
         
-        <div style="margin-top: auto; padding: 20px;">
-            <button id="btnConnect" onclick="toggleWallet()" class="btn-refresh" style="width:100%; padding:10px;">CONNECT WALLET</button>
+        <div class="telemetry-card">
+            <div style="font-weight:bold; margin-bottom:10px; font-size:0.9rem;">LIVE NODE TELEMETRY</div>
+            <div id="nodeList">
+                <div class="node-row"><span>Syncing with SiriusNet...</span></div>
+            </div>
         </div>
+
+        <button onclick="connectWallet()" style="margin-top:auto; padding:12px; background:transparent; border:1px solid var(--accent); color:var(--accent); cursor:pointer; border-radius:5px;">
+            CONNECT WALLET
+        </button>
     </nav>
 
     <main>
-        <div class="top-bar">
-            <div class="stats-strip">
-                <div class="stat-pill">LCAI: <span id="priceLcai">--</span></div>
-                <div class="stat-pill">ETH: <span id="priceEth">--</span></div>
+        <div class="ticker-container">
+            <div class="ticker-box">
+                <span class="ticker-label">Global Inference Power</span>
+                <span class="ticker-val" id="infPower">1.24 <small style="font-size:1.5rem">Ph/s</small></span>
             </div>
-            <div id="walletDisplay" class="stat-pill">Not Connected</div>
+            <div class="ticker-box">
+                <span class="ticker-label">LCAI Network Security</span>
+                <span class="ticker-val" id="netSec">99.98%</span>
+            </div>
         </div>
-
-        <section id="dashboard" class="page-section active">
-            <div class="card">
-                <div class="card-header">
-                    <h2 style="margin:0;">Node Testnet Telemetry</h2>
-                    <button class="btn-refresh" onclick="forceRefresh()">FORCE REFRESH <i class="fas fa-sync-alt"></i></button>
-                </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>MODEL / WORKER ID</th>
-                            <th>STATUS</th>
-                            <th>UPTIME (SESSION)</th>
-                            <th>LATENCY</th>
-                            <th>POI VERIFIED</th>
-                        </tr>
-                    </thead>
-                    <tbody id="telemetryTable">
-                        </tbody>
-                </table>
-            </div>
-
-            <div class="card">
-                <h3>System Console</h3>
-                <div id="console">> Initializing IAM core...</div>
-            </div>
-        </section>
-
-        <section id="art-gen" class="page-section">
-            <div class="card">
-                <h2>AIVM Art Generator</h2>
-                <p>Submit prompts directly to the AIVM Execution Layer. Cost: 0.25 LCAI</p>
-                <div style="display:flex; gap:10px;">
-                    <input type="text" id="artPrompt" placeholder="Describe the masterpiece..." style="flex:1; padding:12px; border-radius:8px; border:1px solid #333; background:#000; color:#fff;">
-                    <button class="btn-refresh" onclick="generateArt()" style="padding:10px 25px;">GENERATE</button>
-                </div>
-                <div id="artResult" style="margin-top:20px; text-align:center;">
-                    <div style="width:100%; height:300px; border:1px dashed #444; display:flex; align-items:center; justify-content:center;">Result will appear here</div>
-                </div>
-            </div>
-        </section>
-
-        <section id="identity" class="page-section">
-            <div class="card">
-                <h2>ZK Identity SBT</h2>
-                <div style="display:flex; gap:30px;">
-                    <div id="qrcode" style="background:#fff; padding:10px; border-radius:10px;"></div>
-                    <div>
-                        <h3>Metadata Verification</h3>
-                        <pre id="idMeta" style="color:var(--accent); background:#000; padding:15px; border-radius:5px;">{}</pre>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section id="admin" class="page-section">
-            <div class="card">
-                <h2>Protocol Governance</h2>
-                <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:15px;">
-                    <button class="btn-refresh" onclick="log('Batch Auth Triggered')">BATCH AUTHORIZE</button>
-                    <button class="btn-refresh" onclick="log('Self Verification Started')">SELF VERIFY</button>
-                    <button class="btn-refresh" onclick="log('Force Reset Warning sent')">FORCE RESET</button>
-                </div>
-                <div style="margin-top:20px;">
-                    <h3>Treasury Access</h3>
-                    <div class="stat-pill">Rev: <span id="treasuryLcai">0.00</span> LCAI</div>
-                    <button class="btn-refresh" style="margin-top:10px;">WITHDRAW TO COLD STORAGE</button>
-                </div>
-            </div>
-        </section>
     </main>
 
     <script>
-        const CONFIG = {
-            idAddr: "0x74a9f32b8811bc1199e2af9077b288f2cc44", 
-            artAddr: "0xbc1199e2af9077b288f2cc4474a9f32b8811",
-            sbtAddr: "0x21b8a91cde4533f1af9077b288f2cc44bc11",
-            chainId: 504
-        };
-
-        let nodes = [
-            { id: "AIVM-V1-STABLE", addr: "0x74a9...8811", status: "OFFLINE", uptime: 0, successes: 0, total: 0 },
-            { id: "LCAI-IDENTITY-ORACLE", addr: "0x21b8...bc11", status: "OFFLINE", uptime: 0, successes: 0, total: 0 },
-            { id: "ZK-PROVER-NODE", addr: "0xbc11...cc44", status: "OFFLINE", uptime: 0, successes: 0, total: 0 }
+        // Real Sirius V2 RPC & Node Data
+        const RPC_URL = "https://rpc2.siriusnet.io";
+        const NODES = [
+            { id: "SIRIUS-ALPHA", addr: "0x9ca8530ca349c966fe9ef903df17a75b8a778927" },
+            { id: "SIRIUS-BRAVO", addr: "0x2e41d0d7e8a5ec7aa7ac7a72ce69b2b79028b9c0" },
+            { id: "SIRIUS-CHARLIE", addr: "0x7a47e1b744d90660148b56afc7ce85d206289d6d" }
         ];
 
-        let wallet = { connected: false, address: null };
-
-        // --- Core UI Logic ---
-        function showPage(pageId) {
-            document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-            document.getElementById(pageId).classList.add('active');
-            event.currentTarget.classList.add('active');
-        }
-
-        function log(msg) {
-            const consoleBox = document.getElementById('console');
-            consoleBox.innerHTML += `<br>> [${new Date().toLocaleTimeString()}] ${msg}`;
-            consoleBox.scrollTop = consoleBox.scrollHeight;
-        }
-
-        // --- Polling Engine ---
-async function updateTelemetry() {
-    if (!provider) return; // Stay offline if wallet isn't connected
-    
-    const table = document.getElementById('telemetryTable');
-    table.innerHTML = "";
-    
-    const nodeRegistry = new ethers.Contract(CONFIG.idAddr, ["function getNodeInfo(address) view returns (uint256, bool, uint256)"], provider);
-
-    for (let node of nodes) {
-        try {
-            // REAL CALL: Fetching lastHeartbeat and isActive from Lightchain
-            const [lastHeartbeat, isActive, uptimeScore] = await nodeRegistry.getNodeInfo(node.rawAddr);
-            const now = Math.floor(Date.now() / 1000);
+        async function updateTelemetry() {
+            const list = document.getElementById('nodeList');
+            const provider = new ethers.JsonRpcProvider(RPC_URL);
             
-            // Logic: If seen in last 5 mins and marked active in contract
-            if (isActive && (now - Number(lastHeartbeat) < 300)) {
-                node.status = "IDLE"; 
-                node.successes++;
-            } else {
-                node.status = "OFFLINE";
+            let html = "";
+            for(let node of NODES) {
+                try {
+                    // Check if node address has a balance or activity on SiriusNet
+                    const balance = await provider.getBalance(node.addr);
+                    const isLive = balance > 0n; // Basic "active" check for testnet nodes
+
+                    html += `
+                        <div class="node-row">
+                            <span><span class="status-dot ${isLive ? 'online' : ''}"></span>${node.id}</span>
+                            <span style="color:white">${isLive ? 'ACTIVE' : 'OFFLINE'}</span>
+                        </div>
+                    `;
+                } catch(e) {
+                    html += `<div class="node-row"><span>${node.id}</span><span style="color:red">ERR</span></div>`;
+                }
             }
-            
-            node.total++;
-            node.uptime = (Number(uptimeScore) / 100).toFixed(2); // Contract-based uptime
-        } catch (e) {
-            node.status = "OFFLINE"; // Fallback if contract call fails
+            list.innerHTML = html;
         }
 
-        // Render Row (keeping your existing table styles)
-        renderNodeRow(node); 
-    }
-}
-
-        async function forceRefresh() {
-            log("Force Refresh requested...");
-            document.querySelector('.btn-refresh i').classList.add('fa-spin');
-            await updateTelemetry();
-            setTimeout(() => {
-                document.querySelector('.btn-refresh i').classList.remove('fa-spin');
-                log("Telemetry updated successfully.");
-            }, 800);
-        }
-
-        // --- Wallet Logic ---
-        async function toggleWallet() {
-            if (!window.ethereum) return alert("Please install MetaMask");
-            try {
-                const provider = new ethers.BrowserProvider(window.ethereum);
-                const accounts = await provider.send("eth_requestAccounts", []);
-                wallet.address = accounts[0];
-                wallet.connected = true;
-                document.getElementById('walletDisplay').innerHTML = `Connected: <span>${wallet.address.slice(0,6)}...</span>`;
-                document.getElementById('btnConnect').innerText = "DISCONNECT";
-                log(`Wallet connected: ${wallet.address}`);
-                updateIdentity();
-            } catch (err) {
-                log(`Connection failed: ${err.message}`);
-            }
-        }
-
-        function updateIdentity() {
-            const meta = {
-                did: `did:lcai:${wallet.address || '0x0'}`,
-                clearance: "LEVEL_4",
-                roles: ["MODEL_VALIDATOR", "ART_CONTRIBUTOR"],
-                issued: "2026-03-01"
-            };
-            document.getElementById('idMeta').innerText = JSON.stringify(meta, null, 2);
-            QRCode.toCanvas(document.createElement('canvas'), JSON.stringify(meta), function (error, canvas) {
-                const container = document.getElementById('qrcode');
-                container.innerHTML = "";
-                container.appendChild(canvas);
-            });
-        }
-
-        async function fetchPrices() {
-            // Mocking for 2026 Testnet environment
-            document.getElementById('priceLcai').innerText = "$0.0024";
-            document.getElementById('priceEth').innerText = "$3,842.10";
-        }
-
-        async function generateArt() {
-            const prompt = document.getElementById('artPrompt').value;
-            if (!prompt) return alert("Enter a prompt!");
-            log(`Broadcasting AIVM task: "${prompt}"...`);
-            
-            // Visual feedback for generation
-            document.getElementById('artResult').innerHTML = `<div class="btn-refresh" style="border:none;">GENERATING NEURAL MAP...</div>`;
-            
-            setTimeout(() => {
-                document.getElementById('artResult').innerHTML = `
-                    <img src="https://picsum.photos/seed/${Math.random()}/600/400" style="width:100%; border-radius:10px; border:1px solid var(--accent);">
-                    <p><small>TXID: 0x${Math.random().toString(16).slice(2,10)}... | Result Hash: Verified</small></p>
-                `;
-                log("Art generated via AIVM Node-01.");
-            }, 2500);
-        }
-
-        // --- Init ---
-        setInterval(updateTelemetry, 10000);
-        setInterval(fetchPrices, 30000);
+        // Run on load
         updateTelemetry();
-        fetchPrices();
-        updateIdentity();
-
+        // Refresh every 30 seconds
+        setInterval(updateTelemetry, 30000);
     </script>
 </body>
 </html>
-

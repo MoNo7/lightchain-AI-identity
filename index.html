@@ -40,7 +40,7 @@
     <div class="system-console" id="console">
         <div class="console-line">>> KERNEL_READY</div>
         <div id="scan-log" class="console-line scan">>> SCANNER: IDLE</div>
-        <div id="worker-log" class="console-line" style="color:#00c853;">>> ACTIVE_WORKERS: 114</div>
+        <div id="worker-log" class="console-line" style="color:#00c853;">>> ACTIVE_WORKERS: 118</div>
     </div>
     <div id="side-menu" class="nav-menu">
         <button class="nav-link active" onclick="showView('gallery-view', this); initGallery();">NETWORK GALLERY</button>
@@ -66,7 +66,7 @@
 
     <div id="gallery-view" class="view-pane active">
         <div class="card">
-            <h2>NETWORK GALLERY (LAST 10 RENDERS)</h2>
+            <h2>NETWORK GALLERY (DEEP HISTORY SCAN)</h2>
             <div id="gallery-grid"></div>
         </div>
     </div>
@@ -91,21 +91,13 @@
         <div class="card">
             <h2>ADMINISTRATION</h2>
             <button class="action-btn" style="background:#00c853; margin-bottom: 20px;" onclick="verifySelf()">VERIFY SELF</button>
-            <input type="text" id="admin-target" class="panel-input" placeholder="0x... Target Address">
-            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
+            <textarea id="admin-target" class="panel-input" style="height:60px;" placeholder="Enter Wallet Address (or comma-separated list for batch)"></textarea>
+            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; margin-bottom:10px;">
                 <button class="action-btn" onclick="adminAction('verify')">VERIFY</button>
                 <button class="action-btn" style="background:#555;" onclick="adminAction('query')">QUERY</button>
                 <button class="action-btn" style="background:#ff4444;" onclick="adminAction('revoke')">REVOKE</button>
             </div>
-            <h3>MODEL PERFORMANCE BENCHMARKS</h3>
-            <table style="width:100%; font-size:0.7rem; border-collapse:collapse; margin-top:10px;">
-                <thead style="text-align:left; color:var(--text-dim);"><tr><th>MODEL</th><th>LATENCY</th><th>POI STATUS</th><th>UPTIME</th></tr></thead>
-                <tbody>
-                    <tr><td>AIVM-THETA</td><td>1.2s</td><td style="color:#00c853">VERIFIED</td><td>99.9%</td></tr>
-                    <tr><td>AIVM-DELTA</td><td>0.8s</td><td style="color:#00c853">VERIFIED</td><td>99.7%</td></tr>
-                    <tr><td>AIVM-SIGMA</td><td>2.4s</td><td style="color:#ffaa00">COMPUTING</td><td>98.2%</td></tr>
-                </tbody>
-            </table>
+            <button class="action-btn" style="background:var(--accent);" onclick="batchApprove()">RUN BATCH APPROVAL</button>
         </div>
     </div>
 
@@ -157,24 +149,9 @@ async function updatePrices() {
         const data = await res.json();
         document.getElementById('eth-price').innerText = `$${data.ethereum.usd.toLocaleString()}`;
         document.getElementById('lcai-price').innerText = `$${data['lightchain-ai'].usd.toFixed(6)}`;
-    } catch (e) { document.getElementById('lcai-price').innerText = "$0.001974"; }
+    } catch (e) { document.getElementById('lcai-price').innerText = "$0.001993"; }
 }
 
-  async function batchApprove() {
-    const list = document.getElementById('admin-target').value.split(',');
-    log(`STARTING BATCH: ${list.length} USERS`);
-    for (let addr of list) {
-        try {
-            const cleanAddr = addr.trim();
-            if (ethers.isAddress(cleanAddr)) {
-                const tx = await contract.setVerification(cleanAddr, true);
-                await tx.wait();
-                log(`VERIFIED: ${cleanAddr.slice(0,6)}`, "success");
-            }
-        } catch (e) { log("BATCH_ERROR", "error"); }
-    }
-}  
-    
 async function connectWallet() {
     if (!window.ethereum) return;
     const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
@@ -214,72 +191,65 @@ function updateMenu() {
 }
 
 async function initGallery() {
+    if(!contract) return;
     const grid = document.getElementById('gallery-grid');
-    grid.innerHTML = "DEEP_SCANNING_BLOCKS...";
+    grid.innerHTML = "SCANNING NEURAL HISTORY...";
     try {
         const currentBlock = await provider.getBlockNumber();
-        const startBlock = 1635664; // Your contract birth block
-        
-        // PULL DIRECTLY FROM HISTORY: Ignores event indexing issues
-        const history = await provider.getHistory(CONFIG.addr, startBlock, currentBlock);
-        
-        if (!history || history.length === 0) return grid.innerHTML = "NO RENDERS DISCOVERED";
+        const startBlock = 1635664; // Creation block
+        document.getElementById('scan-log').innerText = `>> SCANNER: BLK ${startBlock} - ${currentBlock}`;
 
+        // PULL DIRECTLY FROM EVENT LOGS USING TOPIC0
+        const topic0 = ethers.id("InferenceRequested(address,string,bytes32)");
+        const logs = await provider.getLogs({
+            address: CONFIG.addr,
+            fromBlock: startBlock,
+            toBlock: "latest",
+            topics: [topic0]
+        });
+        
+        if (logs.length === 0) return grid.innerHTML = "NO RENDERS FOUND ON-CHAIN";
+        
         grid.innerHTML = "";
         const iface = new ethers.Interface(CONFIG.abi);
-
-        // Filter for last 10 'generateArt' calls
-        history.reverse().slice(0, 10).forEach(tx => {
+        logs.reverse().slice(0, 10).forEach(logEntry => {
             try {
-                const decoded = iface.parseTransaction({ data: tx.data });
-                if (decoded && decoded.name === "generateArt") {
-                    const prompt = decoded.args[0];
-                    grid.innerHTML += `
-                    <div class="thumb">
-                        <img src="https://pollinations.ai/p/${encodeURIComponent(prompt)}?width=400&height=300&seed=${tx.hash}" 
-                             onclick="window.open(this.src)">
-                        <p style="font-size:0.6rem; color:#6a768a; margin-top:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${prompt}</p>
-                        <a href="https://testnet.lightscan.app/tx/${tx.hash}" target="_blank" style="color:var(--accent); font-size:0.5rem; text-decoration:none;">VIEW POI</a>
-                    </div>`;
-                }
-            } catch (e) { /* Skip non-inference txs */ }
+                const parsed = iface.parseLog(logEntry);
+                const prompt = parsed.args.prompt;
+                grid.innerHTML += `<div class="thumb">
+                    <img src="https://pollinations.ai/p/${encodeURIComponent(prompt)}?width=400&height=300&seed=${logEntry.transactionHash}" onclick="window.open(this.src)">
+                    <p style="font-size:0.6rem; color:#6a768a; margin-top:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${prompt}</p>
+                </div>`;
+            } catch (e) {}
         });
-    } catch (e) { grid.innerHTML = "SCAN_FAILED: ARCHIVE_OFFLINE"; }
+    } catch (e) { grid.innerHTML = "SYNC ERROR"; }
 }
 
 async function generateArt() {
     const prompt = document.getElementById('art-prompt').value;
     const out = document.getElementById('output-img');
     const status = document.getElementById('canvas-status');
-    if(!prompt) return log("ENTER A PROMPT", "error");
-
+    if(!prompt) return;
     try {
-        log("INITIATING NEURAL ANCHOR...");
+        log("INITIATING INFERENCE...");
         document.getElementById('status-txt').innerText = "MINING";
         
-        // FORCED GAS LIMIT: Prevents "Immediately Rejecting" by bypassing estimation
+        // ADDED GAS LIMIT & VALUE TO PREVENT SILENT REJECTS
         const tx = await contract.generateArt(prompt, ethers.ZeroHash, { 
             value: ethers.parseEther("0.25"),
-            gasLimit: 500000 
+            gasLimit: 400000 
         });
-
-        log("TRANSACTION PENDING...", "scan");
+        
+        log("MINING IN PROGRESS...", "scan");
         await tx.wait();
-        
-        log("INFERENCE ANCHORED", "success");
+        log("RENDER SUCCESS", "success");
         document.getElementById('status-txt').innerText = "IDLE";
-        
-        // Render result
         out.src = `https://pollinations.ai/p/${encodeURIComponent(prompt)}?width=1024&height=1024&seed=${tx.hash}`;
-        out.style.display = "block"; 
-        status.style.display = "none";
-        
-        initGallery(); 
-        updateBalanceDisplay();
-    } catch (e) {
+        out.style.display = "block"; status.style.display = "none";
+        initGallery(); updateBalanceDisplay();
+    } catch (e) { 
         console.error(e);
-        const reason = e.reason || "VERIFICATION_REQUIRED";
-        log(`REJECTED: ${reason}`, "error");
+        log(`REJECTED: ${e.reason || 'Check Verification'}`, "error"); 
         document.getElementById('status-txt').innerText = "IDLE";
     }
 }
@@ -287,21 +257,39 @@ async function generateArt() {
 async function verifySelf() {
     try {
         log("INITIATING VERIFICATION...");
-        await (await contract.setVerification(user, true)).wait();
+        const tx = await contract.setVerification(user, true);
+        await tx.wait();
         log("VERIFIED SUCCESS", "success");
         roles.isVerified = true; updateMenu(); updateIdentity();
-    } catch (e) { log("VERIFY FAILED"); }
+    } catch (e) { log("VERIFY FAILED", "error"); }
+}
+
+async function batchApprove() {
+    const input = document.getElementById('admin-target').value;
+    const addresses = input.split(',').map(a => a.trim()).filter(a => ethers.isAddress(a));
+    if(addresses.length === 0) return log("INVALID ADDRESS LIST", "error");
+    
+    log(`STARTING BATCH: ${addresses.length} TARGETS`);
+    for(let addr of addresses) {
+        try {
+            log(`PROCESSING: ${addr.slice(0,10)}...`);
+            const tx = await contract.setVerification(addr, true);
+            await tx.wait();
+            log(`SUCCESS: ${addr.slice(0,6)}`, "success");
+        } catch (e) { log(`FAILED: ${addr.slice(0,6)}`, "error"); }
+    }
+    log("BATCH COMPLETE", "success");
 }
 
 async function adminAction(type) {
     const target = document.getElementById('admin-target').value;
-    if(!target) return;
+    if(!target || !ethers.isAddress(target)) return log("INVALID TARGET", "error");
     try {
         if(type === 'verify') await (await contract.setVerification(target, true)).wait();
         else if(type === 'revoke') await (await contract.setVerification(target, false)).wait();
         else log(`QUERY: ${target.slice(0,6)} is ${await contract.manualVerified(target) ? 'VERIFIED' : 'UNVERIFIED'}`);
         log("ADMIN SUCCESS", "success");
-    } catch (e) { log("ADMIN FAILED", "error"); }
+    } catch (e) { log("ADMIN FAILURE", "error"); }
 }
 
 async function withdrawRevenue() {
@@ -315,6 +303,13 @@ function updateIdentity() {
     new QRCode(document.getElementById("qr-target"), { text: JSON.stringify(meta), width: 120, height: 120 });
 }
 
+function showView(id, btn) {
+    document.querySelectorAll('.view-pane').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    if(btn) btn.classList.add('active');
+}
+
 function downloadJSON() { 
     const b = new Blob([document.getElementById('id-json').innerText], {type:'application/json'});
     const a = document.createElement('a'); a.href=URL.createObjectURL(b); a.download='LCAI_ID.json'; a.click(); 
@@ -323,13 +318,6 @@ function downloadJSON() {
 function downloadQR() {
     const canvas = document.querySelector('#qr-target canvas');
     const a = document.createElement('a'); a.href = canvas.toDataURL("image/png"); a.download = 'LCAI_QR.png'; a.click();
-}
-
-function showView(id, btn) {
-    document.querySelectorAll('.view-pane').forEach(v => v.classList.remove('active'));
-    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
-    if(btn) btn.classList.add('active');
 }
 
 window.onload = () => { 
@@ -342,6 +330,3 @@ window.onload = () => {
 </script>
 </body>
 </html>
-
-
-

@@ -265,35 +265,38 @@
         }
 
         // --- Polling Engine ---
-        async function updateTelemetry() {
-            const table = document.getElementById('telemetryTable');
-            table.innerHTML = "";
+async function updateTelemetry() {
+    if (!provider) return; // Stay offline if wallet isn't connected
+    
+    const table = document.getElementById('telemetryTable');
+    table.innerHTML = "";
+    
+    const nodeRegistry = new ethers.Contract(CONFIG.idAddr, ["function getNodeInfo(address) view returns (uint256, bool, uint256)"], provider);
 
-            for (let node of nodes) {
-                // Determine random state for demo if not on testnet, 
-                // OR actual logic if provider is ready
-                const states = ["IDLE", "WORKING", "ACTIVE", "OFFLINE"];
-                let newState = states[Math.floor(Math.random() * 3)]; // Bias towards online
-                
-                node.total++;
-                if (newState !== "OFFLINE") node.successes++;
-                node.status = newState;
-                node.uptime = ((node.successes / node.total) * 100).toFixed(2);
-                
-                const tagClass = `tag-${node.status.toLowerCase()}`;
-                const latency = node.status === "OFFLINE" ? "--" : Math.floor(Math.random() * 50 + 20) + "ms";
-
-                table.innerHTML += `
-                    <tr>
-                        <td><strong>${node.id}</strong><br><small style="color:#555">${node.addr}</small></td>
-                        <td><span class="status-tag ${tagClass}">${node.status}</span></td>
-                        <td>${node.uptime}%</td>
-                        <td>${latency}</td>
-                        <td><i class="fas fa-check-circle" style="color:var(--green)"></i> Verified</td>
-                    </tr>
-                `;
+    for (let node of nodes) {
+        try {
+            // REAL CALL: Fetching lastHeartbeat and isActive from Lightchain
+            const [lastHeartbeat, isActive, uptimeScore] = await nodeRegistry.getNodeInfo(node.rawAddr);
+            const now = Math.floor(Date.now() / 1000);
+            
+            // Logic: If seen in last 5 mins and marked active in contract
+            if (isActive && (now - Number(lastHeartbeat) < 300)) {
+                node.status = "IDLE"; 
+                node.successes++;
+            } else {
+                node.status = "OFFLINE";
             }
+            
+            node.total++;
+            node.uptime = (Number(uptimeScore) / 100).toFixed(2); // Contract-based uptime
+        } catch (e) {
+            node.status = "OFFLINE"; // Fallback if contract call fails
         }
+
+        // Render Row (keeping your existing table styles)
+        renderNodeRow(node); 
+    }
+}
 
         async function forceRefresh() {
             log("Force Refresh requested...");
@@ -370,3 +373,4 @@
     </script>
 </body>
 </html>
+

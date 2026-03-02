@@ -54,7 +54,12 @@
                     <div class="pill"><i class="fas fa-microchip"></i> Load: <span id="loadPill">12%</span></div>
             </div>
             <div class="pill-group">
-                    <div class="pill">LCAI/USD: <span style="color:var(--green)">$0.8421</span></div>
+                    <div class="pill">
+                        LCAI/USD: <span id="priceTicker" style="color:var(--green); font-weight:bold;">$0.000000</span>
+                    </div>
+                    <div class="pill">
+                        ETH/USD: <span id="ethTicker" style="color:#627EEA; font-weight:bold;">$0.00</span>
+                    </div>
             </div>
             <div class="pill-group">
                     <div class="pill"><i class="fas fa-wallet"></i> <span id="balancePill">0.00 LCAI</span></div>
@@ -104,6 +109,9 @@
     </div>
 
     <script>
+        const TOKEN_ADDRESS = "0xd71462F0002Ee9373fCe05B568583Ed13e75f600"; // Your LCAI Address
+        const LCAI_PAIR = "0x0d047a370611437a1b8e6c2a95ea36f69fdda3be"; 
+        const ETH_PAIR = "0x2287a9620adcbf6250dc71be9ee9b2d3a1ec85a464fc6f5c06669e8d07b61bba";
         const CONFIG = {
             address: "0xd71462F0002Ee9373fCe05B568583Ed13e75f600",
             owner: "0x6378A6993C7C77E4A28f8f263e778401309fD9E4",
@@ -202,20 +210,74 @@
 
         let userWallet, idHash;
 
-async function connect() {
-            if(!window.ethereum) return log("Error: Install Metamask.");
-            const provider = new ethers.BrowserProvider(window.ethereum);
-            const accs = await provider.send("eth_requestAccounts", []);
-            userWallet = accs[0];
-            
-            const bal = await provider.getBalance(userWallet);
-            document.getElementById('balancePill').innerText = parseFloat(ethers.formatEther(bal)).toFixed(2) + " LCAI";
-            document.getElementById('walletBtn').innerText = userWallet.slice(0,6) + "...";
-            document.getElementById('authStep').classList.remove('step-locked');
-            
-            if(userWallet.toLowerCase() === CONFIG.owner.toLowerCase()) document.getElementById('adminMenu').style.display = 'block';
-            log("Node Connected. Ready for OAuth.");
+        async function connect() {
+            if (!window.ethereum) {
+                log("Error: Metamask not detected.");
+                return;
+            }
+            try {
+                const provider = new ethers.BrowserProvider(window.ethereum);
+                const accounts = await provider.send("eth_requestAccounts", []);
+                userWallet = accounts[0];
+        
+                // Update UI
+                document.getElementById('walletBtn').innerText = userWallet.slice(0, 6) + "..." + userWallet.slice(-4);
+                document.getElementById('walletBtn').style.background = "#1b1f24";
+                document.getElementById('walletBtn').style.color = "var(--accent)";
+                
+                // Unlock Auth Step (from previous logic)
+                const authStep = document.getElementById('authStep');
+                if(authStep) authStep.classList.remove('step-locked');
+        
+                // Initial Balance Check
+                updateBalance(provider);
+                log("Wallet Connected: " + userWallet);
+            } catch (err) {
+                log("Connection Rejected.");
+            }
         }
+
+        // 2. LIVE BALANCE UPDATE
+        async function updateBalance(provider) {
+            const bal = await provider.getBalance(userWallet);
+            const formattedBal = parseFloat(ethers.formatEther(bal)).toFixed(2);
+            document.getElementById('balancePill').innerText = `${formattedBal} LCAI`;
+        }
+
+        // 3. DEXSCREENER PRICE TICKER (6 Decimal Places)
+        async function fetchPrices() {
+            try {
+                // Fetch both LCAI and ETH pair data in one parallel call
+                const [lcaiRes, ethRes] = await Promise.all([
+                    fetch(`https://api.dexscreener.com/latest/dex/pairs/base/${LCAI_PAIR}`),
+                    fetch(`https://api.dexscreener.com/latest/dex/pairs/base/${ETH_PAIR}`)
+                ]);
+        
+                const lcaiData = await lcaiRes.json();
+                const ethData = await ethRes.json();
+        
+                // 1. Update LCAI Price (6 Decimal Places)
+                if (lcaiData.pair) {
+                    const lcaiPrice = parseFloat(lcaiData.pair.priceUsd);
+                    document.getElementById('priceTicker').innerText = "$" + lcaiPrice.toFixed(6);
+                }
+        
+                // 2. Update ETH Price (2 Decimal Places)
+                if (ethData.pair) {
+                    const ethPrice = parseFloat(ethData.pair.priceUsd);
+                    document.getElementById('ethTicker').innerText = "$" + ethPrice.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    });
+                }
+            } catch (e) {
+                console.error("Price Fetch Error:", e);
+            }
+        }
+
+        // 4. INTERVALS (5 Seconds)
+        setInterval(fetchPrice, 5000); // Update Price
+        fetchPrice(); // Initial call
 
         function handleGoogleAuth(res) {
             const p = JSON.parse(atob(res.credential.split('.')[1]));
@@ -332,6 +394,7 @@ async function connect() {
     </script>
 </body>
 </html>
+
 
 
 

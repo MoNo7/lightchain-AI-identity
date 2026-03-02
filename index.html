@@ -155,12 +155,16 @@ async function updateIdentity() {
         const profile = await idContract.profiles(user);
         const isVerifiedArt = await artContract.manualVerified(user);
         
+        // We check if username is empty to determine "Registration" status
+        const hasName = profile.username && profile.username !== "";
+        
         const meta = {
             "address": user,
-            "username": profile.exists ? profile.username : "UNREGISTERED",
+            "username": hasName ? profile.username : "UNREGISTERED",
             "did": (profile.exists && profile.did) ? profile.did : `did:lcai:${user.slice(2,8)}`,
             "verified_id": profile.isVerified,
-            "verified_art": isVerifiedArt
+            "verified_art": isVerifiedArt,
+            "exists": profile.exists
         };
 
         document.getElementById('id-json').innerText = JSON.stringify(meta, null, 4);
@@ -168,31 +172,52 @@ async function updateIdentity() {
         new QRCode(document.getElementById("qr-target"), { text: JSON.stringify(meta), width: 120, height: 120 });
 
         const zone = document.getElementById('id-action-zone');
-        if(!profile.exists) {
+        
+        // CASE 1: Profile doesn't exist or has no username
+        if(!hasName) {
             zone.innerHTML = `
-                <input id="reg-user" class="panel-input" placeholder="Desired Username (e.g. MiMo)">
-                <input id="reg-did" class="panel-input" placeholder="Custom DID (or leave blank for standard)">
-                <button class="action-btn" onclick="registerProfile()">REGISTER IDENTITY</button>`;
-        } else if(!profile.isVerified) {
-            zone.innerHTML = `<button class="action-btn" style="background:#ffaa00;" onclick="mintZkVerify()">MINT ZK-VERIFY ATTESTATION</button>`;
-        } else {
-            zone.innerHTML = `<p style="color:#00c853; font-size:0.8rem; font-weight:bold;">✓ IDENTITY VERIFIED ON-CHAIN</p>`;
+                <div style="border: 1px solid #ffaa0033; padding: 15px; border-radius: 8px; background: #ffaa0005;">
+                    <p style="color:#ffaa00; font-size:0.7rem; margin-bottom:10px;">ACTION REQUIRED: INITIALIZE IDENTITY PROFILE</p>
+                    <input id="reg-user" class="panel-input" placeholder="Desired Username (e.g. MiMo)">
+                    <input id="reg-did" class="panel-input" placeholder="Custom DID (blank for default: did:lcai:...)">
+                    <button class="action-btn" onclick="registerProfile()">REGISTER & INITIALIZE</button>
+                </div>`;
+        } 
+        // CASE 2: Profile exists but is not ZK-Verified
+        else if(!profile.isVerified) {
+            zone.innerHTML = `
+                <div style="border: 1px solid var(--accent); padding: 15px; border-radius: 8px; background: #0070ff05;">
+                    <p style="color:var(--accent); font-size:0.7rem; margin-bottom:10px;">PROFILE ACTIVE: ${profile.username}</p>
+                    <button class="action-btn" style="background:#00c853;" onclick="mintZkVerify()">MINT ZK-VERIFY ATTESTATION</button>
+                </div>`;
+        } 
+        // CASE 3: Fully Verified
+        else {
+            zone.innerHTML = `<p style="color:#00c853; font-size:0.8rem; font-weight: bold;">✓ ZK-IDENTITY FULLY ANCHORED</p>`;
         }
     } catch (e) { console.error(e); }
 }
 
 async function registerProfile() {
-    const u = document.getElementById('reg-user').value || "ANONYMOUS";
+    const u = document.getElementById('reg-user').value;
     let d = document.getElementById('reg-did').value;
+    if(!u) return log("USERNAME REQUIRED", "error");
     if(!d) d = `did:lcai:${user.slice(2,8)}`;
     
     try {
-        log(`ANCHORING PROFILE: ${u}...`);
-        const tx = await idContract.createProfile(u, d, { gasLimit: 300000 });
+        log(`ANCHORING: ${u}...`);
+        // FORCE HIGHER GAS: Testnet storage updates can be expensive
+        const tx = await idContract.createProfile(u, d, { 
+            gasLimit: 1000000 
+        });
+        log("TX_SENT: Awaiting Inclusion...", "scan");
         await tx.wait();
-        log("IDENTITY REGISTERED", "success");
+        log("IDENTITY INITIALIZED", "success");
         updateIdentity();
-    } catch (e) { log("REG_FAILED: Profile may exist", "error"); }
+    } catch (e) { 
+        log("REG_FAILED: Profile may already exist. Try Minting ZK-Verify.", "error");
+        console.error(e);
+    }
 }
 
 async function mintZkVerify() {
@@ -260,3 +285,4 @@ window.onload = connectWallet;
 </script>
 </body>
 </html>
+

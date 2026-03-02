@@ -145,17 +145,23 @@
                 // Fetch LCAI via Token Address (more reliable than Pair ID for search)
                 const lcRes = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${TOKEN_ADDRESS}`);
                 const lcData = await lcRes.json();
+               
                 if (lcData.pairs && lcData.pairs.length > 0) {
-                    const price = parseFloat(lcData.pairs[0].priceUsd);
-                    document.getElementById('lcaiTicker').innerText = "$" + price.toFixed(6);
+                    // Finds the pair with the most liquidity automatically
+                    const lcaiPrice = parseFloat(lcData.pairs[0].priceUsd);
+                    document.getElementById('lcaiTicker').innerText = "$" + lcaiPrice.toFixed(6);
                 }
         
                 // Fetch ETH via the WETH/USDC pair on Base
                 const ethRes = await fetch(`https://api.dexscreener.com/latest/dex/pairs/base/${ETH_PAIR}`);
                 const ethData = await ethRes.json();
-                if (ethData.pair) {
-                    const ethPrice = parseFloat(ethData.pair.priceUsd);
-                    document.getElementById('ethTicker').innerText = "$" + ethPrice.toLocaleString(undefined, {minimumFractionDigits: 2});
+
+                if (ethData.pairs && ethData.pairs.length > 0) {
+                    const ethPrice = parseFloat(ethData.pairs[0].priceUsd);
+                    document.getElementById('ethTicker').innerText = "$" + ethPrice.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    });
                 }
             } catch (e) {
                 console.warn("Price Syncing..."); // Keeps console clean
@@ -202,6 +208,7 @@
     </script>
 </body>
 </html>
+
 
 
 

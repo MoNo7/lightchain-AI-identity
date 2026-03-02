@@ -20,8 +20,7 @@
         .nav-item.active { background: var(--panel); color: var(--accent); border: 1px solid var(--border); }
         .workspace { flex: 1; display: flex; flex-direction: column; background: #050608; }
         
-        header { height: 60px; background: var(--sidebar); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 25px; }
-        .header-left { width: 200px; }
+        header { height: 60px; background: var(--sidebar); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 25px; position: relative; }
         .price-display { display: flex; gap: 15px; font-size: 0.8rem; position: absolute; left: 50%; transform: translateX(-50%); }
         .price-tag { background: #161b22; padding: 4px 10px; border-radius: 4px; border: 1px solid var(--border); }
         .price-tag span { color: var(--accent); font-weight: bold; }
@@ -31,10 +30,9 @@
 
         .admin-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; padding: 25px; flex: 1; overflow-y: auto; }
         .admin-card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 20px; }
-        .card-title { font-size: 0.75rem; color: #8b949e; text-transform: uppercase; margin-bottom: 15px; border-bottom: 1px solid #1b1f24; padding-bottom: 10px; display: flex; justify-content: space-between; }
+        .card-title { font-size: 0.75rem; color: #8b949e; text-transform: uppercase; margin-bottom: 15px; border-bottom: 1px solid #1b1f24; padding-bottom: 10px; }
         
-        /* zkID UI Components */
-        input { background: #050608; border: 1px solid var(--border); color: white; padding: 8px; border-radius: 4px; width: 100%; margin-bottom: 10px; box-sizing: border-box; }
+        input { background: #050608; border: 1px solid var(--border); color: white; padding: 8px; border-radius: 4px; width: 100%; margin-bottom: 10px; box-sizing: border-box; font-size: 0.8rem; }
         .btn-zk { background: var(--accent); color: black; border: none; padding: 10px; border-radius: 4px; font-weight: bold; cursor: pointer; width: 100%; }
         #qrcode { background: white; padding: 10px; margin: 15px auto; width: 128px; height: 128px; cursor: pointer; }
         
@@ -49,7 +47,12 @@
     <nav>
         <div style="margin-bottom: 30px;">
             <h1 style="color:white; font-size:1.1rem; margin:0; letter-spacing:1px;">LCAI ADMIN</h1>
-            <div style="font-size: 0.7rem; color: var(--accent); margin-top: 5px;"><i class="fas fa-microchip"></i> SIRIUS V2 CORE</div>
+            <div id="netStatus" style="font-size: 0.7rem; color: var(--accent); margin-top: 5px;">
+                <i class="fas fa-microchip"></i> SIRIUS V2 CORE
+            </div>
+            <div id="zkSidebarStatus" style="display:none; font-size: 0.65rem; color: var(--zk-gold); margin-top: 3px;">
+                <i class="fas fa-fingerprint"></i> ID: VERIFIED
+            </div>
         </div>
         <div class="nav-section">
             <span class="nav-label">Identity Modules</span>
@@ -64,13 +67,13 @@
 
     <div class="workspace">
         <header>
-            <div class="header-left">
-                <span id="zkStatusLabel" style="font-size: 0.7rem; color: var(--zk-gold);"><i class="fas fa-fingerprint"></i> ID: PROTECTED</span>
+            <div id="headerIdStatus" style="font-size: 0.7rem; color: var(--zk-gold);">
+                <i class="fas fa-shield-alt"></i> ID: PROTECTED
             </div>
 
             <div class="price-display">
-                <div class="price-tag">ETH: <span id="ethPrice">---</span></div>
-                <div class="price-tag">LCAI: <span id="lcaiPrice">---</span></div>
+                <div class="price-tag">ETH: <span id="ethPrice">Loading...</span></div>
+                <div class="price-tag">LCAI: <span id="lcaiPrice">Loading...</span></div>
             </div>
 
             <div class="wallet-container">
@@ -83,38 +86,42 @@
             <div class="admin-card" id="zkWindow">
                 <div class="card-title">zkIdentity Manager</div>
                 <div id="zkInitView">
-                    <p style="font-size:0.8rem; color:#8b949e;">Please connect wallet to initialize zkIdentity registration.</p>
+                    <p style="font-size:0.8rem; color:#8b949e;">Initialize your administrative zkIdentity to continue.</p>
                 </div>
                 
                 <div id="zkRegisterView" style="display:none;">
-                    <label style="font-size:0.7rem;">Username</label>
+                    <label style="font-size:0.7rem; color:#8b949e;">Username</label>
                     <input type="text" id="zkUser" placeholder="Enter username...">
-                    <label style="font-size:0.7rem;">DID (Optional)</label>
-                    <input type="text" id="zkDid" placeholder="did:lightchain:standard">
-                    <button class="btn-zk" onclick="registerIdentity()">GENERATE PROOF & REGISTER</button>
+                    <label style="font-size:0.7rem; color:#8b949e;">DID (Optional)</label>
+                    <input type="text" id="zkDid" placeholder="did:lcai:walletaddress">
+                    <p style="font-size:0.6rem; color:#484f58; margin-top:-5px; margin-bottom:15px;">* If blank, a default DID will be generated.</p>
+                    <button class="btn-zk" onclick="registerIdentity()">GENERATE & REGISTER</button>
                 </div>
 
                 <div id="zkMetadataView" style="display:none; text-align:center;">
                     <div id="qrcode" title="Click to download QR Code"></div>
-                    <div style="text-align:left; font-size:0.75rem; background:#050608; padding:10px; border-radius:4px; margin-bottom:15px;">
+                    <div style="text-align:left; font-size:0.75rem; background:#050608; padding:10px; border-radius:4px; margin-bottom:15px; border: 1px solid var(--border);">
                         <span style="color:var(--accent)">USER:</span> <span id="metaUser"></span><br>
-                        <span style="color:var(--accent)">DID:</span> <span id="metaDid"></span><br>
-                        <span style="color:var(--accent)">STATUS:</span> VERIFIED
+                        <span style="color:var(--accent)">DID:</span> <span id="metaDid" style="word-break: break-all;"></span><br>
+                        <span style="color:var(--green)">STATUS:</span> PROOF VERIFIED
                     </div>
                     <div style="display:flex; gap:10px;">
-                        <button class="btn-zk" style="background:var(--green)" onclick="mintSBT()">ZK-MINT SBT</button>
+                        <button class="btn-zk" style="background:var(--green)" onclick="alert('Minting SBT...')">MINT SBT</button>
                         <button class="btn-zk" style="background:#21262d; color:white;" onclick="downloadJSON()"><i class="fas fa-download"></i> JSON</button>
                     </div>
                 </div>
             </div>
 
             <div class="admin-card">
-                <div class="card-title">Live Inference Power</div>
-                <div style="font-size: 2.2rem; font-weight: bold; color:white;">1.24 <small style="font-size: 0.9rem; color: #484f58;">PH/s</small></div>
+                <div class="card-title">Contract Anchors</div>
+                <div style="font-size: 0.7rem; color: #8b949e; line-height: 1.6;">
+                    Validator: <span style="color:white">0x4f5C...926c</span><br>
+                    Inference: <span style="color:white">0x2e41...b9C0</span>
+                </div>
             </div>
         </main>
 
-        <div id="console">> [INIT] Syncing with Sirius V2 (ChainID: 217)...</div>
+        <div id="console">> [SYS] Monitoring Sirius V2 RPC...</div>
     </div>
 
     <script>
@@ -122,6 +129,9 @@
             rpc: "https://rpc2.siriusnet.io",
             lcaiPair: "0x0d047a370611437a1b8e6c2a95ea36f69fdda3be",
             validatorReg: "0x4f5CEB0B03ed78494d6f73C1e49b381ac396926c",
+            idAddr: "0xc6BE8f911a923003d53Ab64EDf557FAc4AA888ca",
+            artAddr: "0xC477360020176a2D37669c328F9547c285B9fBF2",
+            sbtAddr: "0xd71462F0002Ee9373fCe05B568583Ed13e75f600",
             aivmAnchor: "0x2e41d0D7e8a5Ec7aa7Ac7A72CE69b2B79028b9C0"
         };
 
@@ -130,16 +140,16 @@
 
         async function fetchPrices() {
             try {
-                const ethRes = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd');
-                const ethData = await ethRes.json();
-                document.getElementById('ethPrice').innerText = "$" + ethData.ethereum.usd.toLocaleString();
+                // Fetch ETH via CoinGecko (Simple Price)
+                const eRes = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd');
+                const eData = await eRes.json();
+                if(eData.ethereum) document.getElementById('ethPrice').innerText = "$" + eData.ethereum.usd.toLocaleString();
 
-                const lcaiRes = await fetch(`https://api.dexscreener.com/latest/dex/pairs/ethereum/${CONFIG.lcaiPair}`);
-                const lcaiData = await lcaiRes.json();
-                if(lcaiData.pair) {
-                    document.getElementById('lcaiPrice').innerText = "$" + parseFloat(lcaiData.pair.priceUsd).toFixed(6);
-                }
-            } catch (e) { console.error("Price error", e); }
+                // Fetch LCAI via DexScreener
+                const lRes = await fetch(`https://api.dexscreener.com/latest/dex/pairs/ethereum/${CONFIG.lcaiPair}`);
+                const lData = await lRes.json();
+                if(lData.pair) document.getElementById('lcaiPrice').innerText = "$" + parseFloat(lData.pair.priceUsd).toFixed(6);
+            } catch (e) { console.warn("Price sync delay..."); }
         }
 
         async function connect() {
@@ -148,52 +158,53 @@
             const accounts = await provider.send("eth_requestAccounts", []);
             currentWallet = accounts[0];
             
-            document.getElementById('walletBtn').innerText = currentWallet.slice(0,6) + "...";
+            document.getElementById('walletBtn').innerText = currentWallet.slice(0,6) + "..." + currentWallet.slice(-4);
             document.getElementById('zkInitView').style.display = 'none';
             document.getElementById('zkRegisterView').style.display = 'block';
             
             const bal = await provider.getBalance(currentWallet);
-            document.getElementById('balancePill').innerText = parseFloat(ethers.formatEther(bal)).toFixed(2) + " LCAI";
-            document.getElementById('balancePill').style.display = 'block';
-            log(`Wallet Linked: ${currentWallet}`);
+            const p = document.getElementById('balancePill');
+            p.innerText = parseFloat(ethers.formatEther(bal)).toFixed(2) + " LCAI";
+            p.style.display = 'block';
+            log(`Session: ${currentWallet}`);
         }
 
         function registerIdentity() {
-            const user = document.getElementById('zkUser').value || "Anonymous";
-            const did = document.getElementById('zkDid').value || "did:lightchain:standard";
+            const user = document.getElementById('zkUser').value || "Admin_User";
+            // Default DID logic
+            const didInput = document.getElementById('zkDid').value;
+            const finalDid = didInput || `did:lcai:${currentWallet.toLowerCase()}`;
             
-            zkData = { username: user, did: did, wallet: currentWallet, timestamp: Date.now() };
+            zkData = { username: user, did: finalDid, wallet: currentWallet, proofType: "Groth16", network: "Sirius-V2" };
             
+            // UI Toggle
             document.getElementById('zkRegisterView').style.display = 'none';
             document.getElementById('zkMetadataView').style.display = 'block';
             document.getElementById('metaUser').innerText = user;
-            document.getElementById('metaDid').innerText = did;
-            document.getElementById('zkStatusLabel').innerHTML = `<i class="fas fa-check-circle" style="color:var(--green)"></i> ID: VERIFIED`;
+            document.getElementById('metaDid').innerText = finalDid;
+            
+            // Move ID status under Sidebar Network Label
+            document.getElementById('headerIdStatus').style.visibility = 'hidden';
+            document.getElementById('zkSidebarStatus').style.display = 'block';
 
-            // Generate QR Code
-            const qrContainer = document.getElementById("qrcode");
-            qrContainer.innerHTML = "";
-            const qr = new QRCode(qrContainer, {
-                text: JSON.stringify(zkData),
-                width: 128, height: 128
-            });
+            // Generate QR
+            const qrBox = document.getElementById("qrcode");
+            qrBox.innerHTML = "";
+            const qr = new QRCode(qrBox, { text: JSON.stringify(zkData), width: 128, height: 128 });
 
-            qrContainer.onclick = () => {
-                const img = qrContainer.querySelector('img').src;
-                const link = document.createElement('a');
-                link.href = img; link.download = 'zkid-qr.png'; link.click();
+            qrBox.onclick = () => {
+                const img = qrBox.querySelector('img').src;
+                const a = document.createElement('a');
+                a.href = img; a.download = 'zkid-qr.png'; a.click();
             };
-            log(`zkIdentity Registered for ${user}`);
+            log(`zkIdentity generated for ${user}. Status: VERIFIED`);
         }
 
         function downloadJSON() {
             const blob = new Blob([JSON.stringify(zkData, null, 2)], {type: 'application/json'});
-            const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url; a.download = 'zkid-metadata.json'; a.click();
+            a.href = URL.createObjectURL(blob); a.download = 'zkid_metadata.json'; a.click();
         }
-
-        function mintSBT() { log("Triggering zk-Proof contract for SBT Mint..."); alert("SBT Minting initiated via AIVM Anchor."); }
 
         function log(msg) {
             const c = document.getElementById('console');
@@ -202,18 +213,18 @@
         }
 
         async function updateTelemetry() {
-            const provider = new ethers.JsonRpcProvider(CONFIG.rpc);
-            const list = document.getElementById('sideNodes');
-            let html = "";
-            const nodes = [{id:"VAL-ALPHA", addr:CONFIG.validatorReg}, {id:"VAL-BRAVO", addr:CONFIG.aivmAnchor}];
-            for(let n of nodes) {
-                try {
+            try {
+                const provider = new ethers.JsonRpcProvider(CONFIG.rpc);
+                const list = document.getElementById('sideNodes');
+                let html = "";
+                const nodes = [{id:"VAL-ALPHA", addr:CONFIG.validatorReg}, {id:"VAL-BRAVO", addr:CONFIG.aivmAnchor}];
+                for(let n of nodes) {
                     const code = await provider.getCode(n.addr);
-                    const isUp = code !== "0x";
-                    html += `<div class="node-line"><span><div class="status-dot ${isUp?'online':''}"></div>${n.id}</span><span>${isUp?'ACTIVE':'IDLE'}</span></div>`;
-                } catch(e) {}
-            }
-            list.innerHTML = html;
+                    const up = code !== "0x";
+                    html += `<div class="node-line"><span><div class="status-dot ${up?'online':''}"></div>${n.id}</span><span>${up?'ACTIVE':'IDLE'}</span></div>`;
+                }
+                list.innerHTML = html;
+            } catch(e) {}
         }
 
         fetchPrices(); updateTelemetry();

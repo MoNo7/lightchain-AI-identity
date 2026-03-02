@@ -10,49 +10,28 @@
         :root {
             --bg: #030406; --sidebar: #0a0c10; --accent: #00f2ff;
             --text: #c9d1d9; --border: #1b1f24; --panel: #0d1117;
-            --zk-gold: #ffcc00; --green: #39d353;
+            --zk-gold: #ffcc00; --green: #39d353; --red: #ff4444;
         }
         body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; display: flex; height: 100vh; overflow: hidden; }
-        
-        /* Sidebar Navigation */
         nav { width: 260px; background: var(--sidebar); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; }
         .nav-section { margin-bottom: 25px; }
         .nav-label { font-size: 0.65rem; color: #484f58; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; display: block; }
         .nav-item { padding: 10px; cursor: pointer; color: #8b949e; display: flex; align-items: center; gap: 10px; border-radius: 6px; font-size: 0.85rem; transition: 0.2s; }
-        .nav-item:hover { color: white; background: rgba(255,255,255,0.05); }
         .nav-item.active { background: var(--panel); color: var(--accent); border: 1px solid var(--border); }
-        
-        /* Layout Modules */
         .workspace { flex: 1; display: flex; flex-direction: column; background: #050608; overflow: hidden; }
         header { height: 60px; background: var(--sidebar); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 25px; position: relative; flex-shrink: 0; }
-        
-        /* Price Display Tickers */
         .price-display { display: flex; gap: 15px; font-size: 0.8rem; position: absolute; left: 50%; transform: translateX(-50%); }
-        .price-tag { background: #161b22; padding: 4px 12px; border-radius: 4px; border: 1px solid var(--border); display: flex; gap: 8px; }
+        .price-tag { background: #161b22; padding: 4px 12px; border-radius: 4px; border: 1px solid var(--border); }
         .price-tag span { color: var(--accent); font-weight: bold; }
-
         .wallet-container { display: flex; align-items: center; gap: 12px; }
-        .balance-pill { background: rgba(0, 242, 255, 0.1); border: 1px solid var(--accent); padding: 5px 12px; border-radius: 15px; font-size: 0.8rem; color: var(--accent); display: none; font-weight: 600; }
-
-        /* Dashboard Grid */
-        .admin-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; padding: 25px; flex: 1; overflow-y: auto; align-content: start; }
-        .admin-card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 20px; display: flex; flex-direction: column; }
+        .balance-pill { background: rgba(0, 242, 255, 0.1); border: 1px solid var(--accent); padding: 5px 12px; border-radius: 15px; font-size: 0.8rem; color: var(--accent); display: none; }
+        .admin-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; padding: 25px; flex: 1; overflow-y: auto; }
+        .admin-card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 20px; }
         .card-title { font-size: 0.75rem; color: #484f58; text-transform: uppercase; margin-bottom: 15px; border-bottom: 1px solid #1b1f24; padding-bottom: 10px; font-weight: bold; }
-        
-        /* Inputs & Buttons */
         input { background: #050608; border: 1px solid var(--border); color: white; padding: 10px; border-radius: 4px; width: 100%; margin-bottom: 10px; box-sizing: border-box; font-size: 0.85rem; }
-        input:focus { border-color: var(--accent); outline: none; }
-        .btn-zk { background: var(--accent); color: black; border: none; padding: 12px; border-radius: 4px; font-weight: bold; cursor: pointer; width: 100%; transition: 0.3s; }
-        .btn-zk:hover { filter: brightness(1.2); }
-        
-        #qrcode { background: white; padding: 8px; margin: 15px auto; width: 128px; height: 128px; cursor: pointer; border-radius: 4px; }
-        
-        /* Telemetry Elements */
-        .node-line { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px dotted #21262d; font-size: 0.75rem; }
-        .status-dot { height: 6px; width: 6px; border-radius: 50%; background: #484f58; margin-right: 8px; display: inline-block; }
-        .status-dot.online { background: var(--green); box-shadow: 0 0 8px var(--green); }
-        
-        #console { height: 160px; background: #000; border-top: 1px solid var(--border); color: var(--green); font-family: 'Courier New', monospace; padding: 15px; overflow-y: auto; font-size: 0.8rem; flex-shrink: 0; }
+        .btn-zk { background: var(--accent); color: black; border: none; padding: 10px; border-radius: 4px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 5px; }
+        #console { height: 140px; background: #000; border-top: 1px solid var(--border); color: var(--green); font-family: monospace; padding: 15px; overflow-y: auto; font-size: 0.75rem; }
+        .tele-row { display: flex; justify-content: space-between; font-size: 0.75rem; padding: 5px 0; border-bottom: 1px solid #1b1f24; }
     </style>
 </head>
 <body>
@@ -60,25 +39,24 @@
     <nav>
         <div style="margin-bottom: 30px;">
             <h1 style="color:white; font-size:1.1rem; margin:0; letter-spacing:1px;">LCAI ADMIN</h1>
-            <div id="netLabel" style="font-size: 0.7rem; color: var(--accent); margin-top: 5px;">
-                <i class="fas fa-microchip"></i> SIRIUS V2 CORE
-            </div>
-            <div id="zkSidebarStatus" style="display:none; font-size: 0.65rem; color: var(--zk-gold); margin-top: 3px;">
-                <i class="fas fa-fingerprint"></i> ID: VERIFIED
-            </div>
+            <div style="font-size: 0.7rem; color: var(--accent); margin-top: 5px;"><i class="fas fa-microchip"></i> SIRIUS V2 CORE</div>
+            <div id="zkSidebarStatus" style="display:none; font-size: 0.65rem; color: var(--zk-gold); margin-top: 3px;"><i class="fas fa-fingerprint"></i> ID: PROTECTED</div>
         </div>
 
         <div class="nav-section">
-            <span class="nav-label">Identity Modules</span>
-            <div class="nav-item active"><i class="fas fa-user-shield"></i> zkIdentity Manager</div>
-            <div class="nav-item"><i class="fas fa-id-card"></i> SBT Attestations</div>
+            <span class="nav-label">User Access</span>
+            <div class="nav-item active" onclick="showView('zkWindow')"><i class="fas fa-user-shield"></i> zkIdentity Manager</div>
         </div>
 
-        <div id="adminMenuSection" class="nav-section" style="display:none; border-top: 1px solid var(--border); pt-20px; padding-top: 20px;">
+        <div id="adminMenu" class="nav-section" style="display:none;">
             <span class="nav-label">Admin Control</span>
-            <div class="nav-item"><i class="fas fa-terminal"></i> Admin Console</div>
-            <div class="nav-item"><i class="fas fa-user-crown"></i> Owner Panel</div>
-            <div class="nav-item"><i class="fas fa-satellite-dish"></i> Model Telemetry</div>
+            <div class="nav-item" onclick="showView('adminPanel')"><i class="fas fa-terminal"></i> Admin Console</div>
+            <div class="nav-item" onclick="showView('modelTelemetry')"><i class="fas fa-satellite-dish"></i> Model Telemetry</div>
+        </div>
+
+        <div id="ownerMenu" class="nav-section" style="display:none;">
+            <span class="nav-label">Owner Operations</span>
+            <div class="nav-item" onclick="showView('ownerPanel')"><i class="fas fa-user-crown"></i> Revenue Panel</div>
         </div>
 
         <div class="telemetry-group" style="margin-top:auto;">
@@ -89,78 +67,72 @@
 
     <div class="workspace">
         <header>
-            <div id="headerIdStatus" style="font-size: 0.7rem; color: var(--zk-gold);">
-                <i class="fas fa-shield-alt"></i> ID: PROTECTED
-            </div>
-
+            <div style="width:100px;"></div>
             <div class="price-display">
-                <div class="price-tag">ETH: <span id="ethPrice">Loading...</span></div>
-                <div class="price-tag">LCAI: <span id="lcaiPrice">Loading...</span></div>
+                <div class="price-tag">ETH: <span id="ethPrice">---</span></div>
+                <div class="price-tag">LCAI: <span id="lcaiPrice">---</span></div>
             </div>
-
             <div class="wallet-container">
                 <div id="balancePill" class="balance-pill">0.00 LCAI</div>
-                <button onclick="connect()" id="walletBtn" style="background:var(--accent); color:black; border:none; padding:8px 16px; border-radius:4px; font-weight:bold; cursor:pointer; font-size:0.8rem;">CONNECT ID</button>
+                <button onclick="connect()" id="walletBtn" style="background:var(--accent); color:black; border:none; padding:7px 15px; border-radius:4px; font-weight:bold; cursor:pointer;">CONNECT ID</button>
             </div>
         </header>
 
-        <main class="admin-grid">
-            <div class="admin-card" id="zkWindow">
+        <main class="admin-grid" id="mainGrid">
+            <div class="admin-card view-card" id="zkWindow">
                 <div class="card-title">zkIdentity Manager</div>
-                
-                <div id="zkInitView">
-                    <p style="font-size:0.85rem; color:#8b949e; line-height:1.5;">Welcome to the Sirius V2 IAM Portal. Please link your administrative wallet to begin the zkIdentity verification process.</p>
+                <div id="zkReg" style="display:none;">
+                    <input type="text" id="zkUser" placeholder="Username">
+                    <input type="text" id="zkDid" placeholder="Custom DID (Optional)">
+                    <p style="font-size:0.65rem; color:#484f58;">* Blank = did:lcai:[wallet]</p>
+                    <button class="btn-zk" onclick="register()">REGISTER ID</button>
                 </div>
-                
-                <div id="zkRegisterView" style="display:none;">
-                    <label style="font-size:0.7rem; color:#8b949e; text-transform:uppercase;">Username</label>
-                    <input type="text" id="zkUser" placeholder="Enter admin handle...">
-                    <label style="font-size:0.7rem; color:#8b949e; text-transform:uppercase;">DID Override (Optional)</label>
-                    <input type="text" id="zkDid" placeholder="did:lcai:walletid">
-                    <p style="font-size:0.65rem; color:#484f58; margin-bottom:15px;">Note: If left blank, a standard DID will be generated using your wallet address.</p>
-                    <button class="btn-zk" onclick="registerIdentity()">GENERATE & REGISTER</button>
-                </div>
-
-                <div id="zkMetadataView" style="display:none; text-align:center;">
-                    <div id="qrcode" title="Click to download QR Code"></div>
-                    <div style="text-align:left; font-size:0.8rem; background:#050608; padding:12px; border-radius:4px; margin-bottom:15px; border: 1px solid var(--border);">
-                        <div style="margin-bottom:5px;"><span style="color:var(--accent)">USER:</span> <span id="metaUser"></span></div>
-                        <div style="margin-bottom:5px;"><span style="color:var(--accent)">DID:</span> <span id="metaDid" style="word-break: break-all; font-size:0.7rem;"></span></div>
-                        <div><span style="color:var(--green)">STATUS:</span> PROOF VERIFIED</div>
+                <div id="zkMeta" style="display:none; text-align:center;">
+                    <div id="qrcode" style="margin: 0 auto 15px;"></div>
+                    <div style="text-align:left; font-size:0.75rem; background:#050608; padding:10px; border-radius:4px; border:1px solid var(--border);">
+                        <span style="color:var(--accent)">USER:</span> <span id="mUser"></span><br>
+                        <span style="color:var(--accent)">DID:</span> <span id="mDid" style="word-break:break-all;"></span>
                     </div>
-                    <div style="display:flex; gap:10px;">
-                        <button class="btn-zk" style="background:var(--green)" onclick="mintSBT()">MINT ZK-SBT</button>
-                        <button class="btn-zk" style="background:#21262d; color:white;" onclick="downloadJSON()"><i class="fas fa-download"></i> JSON</button>
-                    </div>
+                    <button class="btn-zk" style="background:var(--green)" onclick="mintSBT()">MINT ZK-KYC SBT</button>
                 </div>
             </div>
 
-            <div class="admin-card">
-                <div class="card-title">Contract Registry</div>
-                <div style="font-size: 0.75rem; color: #8b949e; line-height: 1.8;">
-                    LCAI Token: <span style="color:white; font-family:monospace;">0x9ca8...8927</span><br>
-                    zkKYC SBT: <span style="color:white; font-family:monospace;">0xd714...f600</span><br>
-                    AIVM Anchor: <span style="color:white; font-family:monospace;">0x2e41...b9C0</span>
+            <div class="admin-card view-card" id="adminPanel" style="display:none;">
+                <div class="card-title">Admin Management</div>
+                <input type="text" id="queryAddr" placeholder="Query Wallet Address...">
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <button class="btn-zk" onclick="log('Verifying Address...')">VERIFY</button>
+                    <button class="btn-zk" style="background:var(--red); color:white" onclick="log('Revoking Credentials...')">REVOKE</button>
                 </div>
+                <button class="btn-zk" style="background:#21262d; color:white; margin-top:10px;" onclick="resetProfile()">DELETE PROFILE & REREGISTER</button>
+            </div>
+
+            <div class="admin-card view-card" id="ownerPanel" style="display:none;">
+                <div class="card-title">Owner Revenue</div>
+                <div style="font-size:0.7rem; color:#8b949e;">TOTAL REVENUE</div>
+                <div style="font-size:1.8rem; font-weight:bold; color:var(--zk-gold); margin-bottom:15px;">42.85 <small>LCAI</small></div>
+                <button class="btn-zk" style="background:var(--accent)" onclick="log('Withdrawal Initiated...')">WITHDRAW TO COLD WALLET</button>
+            </div>
+
+            <div class="admin-card view-card" id="modelTelemetry" style="display:none;">
+                <div class="card-title">Inference Model Status</div>
+                <div class="tele-row"><span>Llama-3-70B</span><span style="color:var(--green)">ONLINE (12%)</span></div>
+                <div class="tele-row"><span>Stable-Diffusion-XL</span><span style="color:var(--green)">ONLINE (45%)</span></div>
+                <div class="tele-row"><span>Mistral-Large-V2</span><span style="color:var(--zk-gold)">LOAD-BALANCING</span></div>
+                <div class="tele-row"><span>Custom-SBT-Verifier</span><span style="color:var(--green)">ACTIVE</span></div>
             </div>
         </main>
 
-        <div id="console">> [SYS] Booting Sirius V2 IAM Interface...<br>> [SYS] Awaiting administrative credentials.</div>
+        <div id="console">> [SYS] Awaiting ZK Credentials...</div>
     </div>
 
     <script>
         const CONFIG = {
             rpc: "https://rpc2.siriusnet.io",
             lcaiPair: "0x0d047a370611437a1b8e6c2a95ea36f69fdda3be",
-            validatorReg: "0x4f5CEB0B03ed78494d6f73C1e49b381ac396926c",
-            aivmAnchor: "0x2e41d0D7e8a5Ec7aa7Ac7A72CE69b2B79028b9C0",
             sbtAddr: "0xd71462F0002Ee9373fCe05B568583Ed13e75f600",
-            // Full ABI for lcai-zkkycsbt.sol Mint function
-            sbtABI: [
-                "function mintSBT(string memory username, string memory did) public returns (uint256)",
-                "function hasSBT(address user) public view returns (bool)",
-                "function getMetadata(address user) public view returns (string memory, string memory)"
-            ]
+            owner: "0x4D36B31d4BFB957A5D816B0f420a9e755EFc6a2c",
+            sbtABI: ["function mintSBT(string username, string did) public"]
         };
 
         let currentWallet = null;
@@ -170,12 +142,11 @@
             try {
                 const eRes = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd');
                 const eData = await eRes.json();
-                if(eData.ethereum) document.getElementById('ethPrice').innerText = "$" + eData.ethereum.usd.toLocaleString();
-
+                document.getElementById('ethPrice').innerText = "$" + eData.ethereum.usd.toLocaleString();
                 const lRes = await fetch(`https://api.dexscreener.com/latest/dex/pairs/ethereum/${CONFIG.lcaiPair}`);
                 const lData = await lRes.json();
-                if(lData.pair) document.getElementById('lcaiPrice').innerText = "$" + parseFloat(lData.pair.priceUsd).toFixed(6);
-            } catch (e) { console.warn("Price feed delay..."); }
+                document.getElementById('lcaiPrice').innerText = "$" + parseFloat(lData.pair.priceUsd).toFixed(6);
+            } catch(e){}
         }
 
         async function connect() {
@@ -183,102 +154,65 @@
             const provider = new ethers.BrowserProvider(window.ethereum);
             const accounts = await provider.send("eth_requestAccounts", []);
             currentWallet = accounts[0];
+            document.getElementById('walletBtn').innerText = currentWallet.slice(0,6) + "...";
+            document.getElementById('zkReg').style.display = 'block';
             
-            document.getElementById('walletBtn').innerText = currentWallet.slice(0,6) + "..." + currentWallet.slice(-4);
-            document.getElementById('zkInitView').style.display = 'none';
-            document.getElementById('zkRegisterView').style.display = 'block';
-            
-            // Show Admin Section after connect
-            document.getElementById('adminMenuSection').style.display = 'block';
+            // Access Control
+            document.getElementById('adminMenu').style.display = 'block';
+            if(currentWallet.toLowerCase() === CONFIG.owner.toLowerCase()) {
+                document.getElementById('ownerMenu').style.display = 'block';
+            }
             
             const bal = await provider.getBalance(currentWallet);
-            const pill = document.getElementById('balancePill');
-            pill.innerText = parseFloat(ethers.formatEther(bal)).toFixed(2) + " LCAI";
-            pill.style.display = 'block';
-            
-            log(`Admin Session Authorized: ${currentWallet}`);
+            document.getElementById('balancePill').innerText = parseFloat(ethers.formatEther(bal)).toFixed(2) + " LCAI";
+            document.getElementById('balancePill').style.display = 'block';
+            log("Session Authorized.");
         }
 
-        function registerIdentity() {
-            const user = document.getElementById('zkUser').value || "Admin_Root";
-            const didInput = document.getElementById('zkDid').value;
-            const finalDid = didInput || `did:lcai:${currentWallet.toLowerCase()}`;
-            
-            zkData = { username: user, did: finalDid, wallet: currentWallet, verified: true, ts: Date.now() };
-            
-            document.getElementById('zkRegisterView').style.display = 'none';
-            document.getElementById('zkMetadataView').style.display = 'block';
-            document.getElementById('metaUser').innerText = user;
-            document.getElementById('metaDid').innerText = finalDid;
-            
-            // Permanent sidebar status update
-            document.getElementById('headerIdStatus').style.visibility = 'hidden';
+        function register() {
+            const user = document.getElementById('zkUser').value || "Admin";
+            const did = document.getElementById('zkDid').value || `did:lcai:${currentWallet.toLowerCase()}`;
+            zkData = { username: user, did: did };
+            document.getElementById('zkReg').style.display = 'none';
+            document.getElementById('zkMeta').style.display = 'block';
+            document.getElementById('mUser').innerText = user;
+            document.getElementById('mDid').innerText = did;
             document.getElementById('zkSidebarStatus').style.display = 'block';
-
-            const qrBox = document.getElementById("qrcode");
-            qrBox.innerHTML = "";
-            const qr = new QRCode(qrBox, { text: JSON.stringify(zkData), width: 128, height: 128 });
-
-            qrBox.onclick = () => {
-                const img = qrBox.querySelector('img').src;
-                const a = document.createElement('a');
-                a.href = img; a.download = 'zkid-admin-qr.png'; a.click();
-            };
-            log(`zkIdentity generated for ${user}. Status: VERIFIED`);
+            new QRCode(document.getElementById("qrcode"), { text: JSON.stringify(zkData), width: 128, height: 128 });
+            log(`ID Registered: ${user}`);
         }
 
         async function mintSBT() {
-            if(!window.ethereum || !zkData) return;
-            log("Initializing zk-KYC SBT route (lcai-zkkycsbt.sol)...");
             try {
                 const provider = new ethers.BrowserProvider(window.ethereum);
                 const signer = await provider.getSigner();
                 const contract = new ethers.Contract(CONFIG.sbtAddr, CONFIG.sbtABI, signer);
-                
-                log(`Executing mintSBT("${zkData.username}", "${zkData.did}")...`);
-                // Note: Actual transaction requires gas on Sirius V2 Testnet
-                alert(`Transaction would be sent to: ${CONFIG.sbtAddr}\nUser: ${zkData.username}\nDID: ${zkData.did}`);
-                log("Transaction request sent to AIVM Proof aggregator.");
-            } catch (e) { 
-                log("Minting Error: User rejected or insufficient gas.");
-                console.error(e);
-            }
+                log("Executing Mint via lcai-zkkycsbt.sol...");
+                alert(`Routing Mint to: ${CONFIG.sbtAddr}`);
+            } catch(e){ log("Mint Error."); }
         }
 
-        function downloadJSON() {
-            const blob = new Blob([JSON.stringify(zkData, null, 2)], {type: 'application/json'});
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob); a.download = 'zkid_admin_metadata.json'; a.click();
+        function resetProfile() {
+            zkData = null;
+            document.getElementById('zkMeta').style.display = 'none';
+            document.getElementById('zkReg').style.display = 'block';
+            document.getElementById('zkSidebarStatus').style.display = 'none';
+            log("Profile Cleared. Ready for re-registration.");
         }
 
-        function log(msg) {
+        function showView(id) {
+            document.querySelectorAll('.view-card').forEach(c => c.style.display = 'none');
+            document.getElementById(id).style.display = 'block';
+        }
+
+        function log(m) {
             const c = document.getElementById('console');
-            c.innerHTML += `<br>> [${new Date().toLocaleTimeString()}] ${msg}`;
+            c.innerHTML += `<br>> [${new Date().toLocaleTimeString()}] ${m}`;
             c.scrollTop = c.scrollHeight;
         }
 
-        async function updateTelemetry() {
-            try {
-                const provider = new ethers.JsonRpcProvider(CONFIG.rpc);
-                const list = document.getElementById('sideNodes');
-                let html = "";
-                const nodes = [
-                    {id:"VAL-ALPHA", addr:CONFIG.validatorReg}, 
-                    {id:"SBT-KYC", addr:CONFIG.sbtAddr},
-                    {id:"AIVM-CORE", addr:CONFIG.aivmAnchor}
-                ];
-                for(let n of nodes) {
-                    const code = await provider.getCode(n.addr);
-                    const up = code !== "0x";
-                    html += `<div class="node-line"><span><div class="status-dot ${up?'online':''}"></div>${n.id}</span><span>${up?'ACTIVE':'IDLE'}</span></div>`;
-                }
-                list.innerHTML = html;
-            } catch(e) {}
-        }
-
-        fetchPrices(); updateTelemetry();
-        setInterval(fetchPrices, 5000);
-        setInterval(updateTelemetry, 7000);
+        fetchPrices();
+        setInterval(fetchPrices, 30000);
     </script>
 </body>
 </html>

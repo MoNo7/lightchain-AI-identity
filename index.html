@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <title>Lightchain AI | IAM Control Center</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.11.1/ethers.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         :root { --accent: #0070ff; --bg: #020408; --panel: #0b0e14; --border: #1e2633; --text-dim: #6a768a; --console-bg: #05070a; }
         body { margin: 0; background: var(--bg); color: white; font-family: 'Inter', sans-serif; display: flex; height: 100vh; overflow: hidden; }
@@ -26,10 +25,11 @@
         .card { background: var(--panel); border: 1px solid var(--border); padding: 30px; border-radius: 12px; border-top: 4px solid var(--accent); margin-bottom: 20px; }
         .admin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
         .panel-input { width: 100%; background: #000; border: 1px solid #333; color: white; padding: 12px; border-radius: 4px; font-size: 0.75rem; margin-bottom: 12px; box-sizing: border-box; font-family: monospace; }
-        .action-btn { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; width: 100%; font-weight: bold; margin-bottom: 10px; }
+        .action-btn { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; width: 100%; font-weight: bold; margin-bottom: 10px; transition: 0.2s; }
+        .action-btn:hover { opacity: 0.8; }
         #gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
         .thumb { background: #000; padding: 10px; border-radius: 8px; border: 1px solid var(--border); text-align: center; }
-        .thumb img { width: 100%; border-radius: 4px; cursor: pointer; }
+        .thumb img { width: 100%; border-radius: 4px; }
     </style>
 </head>
 <body>
@@ -42,7 +42,7 @@
     <div class="nav-menu">
         <button class="nav-link active" onclick="showView('gallery-view', this); initGallery();">NETWORK GALLERY</button>
         <button class="nav-link" onclick="showView('id-view', this); updateIdentity();">ZK IDENTITY</button>
-        <button class="nav-link" onclick="showView('admin-view', this)">ADMIN PANEL</button>
+        <button class="nav-link" onclick="showView('admin-view', this); syncAdminData();">ADMIN PANEL</button>
         <button class="nav-link" onclick="showView('aivm-view', this)">AIVM ART GEN</button>
     </div>
 </nav>
@@ -50,10 +50,10 @@
 <div class="viewport">
     <header>
         <div class="pill sys" style="color:var(--accent)">
-            MODEL: <span id="sys-model">AIVM-V1</span> | STATE: <span id="status-txt">ACTIVE</span>
+            MODEL: <span id="sys-model">AIVM-V1</span> | STATE: <span id="status-txt">ACTIVE</span> | LOAD: <span id="sys-load">2.4%</span>
         </div>
         <div class="pill price">
-            ETH: <span id="eth-price">SYNCING...</span> | LCAI: <span id="lcai-price">SYNCING...</span>
+            ETH: <span id="eth-price">--</span> | LCAI: <span id="lcai-price">--</span>
         </div>
         <button id="wallet-btn" class="wallet-pill" onclick="connectWallet()">CONNECT WALLET</button>
     </header>
@@ -66,13 +66,10 @@
     </div>
 
     <div id="id-view" class="view-pane">
-        <div class="card" style="max-width: 900px;">
+        <div class="card" style="max-width: 800px;">
             <h2>ZK-SBT IDENTITY</h2>
-            <div style="display:flex; gap:20px; margin-bottom:20px;">
-                <pre id="id-json" style="flex:1; background:#05070a; padding:15px; font-size:0.7rem; color:var(--text-dim); border:1px solid var(--border);">// Loading Identity...</pre>
-                <div id="qr-target" style="background:white; padding:10px; border-radius:8px; cursor:pointer;" onclick="downloadQR()"></div>
-            </div>
-            <div id="id-action-zone"></div>
+            <pre id="id-json" style="background:#05070a; padding:15px; font-size:0.75rem; color:var(--text-dim); border:1px solid var(--border); border-radius:8px;">// Connect Wallet to sync ZK-Data...</pre>
+            <div id="id-action-zone" style="margin-top:20px;"></div>
         </div>
     </div>
 
@@ -80,28 +77,29 @@
         <div class="admin-grid">
             <div class="card">
                 <h2>ADMINISTRATION</h2>
-                <button class="action-btn" style="background:#00c853;" onclick="verifySelf()">VERIFY SELF (ART PERMISSION)</button>
-                <hr style="border:0; border-top:1px solid var(--border); margin: 20px 0;">
-                <textarea id="admin-target" class="panel-input" style="height:60px;" placeholder="0x... Wallet Address"></textarea>
-                <button class="action-btn" onclick="batchApprove()">AUTHORIZE TARGET</button>
-                <button class="action-btn" style="background:#ff4444;" onclick="resetIdentity()">FORCE RESET ID (WIPE)</button>
+                <input id="admin-target" class="panel-input" placeholder="0x... Target Wallet Address">
+                <button class="action-btn" onclick="batchApprove()">BATCH AUTHORIZE (KYC+ART)</button>
+                <button class="action-btn" style="background:#6a768a;" onclick="verifyUser(true)">VERIFY ARTIST</button>
+                <button class="action-btn" style="background:#ff4444;" onclick="resetIdentity()">FORCE RESET IDENTITY (WIPE)</button>
             </div>
             
-            <div class="card" id="owner-panel" style="display:none; border-top-color:#ffaa00;">
+            <div class="card" id="owner-panel" style="border-top-color:#ffaa00;">
                 <h3>OWNER TREASURY</h3>
-                <p style="font-size:0.8rem; color:var(--text-dim);">Contract Revenue: <br><span id="contract-rev" style="color:white; font-size: 1.5rem; font-weight: bold;">0.00</span> LCAI</p>
-                <button class="action-btn" style="background:#ffaa00; margin-top: 15px;" onclick="withdrawRevenue()">WITHDRAW ALL FUNDS</button>
+                <p style="font-size:0.8rem; color:var(--text-dim);">Contract Revenue: <br>
+                <span id="contract-rev" style="color:white; font-size: 1.8rem; font-weight: 900;">0.00</span> <span style="font-size:0.8rem;">LCAI</span></p>
+                <button class="action-btn" style="background:#ffaa00; margin-top: 15px;" onclick="withdrawRevenue()">WITHDRAW REVENUE</button>
+                <button class="action-btn" style="background:transparent; border:1px solid #333;" onclick="syncAdminData()">REFRESH TREASURY</button>
             </div>
         </div>
     </div>
 
     <div id="aivm-view" class="view-pane">
-        <div class="card" style="max-width: 900px;">
+        <div class="card" style="max-width: 800px;">
             <h2>AIVM NEURAL ENGINE</h2>
-            <textarea id="art-prompt" class="panel-input" style="height:80px;" placeholder="Describe your vision..."></textarea>
-            <button class="action-btn" onclick="generateArt()">REQUEST INFERENCE (0.25 tLCAI)</button>
+            <textarea id="art-prompt" class="panel-input" style="height:100px;" placeholder="Visual prompt for AIVM inference..."></textarea>
+            <button class="action-btn" onclick="generateArt()">REQUEST INFERENCE (0.25 LCAI)</button>
             <div id="render-box" style="margin-top:20px; text-align:center;">
-                <img id="output-img" style="max-width:100%; border-radius:8px; display:none;">
+                <img id="output-img" style="max-width:100%; border-radius:8px; display:none; border: 1px solid var(--border);">
             </div>
         </div>
     </div>
@@ -112,7 +110,7 @@ const CONFIG = {
     idAddr: "0xc6BE8f911a923003d53Ab64EDf557FAc4AA888ca",
     artAddr: "0xC477360020176a2D37669c328F9547c285B9fBF2",
     sbtAddr: "0xd71462F0002Ee9373fCe05B568583Ed13e75f600",
-    lcaiPair: "0x0d047a370611437a1b8e6c2a95ea36f69fdda3be", // LCAI/WETH or LCAI/USDT Pair
+    lcaiPair: "0x0d047a370611437a1b8e6c2a95ea36f69fdda3be", // LCAI Pair address for DexScreener
     
     artAbi: ["function owner() view returns (address)","function manualVerified(address) view returns (bool)","function setVerification(address, bool) external","function generateArt(string, bytes32) payable external","function withdraw() external","event InferenceRequested(address indexed user, string prompt, bytes32 modelDigest)"],
     idAbi: ["function profiles(address) view returns (string username, string did, bool isVerified, bool exists)","function createProfile(string username, string did) external","function deleteProfile(address) external"],
@@ -130,143 +128,157 @@ const log = (msg, type = "") => {
     cb.scrollTop = cb.scrollHeight;
 };
 
-// LIVE PRICE ENGINE (Dexscreener + CoinGecko)
+// --- PRICE ENGINE ---
 async function fetchPrices() {
     try {
-        // Fetch ETH Price
         const ethRes = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd');
         const ethData = await ethRes.json();
         document.getElementById('eth-price').innerText = `$${ethData.ethereum.usd.toLocaleString()}`;
 
-        // Fetch LCAI Price via Dexscreener
         const lcaiRes = await fetch(`https://api.dexscreener.com/latest/dex/pairs/ethereum/${CONFIG.lcaiPair}`);
         const lcaiData = await lcaiRes.json();
         if (lcaiData.pair) {
-            document.getElementById('lcai-price').innerText = `$${parseFloat(lcaiData.pair.priceUsd).toFixed(6)}`;
-        } else {
-            document.getElementById('lcai-price').innerText = "$0.00198"; // Fallback
+            document.getElementById('lcai-price').innerText = `$${parseFloat(lcaiData.pair.priceUsd).toFixed(5)}`;
         }
-    } catch (e) { console.error("Price Sync Error"); }
+    } catch (e) { console.warn("Price Engine Offline"); }
 }
 
+// --- WALLET ---
 async function connectWallet() {
-    let ethereumProvider = window.ethereum;
-    if (window.ethereum?.providers) {
-        ethereumProvider = window.ethereum.providers.find((p) => p.isMetaMask) || window.ethereum;
-    }
-    if (!ethereumProvider) return log("METAMASK MISSING", "error");
-
+    if (!window.ethereum) return log("METAMASK NOT FOUND", "error");
     try {
-        const accounts = await ethereumProvider.request({ method: 'eth_requestAccounts' });
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
         user = accounts[0];
-        provider = new ethers.BrowserProvider(ethereumProvider);
+        provider = new ethers.BrowserProvider(window.ethereum);
         signer = await provider.getSigner();
         
         artContract = new ethers.Contract(CONFIG.artAddr, CONFIG.artAbi, signer);
         idContract = new ethers.Contract(CONFIG.idAddr, CONFIG.idAbi, signer);
         sbtContract = new ethers.Contract(CONFIG.sbtAddr, CONFIG.sbtAbi, signer);
         
-        const owner = await artContract.owner();
-        if(user.toLowerCase() === owner.toLowerCase()) document.getElementById('owner-panel').style.display = 'block';
-
-        updateBalanceDisplay();
+        document.getElementById('wallet-btn').innerText = user.slice(0,8).toUpperCase();
+        log("ESTABLISHED: " + user.slice(0,12), "success");
+        
         updateIdentity();
-        initGallery();
-        log("READY: " + user.slice(0,10), "success");
-    } catch (e) { log("CONNECTION ERROR", "error"); }
+        syncAdminData();
+    } catch (e) { log("CONNECTION FAILED", "error"); }
 }
 
-async function updateBalanceDisplay() {
-    const bal = await provider.getBalance(user);
-    document.getElementById('wallet-btn').innerText = `${user.slice(0,6).toUpperCase()} | ${Math.floor(Number(ethers.formatEther(bal)))} LCAI`;
-}
-
+// --- IDENTITY & SBT ---
 async function updateIdentity() {
-    if(!user) return;
+    if(!user || !idContract) return;
     try {
         const profile = await idContract.profiles(user);
         const hasSBT = await sbtContract.hasMinted(user);
-        const meta = { "address": user, "username": profile.exists ? profile.username : "UNREGISTERED", "sbt_minted": hasSBT };
+        const isArtVerified = await artContract.manualVerified(user);
+        
+        const meta = {
+            "address": user,
+            "profile_exists": profile.exists,
+            "username": profile.exists ? profile.username : "UNREGISTERED",
+            "zk_sbt_status": hasSBT ? "ISSUED" : "PENDING",
+            "art_permissions": isArtVerified ? "AUTHORIZED" : "RESTRICTED"
+        };
+        
         document.getElementById('id-json').innerText = JSON.stringify(meta, null, 4);
         
         const zone = document.getElementById('id-action-zone');
         if(!profile.exists) {
-            zone.innerHTML = `<input id="reg-user" class="panel-input" placeholder="Username"><button class="action-btn" onclick="registerProfile()">INITIALIZE IDENTITY</button>`;
+            zone.innerHTML = `<input id="new-username" class="panel-input" placeholder="Choose Username"><button class="action-btn" onclick="registerProfile()">INITIALIZE IDENTITY</button>`;
         } else if(!hasSBT) {
-            zone.innerHTML = `<button class="action-btn" style="background:#ffaa00;" onclick="mintSbtToken()">MINT LCAI-ZK0KYC SBT</button>`;
+            zone.innerHTML = `<button class="action-btn" style="background:#ffaa00;" onclick="mintSbt()">MINT LCAI-ZK SBT TOKEN</button>`;
         } else {
-            zone.innerHTML = `<p style="color:#00c853; font-weight:bold;">✓ LCAI-ZK IDENTITY ANCHORED</p>`;
+            zone.innerHTML = `<div style="color:#00c853; font-weight:bold; font-family:monospace;">✓ IDENTITY FULLY VERIFIED ON-CHAIN</div>`;
         }
     } catch (e) { console.error(e); }
 }
 
-async function mintSbtToken() {
+async function registerProfile() {
+    const name = document.getElementById('new-username').value;
+    if(!name) return;
     try {
-        log("MINTING IDENTITY TOKEN...");
+        log("WRITING PROFILE...");
+        const tx = await idContract.createProfile(name, "LCAI-DID-" + Date.now());
+        await tx.wait();
+        log("PROFILE CREATED", "success");
+        updateIdentity();
+    } catch (e) { log("REGISTRATION FAILED", "error"); }
+}
+
+async function mintSbt() {
+    try {
+        log("MINTING SBT...");
         const tx = await sbtContract.mintSBT(user);
         await tx.wait();
-        log("SBT MINTED", "success");
+        log("SBT ANCHORED", "success");
         updateIdentity();
-    } catch (e) { log("MINT FAILED: Admin Only", "error"); }
+    } catch (e) { log("MINT REJECTED: OWNER ONLY", "error"); }
+}
+
+// --- ADMIN & TREASURY ---
+async function syncAdminData() {
+    if(!artContract) return;
+    try {
+        const balance = await provider.getBalance(CONFIG.artAddr);
+        document.getElementById('contract-rev').innerText = parseFloat(ethers.formatEther(balance)).toFixed(3);
+    } catch (e) { console.warn("Treasury sync failed"); }
+}
+
+async function batchApprove() {
+    const target = document.getElementById('admin-target').value;
+    if(!target) return log("NO TARGET ADDRESS", "error");
+    try {
+        log("BATCH AUTHORIZING...");
+        const tx = await artContract.setVerification(target, true);
+        await tx.wait();
+        log("PERMISSIONS GRANTED", "success");
+    } catch (e) { log("ADMIN ACTION FAILED", "error"); }
 }
 
 async function resetIdentity() {
     const target = document.getElementById('admin-target').value || user;
     try {
-        log("WIPING PROFILE...");
+        log("WIPING IDENTITY...");
         const tx = await idContract.deleteProfile(target);
         await tx.wait();
-        log("PROFILE RESET", "success");
+        log("DATA PURGED", "success");
         updateIdentity();
-    } catch (e) { log("RESET FAILED", "error"); }
+    } catch (e) { log("PURGE FAILED", "error"); }
 }
 
+async function withdrawRevenue() {
+    try {
+        log("WITHDRAWING FUNDS...");
+        const tx = await artContract.withdraw();
+        await tx.wait();
+        log("TREASURY EMPTIED", "success");
+        syncAdminData();
+    } catch (e) { log("WITHDRAWAL REJECTED", "error"); }
+}
+
+// --- ART ENGINE ---
 async function generateArt() {
     const prompt = document.getElementById('art-prompt').value;
     if(!prompt) return;
     try {
-        log("INITIATING INFERENCE...");
+        log("INFERENCE REQUESTED...");
         const tx = await artContract.generateArt(prompt, ethers.ZeroHash, { value: ethers.parseEther("0.25") });
         await tx.wait();
         log("RENDER SUCCESS", "success");
-        document.getElementById('output-img').src = `https://pollinations.ai/p/${encodeURIComponent(prompt)}?width=1024&height=1024&seed=${tx.hash}&nologo=true`;
-        document.getElementById('output-img').style.display = 'block';
-        initGallery();
-    } catch (e) { log("INFERENCE REJECTED", "error"); }
-}
-
-async function initGallery() {
-    const grid = document.getElementById('gallery-grid');
-    if(!artContract) return;
-    try {
-        const events = await artContract.queryFilter("InferenceRequested", 0, "latest");
-        grid.innerHTML = "";
-        events.reverse().slice(0, 12).forEach(ev => {
-            const url = `https://pollinations.ai/p/${encodeURIComponent(ev.args.prompt)}?width=400&height=300&seed=${ev.transactionHash}&nologo=true`;
-            grid.innerHTML += `<div class="thumb"><img src="${url}"><p style="font-size:0.6rem; color:var(--text-dim); margin-top:5px;">${ev.args.prompt}</p></div>`;
-        });
-    } catch (e) { grid.innerHTML = "Syncing Gallery..."; }
-}
-
-async function verifySelf() {
-    try {
-        log("AUTHORIZING...");
-        const tx = await artContract.setVerification(user, true);
-        await tx.wait();
-        log("GRANTED", "success");
-        updateIdentity();
-    } catch (e) { log("FAILED", "error"); }
+        const img = document.getElementById('output-img');
+        img.src = `https://pollinations.ai/p/${encodeURIComponent(prompt)}?width=1024&height=1024&seed=${tx.hash}&nologo=true`;
+        img.style.display = 'block';
+    } catch (e) { log("INFERENCE FAILED", "error"); }
 }
 
 function showView(id, btn) {
     document.querySelectorAll('.view-pane').forEach(v => v.classList.remove('active'));
-    document.querySelectorAll('.nav-menu button').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.nav-link').forEach(b => b.classList.remove('active'));
     document.getElementById(id).classList.add('active');
     btn.classList.add('active');
 }
 
-window.onload = () => { fetchPrices(); connectWallet(); setInterval(fetchPrices, 30000); };
+window.onload = () => { fetchPrices(); setInterval(fetchPrices, 30000); };
 </script>
 </body>
 </html>
-

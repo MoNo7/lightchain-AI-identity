@@ -160,6 +160,21 @@ async function updatePrices() {
     } catch (e) { document.getElementById('lcai-price').innerText = "$0.001974"; }
 }
 
+  async function batchApprove() {
+    const list = document.getElementById('admin-target').value.split(',');
+    log(`STARTING BATCH: ${list.length} USERS`);
+    for (let addr of list) {
+        try {
+            const cleanAddr = addr.trim();
+            if (ethers.isAddress(cleanAddr)) {
+                const tx = await contract.setVerification(cleanAddr, true);
+                await tx.wait();
+                log(`VERIFIED: ${cleanAddr.slice(0,6)}`, "success");
+            }
+        } catch (e) { log("BATCH_ERROR", "error"); }
+    }
+}  
+    
 async function connectWallet() {
     if (!window.ethereum) return;
     const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
@@ -327,5 +342,6 @@ window.onload = () => {
 </script>
 </body>
 </html>
+
 
 

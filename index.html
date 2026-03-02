@@ -2,371 +2,166 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Lightchain AI | Testnet</title>
+    <title>Lightchain AI | IAM Admin Portal (Testnet 504)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root {
-            --bg: #030406; --sidebar: #0a0c10; --accent: #00f2ff;
-            --text: #c9d1d9; --border: #1b1f24; --panel: #0d1117;
-            --zk-gold: #ffcc00; --green: #39d353; --red: #ff4444;
-        }
+        :root { --bg: #030406; --sidebar: #0a0c10; --accent: #00f2ff; --text: #c9d1d9; --border: #1b1f24; --panel: #0d1117; --green: #39d353; --red: #ff4444; }
         body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; display: flex; height: 100vh; overflow: hidden; }
-        nav { width: 260px; background: var(--sidebar); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; }
-        .nav-section { margin-bottom: 25px; }
-        .nav-label { font-size: 0.65rem; color: #484f58; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; display: block; }
-        .nav-item { padding: 10px; cursor: pointer; color: #8b949e; display: flex; align-items: center; gap: 10px; border-radius: 6px; font-size: 0.85rem; transition: 0.2s; }
-        .nav-item.active { background: var(--panel); color: var(--accent); border: 1px solid var(--border); }
+        nav { width: 260px; background: var(--sidebar); border-right: 1px solid var(--border); padding: 20px; display: flex; flex-direction: column; }
+        .nav-item { padding: 12px; cursor: pointer; color: #8b949e; display: flex; align-items: center; gap: 10px; border-radius: 6px; font-size: 0.85rem; transition: 0.2s; }
+        .nav-item:hover, .nav-item.active { background: var(--panel); color: var(--accent); }
         .workspace { flex: 1; display: flex; flex-direction: column; background: #050608; overflow: hidden; }
-        header { height: 60px; background: var(--sidebar); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 25px; position: relative; flex-shrink: 0; }
-        .wallet-container { display: flex; align-items: center; gap: 12px; }
-        .balance-pill { background: rgba(0, 242, 255, 0.1); border: 1px solid var(--accent); padding: 5px 12px; border-radius: 15px; font-size: 0.8rem; color: var(--accent); display: none; }
-        .admin-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; padding: 25px; flex: 1; overflow-y: auto; }
-        .admin-card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 25px; position: relative; }
-        .card-title { font-size: 0.75rem; color: #484f58; text-transform: uppercase; margin-bottom: 20px; border-bottom: 1px solid #1b1f24; padding-bottom: 10px; font-weight: bold; }
-        input, textarea { background: #050608; border: 1px solid var(--border); color: white; padding: 12px; border-radius: 4px; width: 100%; margin-bottom: 15px; box-sizing: border-box; }
-        .btn-zk { background: var(--accent); color: black; border: none; padding: 12px; border-radius: 4px; font-weight: bold; cursor: pointer; width: 100%; transition: 0.3s; }
-        .btn-zk:hover { filter: brightness(1.2); box-shadow: 0 0 15px rgba(0,242,255,0.3); }
-        #console { height: 160px; background: #000; border-top: 1px solid var(--border); color: var(--green); font-family: 'Courier New', monospace; padding: 15px; overflow-y: auto; font-size: 0.8rem; }
-        .meta-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.8rem; }
-        .meta-label { color: var(--accent); font-weight: 600; }
-        .meta-value { color: white; opacity: 0.9; word-break: break-all; text-align: right; max-width: 60%; }
+        header { height: 60px; background: var(--sidebar); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: flex-end; padding: 0 25px; }
+        .admin-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; padding: 25px; overflow-y: auto; flex: 1; }
+        .admin-card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 20px; }
+        .btn-zk { background: var(--accent); color: #000; border: none; padding: 10px; border-radius: 4px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; }
+        .btn-social { flex: 1; padding: 8px; border-radius: 4px; border: none; cursor: pointer; color: white; font-size: 0.75rem; display: flex; align-items: center; justify-content: center; gap: 5px; }
+        input, textarea { background: #050608; border: 1px solid var(--border); color: white; padding: 10px; border-radius: 4px; width: 100%; margin: 10px 0; box-sizing: border-box; }
+        #console { height: 130px; background: #000; border-top: 1px solid var(--border); color: var(--green); padding: 15px; font-family: monospace; overflow-y: auto; font-size: 0.75rem; }
+        .step-locked { opacity: 0.3; pointer-events: none; }
     </style>
 </head>
 <body>
-
     <nav>
         <div style="margin-bottom: 30px;">
-            <h1 style="color:white; font-size:1.1rem; margin:0;">Lightchain AI |Testnet</h1>
-            <p style="color:var(--accent); font-size:0.7rem; margin-top:5px;">TESTNET-504 zkID</p>
-        <hr style="border:0; border-top:1px solid var(--border); margin: 20px 0;">
-        <div style="cursor:pointer;" onclick="showTab('mint')"><i class="fas fa-id-card"></i> Identity Mint</div>
-        <div id="adminLink" style="cursor:pointer; margin-top:15px; display:none;" onclick="showTab('admin')"><i class="fas fa-user-shield"></i> Batch Admin</div>
-            <div id="zkSidebarStatus" style="display:none; font-size: 0.65rem; color: var(--zk-gold); margin-top: 5px;"><i class="fas fa-fingerprint"></i> ID: PROTECTED</div>
+            <h1 style="color:white; font-size:1.1rem; margin:0;">Lightchain AI | Testnet</h1>
+            <div id="zkStatus" style="font-size: 0.65rem; color: var(--accent); margin-top: 5px;"><i class="fas fa-shield-alt"></i> TESTNET-504</div>
         </div>
-
-        <div class="nav-section">
-            <span class="nav-label">Core Identity</span>
-            <div class="nav-item active" onclick="showView('zkMain')"><i class="fas fa-id-card"></i> Identity Manager</div>
-        </div>
-
-        <div id="adminMenu" class="nav-section" style="display:none;">
-            <span class="nav-label">Admin Console</span>
-            <div class="nav-item" onclick="showView('adminView')"><i class="fas fa-user-shield"></i> Address Verifier</div>
-            <div class="nav-item" onclick="showView('telemetryView')"><i class="fas fa-chart-line"></i> Model Telemetry</div>
-        </div>
-
-        <div id="ownerMenu" class="nav-section" style="display:none;">
-            <span class="nav-label">Protocol Owner</span>
-            <div class="nav-item" onclick="showView('revenueView')"><i class="fas fa-vault"></i> Revenue Balance</div>
+        <div class="nav-item active" onclick="showView('zkWindow')"><i class="fas fa-id-card"></i> zkIdentity</div>
+        <div id="adminMenu" style="display:none;">
+            <div class="nav-item" onclick="showView('batchWindow')"><i class="fas fa-users-cog"></i> Batch Admin</div>
+            <div class="nav-item" onclick="showView('revenueWindow')"><i class="fas fa-wallet"></i> Revenue</div>
         </div>
     </nav>
 
     <div class="workspace">
         <header>
-            <div style="font-size: 0.75rem; color: #484f58;">NETWORK: <span style="color:var(--green)">LIGHTCHAIN 504</span></div>
-            <div class="wallet-container">
-                <div id="balancePill" class="balance-pill">0.00 LCAI</div>
-                <button onclick="connect()" id="walletBtn" style="background:var(--accent); color:black; border:none; padding:8px 16px; border-radius:4px; font-weight:bold; cursor:pointer;">CONNECT WALLET</button>
-            </div>
+            <button onclick="connect()" id="walletBtn" class="btn-zk" style="width:auto; padding:7px 15px; margin:0;">CONNECT ID</button>
         </header>
 
         <main class="admin-grid">
-            <div class="admin-card view-card" id="zkMain">
-                <div class="card-title">AIVM zkIdentity Dashboard</div>
-            <div id="authSelector">
-            <h3 style="margin-top:0;">1. Select Identity Source</h3>
-            <p style="font-size:0.8rem; color:#8b949e;">Choose a provider to link to your Testnet-504 wallet.</p>
-            
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                <button class="btn-zk" style="background:#4285F4; color:white;" onclick="startAuth('google')"><i class="fab fa-google"></i> Google</button>
-                <button class="btn-zk" style="background:#5865F2; color:white;" onclick="startAuth('discord')"><i class="fab fa-discord"></i> Discord</button>
-                <button class="btn-zk" style="background:#333; color:white;" onclick="startAuth('github')"><i class="fab fa-github"></i> GitHub</button>
-                <button class="btn-zk" style="background:#1DA1F2; color:white;" onclick="startAuth('twitter')"><i class="fab fa-twitter"></i> Twitter</button>
-            </div>
-        </div>
-                <div id="tab-mint" class="admin-card">
-                    <h3>1. Verify Social Identity</h3>
-                    <div id="g_id_onload" data-client_id="YOUR_GOOGLE_CLIENT_ID" data-callback="handleCredential"></div>
-                    <div class="g_id_signin" data-type="standard"></div>
-                    
-                    <div id="mintFlow" style="display:none; margin-top:20px;">
-                        <h3>2. Generate & Mint SBT</h3>
-                        <div id="qrcode" style="margin-bottom:15px; display:flex; justify-content:center;"></div>
-                        <input type="text" id="nickName" placeholder="Desired Nickname">
-                        <button class="btn-zk" onclick="mintWithImage()">MINT IDENTITY</button>
+            <div id="zkWindow" class="admin-card">
+                <div style="font-size:0.75rem; color:#484f58; text-transform:uppercase; margin-bottom:15px; border-bottom:1px solid #1b1f24; padding-bottom:5px;">Identity Management</div>
+                
+                <div id="step-auth" class="step-locked">
+                    <p style="font-size:0.8rem; margin-bottom:10px;">1. Link Social Provider</p>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <div id="g_id_onload" data-client_id="YOUR_GOOGLE_ID" data-callback="handleGoogleAuth"></div>
+                        <div class="g_id_signin" data-type="icon" data-shape="circle"></div>
+                        <button class="btn-social" style="background:#5865F2;" onclick="linkSocial('Discord')"><i class="fab fa-discord"></i> Discord</button>
+                        <button class="btn-social" style="background:#333;" onclick="linkSocial('GitHub')"><i class="fab fa-github"></i> GitHub</button>
                     </div>
                 </div>
-                <div id="tab-admin" class="admin-card" style="display:none;">
-                    <h3>Batch Verifier Console</h3>
-                    <textarea id="batchAddrs" placeholder="Paste addresses here (comma or newline separated)..."></textarea>
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                        <button class="btn-zk" style="background:var(--green); color:white;" onclick="batchAction('verify')">BATCH VERIFY</button>
-                        <button class="btn-zk" style="background:var(--red); color:white;" onclick="batchAction('revoke')">BATCH REVOKE</button>
-                    </div>
-                </div>
-               
-   
-                <div id="metaFlow" style="display:none;">
-                    <div style="display:flex; gap:20px; align-items:start;">
-                        <div id="qrcode" style="background:white; padding:5px; border-radius:4px; min-width:128px;"></div>
-                        <div style="flex:1;">
-                            <div class="meta-row"><span class="meta-label">ID NAME:</span><span class="meta-value" id="valName"></span></div>
-                            <div class="meta-row"><span class="meta-label">DID:</span><span class="meta-value" id="valDid"></span></div>
-                            <div class="meta-row"><span class="meta-label">AIVM TIER:</span><span class="meta-value">Tier-3 (Validator)</span></div>
-                            <div class="meta-row"><span class="meta-label">NEURAL HASH:</span><span class="meta-value">SHA256:0x88f...2a1</span></div>
-                            <div class="meta-row"><span class="meta-label">STATUS:</span><span class="meta-value" style="color:var(--green)">ENCRYPTED</span></div>
-                        </div>
-                    </div>
-                    <button class="btn-zk" style="margin-top:20px; background:var(--green)" onclick="mintSBT()">MINT IDENTITY SBT</button>
-                    <button class="btn-zk" style="margin-top:10px; background:#1b1f24; color:white" onclick="resetState()">RESET PROFILE</button>
+
+                <div id="step-mint" class="step-locked" style="margin-top:20px;">
+                    <p style="font-size:0.8rem; margin-bottom:10px;">2. Finalize Soulbound Identity</p>
+                    <div id="qrcode" style="background:white; padding:10px; border-radius:4px; width:fit-content; margin:10px auto;"></div>
+                    <input type="text" id="nickName" placeholder="Enter Nickname">
+                    <button class="btn-zk" onclick="mintWithImage()">MINT SBT</button>
                 </div>
             </div>
 
-            <div class="admin-card view-card" id="adminView" style="display:none;">
-                <div class="card-title">Identity Authority</div>
-                <input type="text" id="targetAddr" placeholder="Target Wallet Address (0x...)">
+            <div id="batchWindow" class="admin-card" style="display:none;">
+                <div style="font-size:0.75rem; color:#484f58; text-transform:uppercase; margin-bottom:15px;">Batch Verifier</div>
+                <textarea id="batchAddrs" placeholder="Addresses (comma or newline separated)..."></textarea>
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                    <button class="btn-zk" onclick="verifyAddress()">VERIFY</button>
-                    <button class="btn-zk" style="background:var(--red); color:white" onclick="revokeAddress()">REVOKE</button>
+                    <button class="btn-zk" style="background:var(--green); color:black;" onclick="doBatch('verify')">VERIFY BATCH</button>
+                    <button class="btn-zk" style="background:var(--red); color:white;" onclick="doBatch('revoke')">REVOKE BATCH</button>
                 </div>
             </div>
 
-            <div class="admin-card view-card" id="revenueView" style="display:none;">
-                <div class="card-title">Protocol Revenue</div>
-                <div style="font-size:0.8rem; color:#8b949e;">CONTRACT BALANCE</div>
-                <div id="contractBal" style="font-size:2.2rem; font-weight:bold; color:var(--zk-gold); margin:10px 0;">0.00 <small>LCAI</small></div>
-                <button class="btn-zk" onclick="withdrawFunds()">WITHDRAW REVENUE</button>
-            </div>
-            
-            <div class="admin-card view-card" id="telemetryView" style="display:none;">
-                <div class="card-title">AIVM Model Load</div>
-                <div style="font-size:0.8rem; display:flex; flex-direction:column; gap:10px;">
-                    <div style="display:flex; justify-content:space-between; border-bottom:1px solid #1b1f24; padding-bottom:5px;"><span>Llama-3-70B</span><span style="color:var(--green)">ACTIVE (12%)</span></div>
-                    <div style="display:flex; justify-content:space-between; border-bottom:1px solid #1b1f24; padding-bottom:5px;"><span>Mistral-Large-V2</span><span style="color:var(--green)">ACTIVE (24%)</span></div>
-                    <div style="display:flex; justify-content:space-between; border-bottom:1px solid #1b1f24; padding-bottom:5px;"><span>Stable-Diffusion-XL</span><span style="color:var(--zk-gold)">QUEUED (88%)</span></div>
-                </div>
+            <div id="revenueWindow" class="admin-card" style="display:none;">
+                <div style="font-size:0.75rem; color:#484f58; text-transform:uppercase; margin-bottom:15px;">Revenue Management</div>
+                <div id="balance" style="font-size:1.8rem; color:var(--accent); font-weight:bold; margin-bottom:15px;">0.00 <small>LCAI</small></div>
+                <button class="btn-zk" onclick="withdraw()">WITHDRAW TO OWNER</button>
             </div>
         </main>
-        <div id="console">> [SYS] Awaiting Identity Link...</div>
+
+        <div id="console">> [SYS] Awaiting ZK Credentials...</div>
     </div>
 
     <script>
-        const CONTRACT_CONFIG = {
+        const CONFIG = {
             address: "0xd71462F0002Ee9373fCe05B568583Ed13e75f600",
             owner: "0x6378A6993C7C77E4A28f8f263e778401309fD9E4",
             abi: [
-                "function mintWithSocial(string name, string did, bytes32 hash, string img) public payable",
-                "function mintWithKYC(string name, string did, bytes32 hash) public payable",
-                "function mintSBT(string name, string did) public payable",
-                "function verifyUser(address user) public",
-                "function revokeSBT(address user) public",
+                "function mintWithSocial(string n, string d, bytes32 h, string i) public payable",
+                "function verifyUser(address u) public",
+                "function revokeSBT(address u) public",
                 "function withdrawRevenue() public"
             ]
         };
-        let googleHash = null;
-        let userWallet = null;
-        let wallet = null;
-        let activeIdentityHash = null;
-        let selectedProvider = "";
-        let userWallet, idHash;        
-        function parseJwt(token) {
-            var base64Url = token.split('.')[1];
-            return JSON.parse(window.atob(base64Url.replace(/-/g, '+').replace(/_/g, '/')));
-        }
 
-        function handleCredential(response) {
-            const payload = JSON.parse(atob(response.credential.split('.')[1]));
-            idHash = ethers.id(payload.sub);
-            log("Google Linked. Generating ID Metadata...");
-            document.getElementById('mintFlow').style.display = 'block';
-            new QRCode(document.getElementById("qrcode"), { text: `did:lcai:${userWallet}`, width: 128, height: 128 });
-        }
+        let userWallet, idHash;
 
-        async function compressImage() {
-            return new Promise((resolve) => {
-                const qrCanvas = document.querySelector('#qrcode canvas');
-                const offscreen = document.createElement('canvas');
-                offscreen.width = 128; offscreen.height = 128;
-                const ctx = offscreen.getContext('2d');
-                ctx.drawImage(qrCanvas, 0, 0, 128, 128);
-                resolve(offscreen.toDataURL("image/jpeg", 0.7)); // High compression
-            });
-        }
-        
-        function startAuth(provider) {
-        log(`Initializing ${provider} auth...`);
-        
-        // In production, you'd trigger an OAuth popup here.
-        // For this demo, we generate a hash based on the provider name + wallet.
-        selectedProvider = provider.toUpperCase();
-        activeIdentityHash = ethers.keccak256(ethers.toUtf8Bytes(provider + ":" + userWallet));
-        
-        document.getElementById('activeProvider').innerText = selectedProvider;
-        document.getElementById('hashDisplay').innerText = activeIdentityHash.slice(0,24) + "...";
-        document.getElementById('authSelector').style.display = 'none';
-        document.getElementById('mintSection').style.display = 'block';
-        log(`${selectedProvider} verified successfully.`);
-    }
         async function connect() {
+            if(!window.ethereum) return log("Error: Metamask not found.");
             const provider = new ethers.BrowserProvider(window.ethereum);
-            const accounts = await provider.send("eth_requestAccounts", []);
-            userWallet = accounts[0];
+            const accs = await provider.send("eth_requestAccounts", []);
+            userWallet = accs[0];
             document.getElementById('walletBtn').innerText = userWallet.slice(0,6) + "...";
-            if(userWallet.toLowerCase() === CONFIG.owner.toLowerCase()) document.getElementById('adminLink').style.display = 'block';
-            log("Wallet Linked.");
+            document.getElementById('step-auth').classList.remove('step-locked');
+            if(userWallet.toLowerCase() === CONFIG.owner.toLowerCase()) document.getElementById('adminMenu').style.display = 'block';
+            log("Wallet Linked to LCAI-504.");
         }
 
-        function registerIdentity() {
-            const name = document.getElementById('regName').value || "Validator-Node";
-            const did = `did:lcai:${wallet.toLowerCase()}`;
-            
-            document.getElementById('regFlow').style.display = 'none';
-            document.getElementById('metaFlow').style.display = 'block';
-            document.getElementById('zkSidebarStatus').style.display = 'block';
-            
-            document.getElementById('valName').innerText = name;
-            document.getElementById('valDid').innerText = did;
-            
+        function handleGoogleAuth(res) {
+            const p = JSON.parse(atob(res.credential.split('.')[1]));
+            linkSocial('Google', p.sub);
+        }
+
+        function linkSocial(provider, uid = "MOCK-" + Math.random()) {
+            idHash = ethers.id(provider + ":" + uid);
+            log(`${provider} Identity Bound: ${idHash.slice(0,18)}...`);
+            document.getElementById('step-mint').classList.remove('step-locked');
             document.getElementById('qrcode').innerHTML = "";
-            new QRCode(document.getElementById("qrcode"), { text: did, width: 128, height: 128 });
-            log(`Identity Registered: ${name}`);
+            new QRCode(document.getElementById('qrcode'), { text: `did:lcai:${userWallet}:${provider}`, width: 128, height: 128 });
         }
-
-        async function mintSBT() {
-            if (!googleHash || !userWallet) return log("Error: Connect Google & Wallet first.");
-            try {
-                const provider = new ethers.BrowserProvider(window.ethereum);
-                const signer = await provider.getSigner();
-                const contract = new ethers.Contract(CONTRACT_CONFIG.address, CONTRACT_CONFIG.abi, signer);
-                const did = `did:lcai:${userWallet.toLowerCase()}`;
-                
-                log("Requesting Lightchain AI SBT Mint...");
-                const tx = await contract.mintWithKYC(document.getElementById('nickName').value, did, googleHash, {
-                    value: ethers.parseEther("0.01"),
-                    gasLimit: 250000
-                });
-                log(`Transaction Sent: ${tx.hash}`);
-                await tx.wait();
-                log("SBT Minted Successfully!");
-            } catch(e) { log("Mint Failed: Verify Testnet 504 status."); }
-        }
-async function mintWithSocial() {
-        if (!activeIdentityHash || !userWallet) return log("Error: Complete social auth first.");
-        
-        try {
-            const provider = new ethers.BrowserProvider(window.ethereum);
-            const signer = await provider.getSigner();
-            const contract = new ethers.Contract(CONFIG.address, CONFIG.abi, signer);
-            const nickname = document.getElementById('nickName').value || "LCAI-Explorer";
-            const did = `did:lcai:${userWallet.toLowerCase()}`;
-
-            log("Requesting Multi-Auth Mint...");
-            const tx = await contract.mintWithSocial(nickname, did, activeIdentityHash, {
-                value: ethers.parseEther("0.01"),
-                gasLimit: 300000 
-            });
-
-            log(`TX Pending: ${tx.hash.slice(0,20)}...`);
-            await tx.wait();
-            log(`Success! Your ${selectedProvider} is now bound to this wallet.`);
-        } catch(e) { 
-            log("Transaction Failed. See console.");
-            console.error(e);
-        }
-    }
 
         async function mintWithImage() {
+            const nick = document.getElementById('nickName').value;
+            if(!nick) return log("Error: Nickname required.");
             try {
-                const imgData = await compressImage();
+                const canvas = document.querySelector('#qrcode canvas');
+                const offscreen = document.createElement('canvas');
+                offscreen.width = 128; offscreen.height = 128;
+                offscreen.getContext('2d').drawImage(canvas, 0,0, 128, 128);
+                const img = offscreen.toDataURL("image/jpeg", 0.6);
+
                 const provider = new ethers.BrowserProvider(window.ethereum);
                 const signer = await provider.getSigner();
                 const contract = new ethers.Contract(CONFIG.address, CONFIG.abi, signer);
                 
-                log("Processing Optimized Identity Data...");
-                const tx = await contract.mintWithSocial(
-                    document.getElementById('nickName').value || "Explorer",
-                    `did:lcai:${userWallet}`,
-                    idHash,
-                    imgData,
-                    { value: ethers.parseEther("0.01"), gasLimit: 500000 }
-                );
+                log("Compressing & Minting...");
+                const tx = await contract.mintWithSocial(nick, `did:lcai:${userWallet}`, idHash, img, { value: ethers.parseEther("0.01"), gasLimit: 700000 });
                 await tx.wait();
-                log("SBT Minted Successfully.");
-            } catch(e) { log("Error: " + e.message); }
+                log("Success: Identity Soulbound.");
+            } catch(e) { log("Mint Failed: Verify balance."); }
         }
-        async function batchAction(type) {
+
+        async function doBatch(type) {
             const addrs = document.getElementById('batchAddrs').value.split(/[,\n]/).map(a => a.trim()).filter(a => ethers.isAddress(a));
             const provider = new ethers.BrowserProvider(window.ethereum);
             const signer = await provider.getSigner();
             const contract = new ethers.Contract(CONFIG.address, CONFIG.abi, signer);
-
             log(`Starting Batch ${type}...`);
-            for(let addr of addrs) {
+            for(let a of addrs) {
                 try {
-                    const tx = (type === 'verify') ? await contract.verifyUser(addr) : await contract.revokeSBT(addr);
-                    log(`Sent: ${addr.slice(0,8)}...`);
+                    const tx = (type === 'verify') ? await contract.verifyUser(a) : await contract.revokeSBT(a);
                     await tx.wait();
-                } catch(e) { log(`Failed: ${addr.slice(0,8)}`); }
+                    log(`Completed: ${a.slice(0,10)}`);
+                } catch(e) { log(`Error on: ${a.slice(0,10)}`); }
             }
-            log("Batch Finished.");
-        }
-        
-async function verifyAddress() {
-    const target = document.getElementById('targetAddr').value;
-    if(!ethers.isAddress(target)) return log("Error: Invalid Address.");
-    
-    try {
-        const contract = await getContract();
-        log(`Verifying: ${target.slice(0,10)}...`);
-
-        // FIX: Manual gas limit bypasses the 'immediate fail' during estimation
-        const tx = await contract.verifyUser(target, { 
-            gasLimit: 150000 
-        });
-
-        log(`Pending TX: ${tx.hash.slice(0,15)}...`);
-        const receipt = await tx.wait();
-
-        if(receipt.status === 1) {
-            log("SUCCESS: Address Verified on Lightchain-504.");
-        } else {
-            log("FAILED: Transaction reverted on-chain.");
-        }
-    } catch(e) { 
-        // Catching the specific 'Only Owner' error
-        log("REJECTED: Unauthorized. Are you the Contract Owner?");
-        console.error("Full Error Context:", e);
-    }
-}
-
-        async function withdrawFunds() {
-            try {
-                const provider = new ethers.BrowserProvider(window.ethereum);
-                const signer = await provider.getSigner();
-                const contract = new ethers.Contract(CONTRACT_CONFIG.address, CONTRACT_CONFIG.abi, signer);
-                log("Executing owner.call withdrawal...");
-                await contract.withdrawRevenue({ gasLimit: 100000 });
-            } catch(e) { log("Withdrawal Failed."); }
         }
 
-        function resetState() {
-            document.getElementById('metaFlow').style.display = 'none';
-            document.getElementById('regFlow').style.display = 'block';
-            document.getElementById('zkSidebarStatus').style.display = 'none';
-            log("Local identity cleared.");
-        }
-        function showTab(tab) {
-            document.getElementById('tab-mint').style.display = (tab === 'mint' ? 'block' : 'none');
-            document.getElementById('tab-admin').style.display = (tab === 'admin' ? 'block' : 'none');
-        }
-        
         function showView(id) {
-            document.querySelectorAll('.view-card').forEach(c => c.style.display = 'none');
+            document.querySelectorAll('.admin-card').forEach(c => c.style.display = 'none');
             document.getElementById(id).style.display = 'block';
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            event.currentTarget.classList.add('active');
         }
 
         function log(m) {
@@ -377,7 +172,3 @@ async function verifyAddress() {
     </script>
 </body>
 </html>
-
-
-
-

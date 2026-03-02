@@ -132,10 +132,10 @@
 
 <script>
 const CONFIG = {
-    idAddr: "0x_IDENTITY_CONTRACT",
-    artAddr: "0x_ART_STUDIO_CONTRACT",
-    sbtAddr: "0x_SBT_CONTRACT",
-    lcaiPair: "0x_DEX_PAIR",
+    idAddr: "0xc6BE8f911a923003d53Ab64EDf557FAc4AA888ca",
+    artAddr: "0xC477360020176a2D37669c328F9547c285B9fBF2",
+    sbtAddr: "0xd71462F0002Ee9373fCe05B568583Ed13e75f600",
+    lcaiPair: "0x0d047a370611437a1b8e6c2a95ea36f69fdda3be",
     artAbi: ["function owner() view returns (address)","function manualVerified(address) view returns (bool)","function setVerification(address, bool) external","function generateArt(string, bytes32) payable external","function withdraw() external","event InferenceRequested(address indexed user, string prompt, bytes32 modelDigest)"],
     idAbi: ["function profiles(address) view returns (string username, string did, bool isVerified, bool exists)","function createProfile(string username, string did) external","function deleteProfile(address) external"],
     sbtAbi: ["function hasMinted(address) view returns (bool)","function mintSBT(address) external"]
@@ -304,3 +304,4 @@ window.onload = () => { fetchPrices(); setInterval(fetchPrices, 30000); };
 </script>
 </body>
 </html>
+

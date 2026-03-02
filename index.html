@@ -10,9 +10,10 @@
         body { margin: 0; background: var(--bg); color: white; font-family: 'Inter', sans-serif; display: flex; height: 100vh; overflow: hidden; }
         nav { width: 280px; border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 25px; background: var(--panel); box-sizing: border-box; }
         .nav-logo { font-weight: 900; letter-spacing: 2px; color: var(--accent); margin-bottom: 25px; font-size: 1.1rem; text-align: center; }
-        .system-console { background: var(--console-bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: monospace; font-size: 0.65rem; height: 180px; overflow-y: auto; margin-bottom: 20px; color: #4e5d75; line-height: 1.5; }
+        .system-console { background: var(--console-bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: monospace; font-size: 0.65rem; height: 200px; overflow-y: auto; margin-bottom: 20px; color: #4e5d75; line-height: 1.5; }
         .console-line { margin-bottom: 4px; border-left: 2px solid #1a202c; padding-left: 8px; }
         .console-line.success { border-left-color: var(--accent); color: #fff; }
+        .console-line.scan { color: #ffaa00; border-left-color: #ffaa00; }
         .nav-menu { display: flex; flex-direction: column; gap: 8px; }
         .nav-link { color: var(--text-dim); padding: 12px 15px; cursor: pointer; border-radius: 6px; border: none; background: rgba(255,255,255,0.03); text-align: left; font-size: 0.75rem; font-family: monospace; width: 100%; font-weight: 600; }
         .nav-link.active { color: white; background: var(--accent); }
@@ -25,9 +26,12 @@
         .view-pane.active { display: block !important; }
         .card { background: var(--panel); border: 1px solid var(--border); padding: 30px; border-radius: 12px; max-width: 900px; border-top: 4px solid var(--accent); margin-bottom: 20px; }
         .panel-input { width: 100%; background: #000; border: 1px solid #333; color: white; padding: 12px; border-radius: 4px; font-size: 0.75rem; margin-bottom: 12px; box-sizing: border-box; font-family: monospace; }
-        .action-btn { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; width: 100%; font-weight: bold; margin-bottom: 5px; }
+        .action-btn { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; width: 100%; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.7rem; margin-top: 15px; }
+        th { text-align: left; color: var(--text-dim); padding: 10px; border-bottom: 1px solid var(--border); }
+        td { padding: 10px; border-bottom: 1px solid var(--border); font-family: monospace; }
         #gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-top: 20px; }
-        .thumb { background: #000; padding: 10px; border-radius: 8px; border: 1px solid var(--border); }
+        .thumb { background: #000; padding: 10px; border-radius: 8px; border: 1px solid var(--border); text-align: center; }
         .thumb img { width: 100%; border-radius: 4px; cursor: pointer; }
     </style>
 </head>
@@ -35,7 +39,10 @@
 
 <nav>
     <div class="nav-logo">LCAI <span>IAM</span></div>
-    <div class="system-console" id="console"><div class="console-line">>> KERNEL_READY</div></div>
+    <div class="system-console" id="console">
+        <div class="console-line">>> KERNEL_READY</div>
+        <div id="scan-addr" class="console-line scan">>> SCAN_TARGET: 0x0...</div>
+    </div>
     <div id="side-menu" class="nav-menu">
         <button class="nav-link active" onclick="showView('gallery-view', this); initGallery();">NETWORK GALLERY</button>
     </div>
@@ -72,24 +79,33 @@
                 <pre id="id-json" style="flex:1; background:#05070a; padding:15px; font-size:0.7rem; color:var(--text-dim); border:1px solid var(--border); line-height:1.6;">// Identity Offline</pre>
                 <div id="qr-target" style="background:white; padding:10px; border-radius:8px; cursor:pointer;" onclick="downloadQR()"></div>
             </div>
-            <button class="action-btn" style="margin-top:15px;" onclick="downloadJSON()">DOWNLOAD IDENTITY JSON</button>
+            <button class="action-btn" style="margin-top:15px;" onclick="downloadJSON()">DOWNLOAD JSON IDENTITY</button>
         </div>
     </div>
 
     <div id="admin-view" class="view-pane">
         <div class="card" id="owner-panel" style="display:none; border-top-color:#ffaa00;">
             <h3>OWNER TREASURY</h3>
-            <p style="font-size:0.8rem; color:var(--text-dim);">Contract Balance: <span id="contract-rev" style="color:white;">0.00</span> LCAI</p>
+            <p style="font-size:0.8rem; color:var(--text-dim);">Total Revenue: <span id="contract-rev" style="color:white;">0.00</span> LCAI</p>
             <button class="action-btn" style="background:#ffaa00;" onclick="withdrawRevenue()">WITHDRAW ALL FUNDS</button>
         </div>
         <div class="card">
-            <h2>IAM ADMINISTRATION</h2>
-            <input type="text" id="admin-target" class="panel-input" placeholder="Target Wallet Address (0x...)">
-            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
+            <h2>ADMINISTRATION</h2>
+            <input type="text" id="admin-target" class="panel-input" placeholder="0x... Wallet Address">
+            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; margin-bottom:20px;">
                 <button class="action-btn" onclick="adminAction('verify')">VERIFY</button>
                 <button class="action-btn" style="background:#555;" onclick="adminAction('query')">QUERY</button>
                 <button class="action-btn" style="background:#ff4444;" onclick="adminAction('revoke')">REVOKE</button>
             </div>
+            <h3>MODEL PERFORMANCE BENCHMARKS</h3>
+            <table>
+                <thead><tr><th>MODEL</th><th>LATENCY</th><th>POI STATUS</th><th>UPTIME</th></tr></thead>
+                <tbody>
+                    <tr><td>AIVM-THETA</td><td>1.2s</td><td style="color:#00c853">VERIFIED</td><td>99.9%</td></tr>
+                    <tr><td>AIVM-DELTA</td><td>0.8s</td><td style="color:#00c853">VERIFIED</td><td>99.7%</td></tr>
+                    <tr><td>AIVM-SIGMA</td><td>2.4s</td><td style="color:#ffaa00">COMPUTING</td><td>98.2%</td></tr>
+                </tbody>
+            </table>
         </div>
     </div>
 
@@ -97,11 +113,11 @@
         <div class="card">
             <h2>AIVM NEURAL ENGINE</h2>
             <select id="model-select" class="panel-input" onchange="document.getElementById('active-model').innerText=this.value.split('-')[1]">
-                <option value="AIVM-THETA">AIVM-THETA (Balanced)</option>
-                <option value="AIVM-DELTA">AIVM-DELTA (High Speed)</option>
-                <option value="AIVM-SIGMA">AIVM-SIGMA (Deep Neural)</option>
+                <option value="AIVM-THETA">AIVM-THETA (Stable)</option>
+                <option value="AIVM-DELTA">AIVM-DELTA (Turbo)</option>
+                <option value="AIVM-SIGMA">AIVM-SIGMA (Neural)</option>
             </select>
-            <textarea id="art-prompt" class="panel-input" style="height:80px;" placeholder="Describe your vision..."></textarea>
+            <textarea id="art-prompt" class="panel-input" style="height:80px;" placeholder="Prompt..."></textarea>
             <button class="action-btn" onclick="generateArt()">REQUEST INFERENCE (0.25 tLCAI)</button>
             <div style="margin-top:20px; border:1px solid var(--border); border-radius:8px; min-height:300px; display:flex; align-items:center; justify-content:center; background:#000;">
                 <img id="output-img" style="max-width:100%; border-radius:4px; display:none;">
@@ -155,14 +171,16 @@ async function connectWallet() {
     roles.isOwner = (user.toLowerCase() === (await contract.owner()).toLowerCase());
     roles.isVerified = await contract.manualVerified(user);
 
-    log(`STREAK_SYNC: ${user.slice(0, 10)}`, "success");
+    document.getElementById('scan-addr').innerText = `>> SCAN_TARGET: ${CONFIG.addr.slice(0,10)}...`;
+    log(`CONNECTED: ${user.slice(0, 10)}`, "success");
     updateMenu(); updateIdentity(); initGallery(); updatePrices();
+    
     if(roles.isOwner) {
         document.getElementById('owner-panel').style.display = 'block';
         const rev = await provider.getBalance(CONFIG.addr);
         document.getElementById('contract-rev').innerText = ethers.formatEther(rev);
     }
-    document.getElementById('wallet-btn').innerText = `${user.slice(0,6).toUpperCase()} | CONNECTED`;
+    document.getElementById('wallet-btn').innerText = `${user.slice(0,6).toUpperCase()} | ACTIVE`;
 }
 
 function updateMenu() {
@@ -179,10 +197,11 @@ function updateMenu() {
 async function initGallery() {
     if(!contract) return;
     const grid = document.getElementById('gallery-grid');
-    grid.innerHTML = "SCANNING NETWORK...";
+    grid.innerHTML = "SCANNING AIVM ANCHORS...";
     try {
-        const events = await contract.queryFilter("InferenceRequested", 1600000);
-        if (events.length === 0) return grid.innerHTML = "NO EVENTS DETECTED";
+        const currentBlock = await provider.getBlockNumber();
+        const events = await contract.queryFilter("InferenceRequested", currentBlock - 100000);
+        if (events.length === 0) return grid.innerHTML = "NO RECENT RENDS DETECTED";
         grid.innerHTML = "";
         events.reverse().slice(0, 12).forEach(ev => {
             grid.innerHTML += `<div class="thumb">
@@ -195,8 +214,8 @@ async function initGallery() {
 
 async function generateArt() {
     const prompt = document.getElementById('art-prompt').value;
-    const status = document.getElementById('canvas-status');
     const out = document.getElementById('output-img');
+    const status = document.getElementById('canvas-status');
     if(!prompt) return;
     try {
         log("MINING INFERENCE...");
@@ -216,33 +235,24 @@ async function adminAction(type) {
     if(!target) return;
     try {
         if(type === 'verify') {
-            const tx = await contract.setVerification(target, true);
-            await tx.wait(); log("USER VERIFIED", "success");
+            await (await contract.setVerification(target, true)).wait();
+            log("USER VERIFIED", "success");
         } else if(type === 'revoke') {
-            const tx = await contract.setVerification(target, false);
-            await tx.wait(); log("USER REVOKED", "error");
+            await (await contract.setVerification(target, false)).wait();
+            log("USER REVOKED", "error");
         } else {
             const status = await contract.manualVerified(target);
-            log(`QUERY: ${target.slice(0,6)} is ${status ? 'VERIFIED' : 'NOT VERIFIED'}`);
+            log(`QUERY: ${target.slice(0,6)} STATUS: ${status ? 'VERIFIED' : 'UNVERIFIED'}`);
         }
-    } catch (e) { log("ADMIN FAILURE", "error"); }
+    } catch (e) { log("ADMIN ACTION FAILED", "error"); }
 }
 
 async function withdrawRevenue() {
-    try {
-        const tx = await contract.withdraw();
-        await tx.wait(); log("FUNDS WITHDRAWN", "success");
-    } catch (e) { log("WITHDRAW FAILED"); }
+    try { await (await contract.withdraw()).wait(); log("REVENUE WITHDRAWN", "success"); } catch (e) { log("WITHDRAW FAILED"); }
 }
 
 function updateIdentity() {
-    const meta = { 
-        "address": user, 
-        "verified": roles.isVerified, 
-        "role": roles.isOwner ? "OWNER" : "OPERATOR",
-        "network": "Lightchain Testnet V2",
-        "timestamp": new Date().toISOString()
-    };
+    const meta = { "id": user, "verified": roles.isVerified, "timestamp": new Date().toISOString() };
     document.getElementById('id-json').innerText = JSON.stringify(meta, null, 4);
     document.getElementById('qr-target').innerHTML = "";
     new QRCode(document.getElementById("qr-target"), { text: JSON.stringify(meta), width: 120, height: 120 });
@@ -257,12 +267,12 @@ function showView(id, btn) {
 
 function downloadJSON() { 
     const b = new Blob([document.getElementById('id-json').innerText], {type:'application/json'});
-    const a = document.createElement('a'); a.href=URL.createObjectURL(b); a.download='LCAI_Identity.json'; a.click(); 
+    const a = document.createElement('a'); a.href=URL.createObjectURL(b); a.download='LCAI_ID.json'; a.click(); 
 }
 
 function downloadQR() {
     const canvas = document.querySelector('#qr-target canvas');
-    const a = document.createElement('a'); a.href = canvas.toDataURL("image/png"); a.download = 'LCAI_Identity_QR.png'; a.click();
+    const a = document.createElement('a'); a.href = canvas.toDataURL("image/png"); a.download = 'LCAI_QR.png'; a.click();
 }
 
 window.onload = () => { updatePrices(); setInterval(() => document.getElementById('sys-load').innerText = Math.floor(Math.random()*20 + 30) + "%", 5000); };

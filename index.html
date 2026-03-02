@@ -189,17 +189,33 @@
             } catch(e) { log("Mint Failed: Verify Testnet 504 status."); }
         }
 
-        async function verifyAddress() {
-            const target = document.getElementById('targetAddr').value;
-            if(!ethers.isAddress(target)) return log("Error: Invalid Address.");
-            try {
-                const provider = new ethers.BrowserProvider(window.ethereum);
-                const signer = await provider.getSigner();
-                const contract = new ethers.Contract(CONTRACT_CONFIG.address, CONTRACT_CONFIG.abi, signer);
-                log(`Verifying: ${target}`);
-                await contract.verifyUser(target, { gasLimit: 150000 });
-            } catch(e) { log("Verify Reverted: Owner only."); }
+async function verifyAddress() {
+    const target = document.getElementById('targetAddr').value;
+    if(!ethers.isAddress(target)) return log("Error: Invalid Address.");
+    
+    try {
+        const contract = await getContract();
+        log(`Verifying: ${target.slice(0,10)}...`);
+
+        // FIX: Manual gas limit bypasses the 'immediate fail' during estimation
+        const tx = await contract.verifyUser(target, { 
+            gasLimit: 150000 
+        });
+
+        log(`Pending TX: ${tx.hash.slice(0,15)}...`);
+        const receipt = await tx.wait();
+
+        if(receipt.status === 1) {
+            log("SUCCESS: Address Verified on Lightchain-504.");
+        } else {
+            log("FAILED: Transaction reverted on-chain.");
         }
+    } catch(e) { 
+        // Catching the specific 'Only Owner' error
+        log("REJECTED: Unauthorized. Are you the Contract Owner?");
+        console.error("Full Error Context:", e);
+    }
+}
 
         async function withdrawFunds() {
             try {
@@ -231,3 +247,4 @@
     </script>
 </body>
 </html>
+

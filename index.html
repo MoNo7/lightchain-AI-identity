@@ -206,51 +206,56 @@ function updateMenu() {
 async function initGallery() {
     if(!contract) return;
     const grid = document.getElementById('gallery-grid');
-    grid.innerHTML = "SYSTEM_SCAN_IN_PROGRESS...";
+    grid.innerHTML = "<div class='console-line'>>> RELINKING_NEURAL_ARCHIVE...</div>";
+    
     try {
         const currentBlock = await provider.getBlockNumber();
-        const startBlock = currentBlock - 50000;
+        // Your contract was created at 1635664. We scan from there to be 100% sure.
+        const startBlock = 1635664; 
+        
         document.getElementById('scan-log').innerText = `>> SCANNER: BLK ${startBlock} - ${currentBlock}`;
 
-        // Topic hash for InferenceRequested(address,string,bytes32)
-        // This ensures we catch the event even if the ABI is slightly off
+        // Get logs by Topic0 (The hash of "InferenceRequested(address,string,bytes32)")
         const topic0 = ethers.id("InferenceRequested(address,string,bytes32)");
-        
         const logs = await provider.getLogs({
             address: CONFIG.addr,
             fromBlock: startBlock,
-            toBlock: "latest",
+            toBlock: currentBlock,
             topics: [topic0]
         });
 
         if (logs.length === 0) {
-            grid.innerHTML = "NO RECENT RENDERS FOUND IN BLOCK RANGE";
+            grid.innerHTML = "NO ANCHORED RENDERS FOUND ON-CHAIN";
             return;
         }
 
         grid.innerHTML = "";
         const iface = new ethers.Interface(CONFIG.abi);
 
-        // Filter and Truncate to Last 10
-        logs.reverse().slice(0, 10).forEach(logEntry => {
+        // Reverse to show newest first, limit to 10
+        const recentLogs = logs.reverse().slice(0, 10);
+
+        for (const logEntry of recentLogs) {
             try {
                 const parsed = iface.parseLog(logEntry);
                 const prompt = parsed.args.prompt;
                 
-                if(prompt) {
+                if (prompt) {
                     grid.innerHTML += `
                     <div class="thumb">
                         <img src="https://pollinations.ai/p/${encodeURIComponent(prompt)}?width=400&height=300&seed=${logEntry.transactionHash}" 
-                             onclick="window.open(this.src)" 
-                             onerror="this.src='https://via.placeholder.com/400x300?text=AIVM+Render+Pending'">
+                             onclick="window.open(this.src)"
+                             onerror="this.src='https://via.placeholder.com/400x300?text=AIVM+Syncing...'">
                         <p style="font-size:0.6rem; color:#6a768a; margin-top:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${prompt}</p>
                     </div>`;
                 }
-            } catch (e) { /* Skip logs that don't match ABI */ }
-        });
-    } catch (e) { 
-        grid.innerHTML = "SYNC_ERROR: RE-LINKING KERNEL..."; 
-        console.error("Gallery Sync Error:", e);
+            } catch (e) {
+                console.warn("Could not parse log:", logEntry);
+            }
+        }
+    } catch (e) {
+        grid.innerHTML = "SYNC_TIMEOUT: CHECKING RPC STATUS...";
+        console.error(e);
     }
 }
 
@@ -341,4 +346,5 @@ window.onload = () => {
 </script>
 </body>
 </html>
+
 

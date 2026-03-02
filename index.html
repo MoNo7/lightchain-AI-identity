@@ -238,7 +238,12 @@ async function generateArt() {
         out.src = `https://pollinations.ai/p/${encodeURIComponent(prompt)}?width=1024&height=1024&seed=${Math.random()}`;
         out.style.display = "block"; status.style.display = "none";
         initGallery(); updateBalanceDisplay();
-    } catch (e) { log("TX REJECTED", "error"); }
+    } catch (e) { 
+        console.error("Inference Error:", error);
+        // This will print the specific Solidity 'require' message
+        if (error.reason) log(`REJECTED: ${error.reason}`, "error");
+        else log("TX REJECTED", "error"); 
+    }
 }
 
 async function verifySelf() {
@@ -299,3 +304,4 @@ window.onload = () => {
 </script>
 </body>
 </html>
+

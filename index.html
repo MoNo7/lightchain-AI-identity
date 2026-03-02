@@ -8,29 +8,35 @@
     <style>
         :root { --accent: #0070ff; --bg: #020408; --panel: #0b0e14; --border: #1e2633; --text-dim: #6a768a; --console-bg: #05070a; }
         body { margin: 0; background: var(--bg); color: white; font-family: 'Inter', sans-serif; display: flex; height: 100vh; overflow: hidden; }
+        
         nav { width: 280px; border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 25px; background: var(--panel); box-sizing: border-box; }
         .nav-logo { font-weight: 900; letter-spacing: 2px; color: var(--accent); margin-bottom: 25px; font-size: 1.1rem; text-align: center; }
-        .system-console { background: var(--console-bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: monospace; font-size: 0.65rem; height: 200px; overflow-y: auto; margin-bottom: 20px; color: #4e5d75; line-height: 1.5; }
+        .system-console { background: var(--console-bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: monospace; font-size: 0.65rem; height: 180px; overflow-y: auto; margin-bottom: 20px; color: #4e5d75; line-height: 1.5; }
         .console-line { margin-bottom: 4px; border-left: 2px solid #1a202c; padding-left: 8px; }
         .console-line.success { border-left-color: var(--accent); color: #fff; }
         .console-line.scan { color: #ffaa00; border-left-color: #ffaa00; }
+        
         .nav-menu { display: flex; flex-direction: column; gap: 8px; }
         .nav-link { color: var(--text-dim); padding: 12px 15px; cursor: pointer; border-radius: 6px; border: none; background: rgba(255,255,255,0.03); text-align: left; font-size: 0.75rem; font-family: monospace; width: 100%; font-weight: 600; }
         .nav-link.active { color: white; background: var(--accent); }
+
         .viewport { flex: 1; display: flex; flex-direction: column; }
         header { height: 80px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 40px; box-sizing: border-box; }
         .h-col { flex: 1; display: flex; align-items: center; }
         .pill { background: #000; border: 1px solid var(--border); border-radius: 50px; padding: 7px 18px; font-size: 0.65rem; font-family: monospace; display: flex; align-items: center; gap: 10px; }
         .pill.price { color: #00c853; border-color: #00c85344; }
         .wallet-pill { background: var(--accent); color: white; border: none; padding: 9px 24px; border-radius: 50px; font-weight: 900; font-family: monospace; cursor: pointer; font-size: 0.75rem; }
+
         .view-pane { flex: 1; padding: 40px; display: none; overflow-y: auto; }
         .view-pane.active { display: block !important; }
         .card { background: var(--panel); border: 1px solid var(--border); padding: 30px; border-radius: 12px; max-width: 900px; border-top: 4px solid var(--accent); margin-bottom: 20px; }
         .panel-input { width: 100%; background: #000; border: 1px solid #333; color: white; padding: 12px; border-radius: 4px; font-size: 0.75rem; margin-bottom: 12px; box-sizing: border-box; font-family: monospace; }
-        .action-btn { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; width: 100%; font-weight: bold; }
+        .action-btn { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; width: 100%; font-weight: bold; margin-bottom: 5px; }
+
         #gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-top: 20px; }
         .thumb { background: #000; padding: 10px; border-radius: 8px; border: 1px solid var(--border); text-align: center; }
         .thumb img { width: 100%; border-radius: 4px; cursor: pointer; }
+        
         .progress-container { width: 100%; background: #000; border: 1px solid var(--border); border-radius: 50px; height: 12px; margin: 15px 0; overflow: hidden; }
         .progress-bar { width: 0%; height: 100%; background: var(--accent); transition: width 0.3s ease; }
     </style>
@@ -68,7 +74,7 @@
 
     <div id="gallery-view" class="view-pane active">
         <div class="card">
-            <h2>NETWORK GALLERY</h2>
+            <h2>NETWORK GALLERY (LAST 10 RENDERS)</h2>
             <div id="gallery-grid"></div>
         </div>
     </div>
@@ -99,15 +105,6 @@
                 <button class="action-btn" style="background:#555;" onclick="adminAction('query')">QUERY</button>
                 <button class="action-btn" style="background:#ff4444;" onclick="adminAction('revoke')">REVOKE</button>
             </div>
-            <h3>MODEL PERFORMANCE BENCHMARKS</h3>
-            <table style="width:100%; font-size:0.7rem; border-collapse:collapse;">
-                <thead style="text-align:left; color:var(--text-dim);"><tr><th>MODEL</th><th>LATENCY</th><th>POI STATUS</th><th>UPTIME</th></tr></thead>
-                <tbody>
-                    <tr><td>AIVM-THETA</td><td>1.2s</td><td style="color:#00c853">VERIFIED</td><td>99.9%</td></tr>
-                    <tr><td>AIVM-DELTA</td><td>0.8s</td><td style="color:#00c853">VERIFIED</td><td>99.7%</td></tr>
-                    <tr><td>AIVM-SIGMA</td><td>2.4s</td><td style="color:#ffaa00">COMPUTING</td><td>98.2%</td></tr>
-                </tbody>
-            </table>
         </div>
     </div>
 
@@ -215,17 +212,22 @@ async function initGallery() {
         const startBlock = currentBlock - 50000;
         document.getElementById('scan-log').innerText = `>> SCANNER: BLK ${startBlock} - ${currentBlock}`;
         
+        // Filter: Specific InferenceRequested events (Image Renders)
         const filter = contract.filters.InferenceRequested();
         const events = await contract.queryFilter(filter, startBlock);
         
         if (events.length === 0) return grid.innerHTML = "NO RECENT RENDERS FOUND";
         grid.innerHTML = "";
-        events.reverse().slice(0, 12).forEach(ev => {
-            const p = ev.args.prompt;
-            grid.innerHTML += `<div class="thumb">
-                <img src="https://pollinations.ai/p/${encodeURIComponent(p)}?width=400&height=300&seed=${ev.transactionHash}" onclick="window.open(this.src)">
-                <p style="font-size:0.6rem; color:#6a768a; margin-top:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p}</p>
-            </div>`;
+        
+        // TRUNCATION FIX: Slice precisely the last 10
+        events.reverse().slice(0, 10).forEach(ev => {
+            const prompt = ev.args.prompt;
+            if(prompt && prompt.length > 0) {
+                grid.innerHTML += `<div class="thumb">
+                    <img src="https://pollinations.ai/p/${encodeURIComponent(prompt)}?width=400&height=300&seed=${ev.transactionHash}" onclick="window.open(this.src)">
+                    <p style="font-size:0.6rem; color:#6a768a; margin-top:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${prompt}</p>
+                </div>`;
+            }
         });
     } catch (e) { grid.innerHTML = "SYNC ERROR"; console.error(e); }
 }

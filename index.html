@@ -13,7 +13,6 @@
         .system-console { background: var(--console-bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: monospace; font-size: 0.65rem; height: 180px; overflow-y: auto; margin-bottom: 20px; color: #4e5d75; line-height: 1.5; }
         .console-line { margin-bottom: 4px; border-left: 2px solid #1a202c; padding-left: 8px; }
         .console-line.success { border-left-color: var(--accent); color: #fff; }
-        .console-line.error { border-left-color: #ff4444; color: #ff4444; }
         .nav-menu { display: flex; flex-direction: column; gap: 8px; }
         .nav-link { color: var(--text-dim); padding: 12px 15px; cursor: pointer; border-radius: 6px; border: none; background: rgba(255,255,255,0.03); text-align: left; font-size: 0.75rem; font-family: monospace; width: 100%; font-weight: 600; }
         .nav-link.active { color: white; background: var(--accent); }
@@ -25,8 +24,7 @@
         .view-pane.active { display: block !important; }
         .card { background: var(--panel); border: 1px solid var(--border); padding: 30px; border-radius: 12px; max-width: 900px; border-top: 4px solid var(--accent); margin-bottom: 20px; }
         .panel-input { width: 100%; background: #000; border: 1px solid #333; color: white; padding: 12px; border-radius: 4px; font-size: 0.75rem; margin-bottom: 12px; box-sizing: border-box; font-family: monospace; }
-        .action-btn { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; width: 100%; font-weight: bold; margin-bottom: 10px; transition: opacity 0.2s; }
-        .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .action-btn { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; width: 100%; font-weight: bold; margin-bottom: 10px; }
         #gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
         .thumb { background: #000; padding: 10px; border-radius: 8px; border: 1px solid var(--border); text-align: center; }
         .thumb img { width: 100%; border-radius: 4px; cursor: pointer; }
@@ -110,8 +108,7 @@ const CONFIG = {
     idAbi: [
         "function profiles(address) view returns (string username, string did, bool isVerified, bool exists)",
         "function createProfile(string username, string did) external",
-        "function verifyIdentity(address) external",
-        "function isAdmin(address) view returns (bool)"
+        "function verifyIdentity(address) external"
     ]
 };
 
@@ -127,11 +124,18 @@ const log = (msg, type = "") => {
 };
 
 async function connectWallet() {
-    if (!window.ethereum) return;
+    // FIX: Specifically look for MetaMask provider to prevent Coinbase override
+    let metaMaskProvider = window.ethereum;
+    if (window.ethereum?.providers) {
+        metaMaskProvider = window.ethereum.providers.find(p => p.isMetaMask);
+    }
+
+    if (!metaMaskProvider) return log("METAMASK NOT FOUND", "error");
+
     try {
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        const accounts = await metaMaskProvider.request({ method: 'eth_requestAccounts' });
         user = accounts[0];
-        provider = new ethers.BrowserProvider(window.ethereum);
+        provider = new ethers.BrowserProvider(metaMaskProvider);
         signer = await provider.getSigner();
         artContract = new ethers.Contract(CONFIG.artAddr, CONFIG.artAbi, signer);
         idContract = new ethers.Contract(CONFIG.idAddr, CONFIG.idAbi, signer);
@@ -166,69 +170,56 @@ async function updateIdentity() {
         const zone = document.getElementById('id-action-zone');
         if(!profile.exists) {
             zone.innerHTML = `
-                <input id="reg-user" class="panel-input" placeholder="Username (e.g. MiMo)">
-                <input id="reg-did" class="panel-input" placeholder="Custom DID (blank for default: did:lcai:...)">
-                <button class="action-btn" onclick="registerProfile()">REGISTER IDENTITY PROFILE</button>`;
+                <input id="reg-user" class="panel-input" placeholder="Desired Username (e.g. MiMo)">
+                <input id="reg-did" class="panel-input" placeholder="Custom DID (or leave blank for standard)">
+                <button class="action-btn" onclick="registerProfile()">REGISTER IDENTITY</button>`;
         } else if(!profile.isVerified) {
-            zone.innerHTML = `
-                <p style="color:var(--text-dim); font-size: 0.7rem; margin-bottom: 10px;">IDENTITY CREATED: Awaiting ZK-Verification...</p>
-                <button class="action-btn" style="background:#ffaa00;" onclick="mintZkVerify()">MINT ZK-VERIFY ATTESTATION</button>`;
+            zone.innerHTML = `<button class="action-btn" style="background:#ffaa00;" onclick="mintZkVerify()">MINT ZK-VERIFY ATTESTATION</button>`;
         } else {
-            zone.innerHTML = `<p style="color:#00c853; font-size:0.8rem; font-weight: bold;">✓ ZK-IDENTITY ANCHORED & VERIFIED</p>`;
+            zone.innerHTML = `<p style="color:#00c853; font-size:0.8rem; font-weight:bold;">✓ IDENTITY VERIFIED ON-CHAIN</p>`;
         }
-    } catch (e) { console.error("ID_FETCH_ERR", e); }
+    } catch (e) { console.error(e); }
 }
 
 async function registerProfile() {
     const u = document.getElementById('reg-user').value || "ANONYMOUS";
     let d = document.getElementById('reg-did').value;
-    // Provide default DID if blank
     if(!d) d = `did:lcai:${user.slice(2,8)}`;
     
     try {
-        log(`REGISTERING: ${u}...`);
+        log(`ANCHORING PROFILE: ${u}...`);
         const tx = await idContract.createProfile(u, d, { gasLimit: 300000 });
         await tx.wait();
         log("IDENTITY REGISTERED", "success");
         updateIdentity();
-    } catch (e) { 
-        log("REG_FAILED: Possible Duplicate or Gas Limit", "error"); 
-        console.error(e);
-    }
+    } catch (e) { log("REG_FAILED: Profile may exist", "error"); }
 }
 
 async function mintZkVerify() {
     try {
-        log("MINTING ZK-VERIFY ATTESTATION...");
+        log("MINTING ZK-SBT...");
         const tx = await idContract.verifyIdentity(user, { gasLimit: 200000 });
         await tx.wait();
-        log("ZK-SBT ANCHORED", "success");
+        log("ZK-VERIFY MINTED", "success");
         updateIdentity();
-    } catch (e) { log("MINT_FAILED: Admin permission required", "error"); }
+    } catch (e) { log("MINT_FAILED", "error"); }
 }
 
 async function generateArt() {
     const prompt = document.getElementById('art-prompt').value;
-    const btn = document.getElementById('gen-btn');
     if(!prompt) return log("ENTER PROMPT", "error");
-    
     try {
-        btn.disabled = true;
-        log("ANCHORING INFERENCE...");
+        log("INITIATING INFERENCE...");
         const tx = await artContract.generateArt(prompt, ethers.ZeroHash, { 
             value: ethers.parseEther("0.25"),
             gasLimit: 500000 
         });
         await tx.wait();
-        log("INFERENCE SUCCESS", "success");
+        log("RENDER SUCCESS", "success");
         document.getElementById('output-img').src = `https://pollinations.ai/p/${encodeURIComponent(prompt)}?width=1024&height=1024&seed=${tx.hash}`;
         document.getElementById('output-img').style.display = 'block';
         initGallery();
-    } catch (e) { 
-        log("INFERENCE_FAILED: Check Art Verification", "error"); 
-    } finally {
-        btn.disabled = false;
-    }
+    } catch (e) { log("INFERENCE_REJECTED", "error"); }
 }
 
 async function initGallery() {
@@ -238,18 +229,14 @@ async function initGallery() {
         const events = await artContract.queryFilter("InferenceRequested", -5000);
         grid.innerHTML = "";
         events.reverse().slice(0, 10).forEach(ev => {
-            grid.innerHTML += `
-                <div class="thumb">
-                    <img src="https://pollinations.ai/p/${encodeURIComponent(ev.args.prompt)}?width=400&height=300&seed=${ev.transactionHash}" onclick="window.open(this.src)">
-                    <p style="font-size:0.6rem; color:var(--text-dim); margin-top:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${ev.args.prompt}</p>
-                </div>`;
+            grid.innerHTML += `<div class="thumb"><img src="https://pollinations.ai/p/${encodeURIComponent(ev.args.prompt)}?width=400&height=300&seed=${ev.transactionHash}"><p style="font-size:0.6rem; color:var(--text-dim);">${ev.args.prompt}</p></div>`;
         });
     } catch (e) { grid.innerHTML = "<p style='color:var(--text-dim); font-size:0.7rem;'>Syncing Gallery...</p>"; }
 }
 
 async function verifySelf() {
     try {
-        log("AUTHORIZING SELF FOR ART...");
+        log("AUTHORIZING ART PERMISSIONS...");
         const tx = await artContract.setVerification(user, true);
         await tx.wait();
         log("ART PERMISSION GRANTED", "success");
@@ -257,20 +244,9 @@ async function verifySelf() {
     } catch (e) { log("VERIFY_SELF_FAILED", "error"); }
 }
 
-async function adminAction(type) {
-    const target = document.getElementById('admin-target').value;
-    if(!target || !ethers.isAddress(target)) return log("INVALID_ADDRESS", "error");
-    try {
-        log(`AUTHORIZING: ${target.slice(0,10)}...`);
-        const tx = await artContract.setVerification(target, true);
-        await tx.wait();
-        log("TARGET AUTHORIZED", "success");
-    } catch (e) { log("ADMIN_ACTION_FAILED", "error"); }
-}
-
 function downloadQR() {
     const canvas = document.querySelector('#qr-target canvas');
-    const a = document.createElement('a'); a.href = canvas.toDataURL("image/png"); a.download = 'LCAI_Identity.png'; a.click();
+    const a = document.createElement('a'); a.href = canvas.toDataURL("image/png"); a.download = 'LCAI_Identity_QR.png'; a.click();
 }
 
 function showView(id, btn) {

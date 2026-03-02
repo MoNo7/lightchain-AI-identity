@@ -131,34 +131,63 @@
 
         let userWallet;
 
-        // --- TICKER LOGIC ---
-        async function fetchPrices() {
+        async function updateBalance(provider) {
             try {
-                const [lcRes, etRes] = await Promise.all([
-                    fetch(`https://api.dexscreener.com/latest/dex/pairs/base/${LCAI_PAIR}`),
-                    fetch(`https://api.dexscreener.com/latest/dex/pairs/base/${ETH_PAIR}`)
-                ]);
-                const lcData = await lcRes.json();
-                const etData = await etRes.json();
-
-                if(lcData.pair) document.getElementById('lcaiTicker').innerText = "$" + parseFloat(lcData.pair.priceUsd).toFixed(6);
-                if(etData.pair) document.getElementById('ethTicker').innerText = "$" + parseFloat(etData.pair.priceUsd).toFixed(2);
-            } catch(e) { console.error("Ticker Error", e); }
+                const bal = await provider.getBalance(userWallet);
+                // Format to 2 decimal places
+                document.getElementById('balancePill').innerText = parseFloat(ethers.formatEther(bal)).toFixed(2) + " LCAI";
+            } catch(e) { console.error("Balance Error", e); }
         }
+
+        // --- TICKER LOGIC ---
+async function fetchPrices() {
+    try {
+        // Use individual try/catch or simpler fetch to ensure one failure doesn't kill both
+        const response = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${TOKEN_ADDRESS}`);
+        const data = await response.json();
+
+        // Update LCAI Ticker
+        if (data.pairs && data.pairs.length > 0) {
+            const lcaiPrice = parseFloat(data.pairs[0].priceUsd);
+            document.getElementById('lcaiTicker').innerText = "$" + lcaiPrice.toFixed(6);
+        }
+
+        // Fetch ETH Price via its standard Base pair
+        const ethRes = await fetch(`https://api.dexscreener.com/latest/dex/pairs/base/${ETH_PAIR}`);
+        const ethData = await ethRes.json();
+        
+        if (ethData.pair) {
+            const ethPrice = parseFloat(ethData.pair.priceUsd);
+            document.getElementById('ethTicker').innerText = "$" + ethPrice.toFixed(2);
+        }
+    } catch (e) {
+        console.error("Ticker Sync Error", e);
+    }
+}
         setInterval(fetchPrices, 5000);
         fetchPrices();
 
         // --- WALLET CONNECT ---
         async function connect() {
-            if(!window.ethereum) return log("Metamask not found.");
-            const provider = new ethers.BrowserProvider(window.ethereum);
-            const accounts = await provider.send("eth_requestAccounts", []);
-            userWallet = accounts[0];
-            
-            document.getElementById('walletBtn').innerText = userWallet.slice(0,6) + "...";
-            document.getElementById('authStep').classList.remove('step-locked');
-            if(userWallet.toLowerCase() === CONFIG.owner.toLowerCase()) document.getElementById('ownerItems').style.display = 'block';
-            log("Connected: " + userWallet);
+            if (!window.ethereum) return log("Metamask not found.");
+            try {
+                const provider = new ethers.BrowserProvider(window.ethereum);
+                const accounts = await provider.send("eth_requestAccounts", []);
+                userWallet = accounts[0];
+                
+                // Update Button
+                const btn = document.getElementById('walletBtn');
+                btn.innerText = userWallet.slice(0,6) + "..." + userWallet.slice(-4);
+        
+                // Unlock Sidebar & Admin (if owner)
+                if(userWallet.toLowerCase() === CONFIG.owner.toLowerCase()) {
+                    document.getElementById('ownerItems').style.display = 'block';
+                }
+                
+                // This is the fix: pass the provider directly to update balance
+                await updateBalance(provider); 
+                log("Connected: " + userWallet);
+            } catch(e) { log("Connect Error: " + e.message); }
         }
 
         function showView(id) {
@@ -176,3 +205,4 @@
     </script>
 </body>
 </html>
+

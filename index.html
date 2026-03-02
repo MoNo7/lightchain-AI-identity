@@ -91,7 +91,10 @@
                     <div id="qrcode" style="margin: 0 auto 15px;"></div>
                     <div style="text-align:left; font-size:0.75rem; background:#050608; padding:10px; border-radius:4px; border:1px solid var(--border);">
                         <span style="color:var(--accent)">USER:</span> <span id="mUser"></span><br>
-                        <span style="color:var(--accent)">DID:</span> <span id="mDid" style="word-break:break-all;"></span>
+                        <span style="color:var(--accent)">DID:</span> <span id="mDid" style="word-break:break-all;"></span><br>
+                        <span style="color:var(--accent)">V-LEVEL:</span> <span style="color:white">Tier-3 Admin</span><br>
+                        <span style="color:var(--accent)">ISSUED:</span> <span id="mIssued" style="color:white"></span><br>
+                        <span style="color:var(--accent)">ENC:</span> <span style="color:white">AES-GCM-256</span>
                     </div>
                     <button class="btn-zk" style="background:var(--green)" onclick="mintSBT()">MINT ZK-KYC SBT</button>
                 </div>
@@ -99,19 +102,19 @@
 
             <div class="admin-card view-card" id="adminPanel" style="display:none;">
                 <div class="card-title">Admin Management</div>
-                <input type="text" id="queryAddr" placeholder="Query Wallet Address...">
+                <input type="text" id="queryAddr" placeholder="Target Wallet Address...">
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                    <button class="btn-zk" onclick="log('Verifying Address...')">VERIFY</button>
-                    <button class="btn-zk" style="background:var(--red); color:white" onclick="log('Revoking Credentials...')">REVOKE</button>
+                    <button class="btn-zk" onclick="adminVerify()">VERIFY</button>
+                    <button class="btn-zk" style="background:var(--red); color:white" onclick="adminRevoke()">REVOKE</button>
                 </div>
                 <button class="btn-zk" style="background:#21262d; color:white; margin-top:10px;" onclick="resetProfile()">DELETE PROFILE & REREGISTER</button>
             </div>
 
             <div class="admin-card view-card" id="ownerPanel" style="display:none;">
                 <div class="card-title">Owner Revenue</div>
-                <div style="font-size:0.7rem; color:#8b949e;">TOTAL REVENUE</div>
-                <div style="font-size:1.8rem; font-weight:bold; color:var(--zk-gold); margin-bottom:15px;">42.85 <small>LCAI</small></div>
-                <button class="btn-zk" style="background:var(--accent)" onclick="log('Withdrawal Initiated...')">WITHDRAW TO COLD WALLET</button>
+                <div style="font-size:0.7rem; color:#8b949e;">CONTRACT REVENUE BALANCE</div>
+                <div id="revBalance" style="font-size:1.8rem; font-weight:bold; color:var(--zk-gold); margin-bottom:15px;">0.00 <small>LCAI</small></div>
+                <button class="btn-zk" style="background:var(--accent)" onclick="ownerWithdraw()">WITHDRAW REVENUE</button>
             </div>
 
             <div class="admin-card view-card" id="modelTelemetry" style="display:none;">
@@ -131,8 +134,13 @@
             rpc: "https://rpc2.siriusnet.io",
             lcaiPair: "0x0d047a370611437a1b8e6c2a95ea36f69fdda3be",
             sbtAddr: "0xd71462F0002Ee9373fCe05B568583Ed13e75f600",
-            owner: "0x4D36B31d4BFB957A5D816B0f420a9e755EFc6a2c",
-            sbtABI: ["function mintSBT(string username, string did) public"]
+            owner: "0x6378A6993C7C77E4A28f8f263e778401309fD9E4",
+            sbtABI: [
+                "function mintSBT(string username, string did) public",
+                "function revokeSBT(address user) public",
+                "function verifyUser(address user) public",
+                "function withdrawRevenue() public"
+            ]
         };
 
         let currentWallet = null;
@@ -157,10 +165,10 @@
             document.getElementById('walletBtn').innerText = currentWallet.slice(0,6) + "...";
             document.getElementById('zkReg').style.display = 'block';
             
-            // Access Control
             document.getElementById('adminMenu').style.display = 'block';
             if(currentWallet.toLowerCase() === CONFIG.owner.toLowerCase()) {
                 document.getElementById('ownerMenu').style.display = 'block';
+                document.getElementById('revBalance').innerHTML = "42.85 <small>LCAI</small>";
             }
             
             const bal = await provider.getBalance(currentWallet);
@@ -172,24 +180,61 @@
         function register() {
             const user = document.getElementById('zkUser').value || "Admin";
             const did = document.getElementById('zkDid').value || `did:lcai:${currentWallet.toLowerCase()}`;
-            zkData = { username: user, did: did };
+            const now = new Date().toLocaleDateString();
+            zkData = { username: user, did: did, level: "Tier-3", issued: now };
+            
             document.getElementById('zkReg').style.display = 'none';
             document.getElementById('zkMeta').style.display = 'block';
             document.getElementById('mUser').innerText = user;
             document.getElementById('mDid').innerText = did;
+            document.getElementById('mIssued').innerText = now;
             document.getElementById('zkSidebarStatus').style.display = 'block';
+            
             new QRCode(document.getElementById("qrcode"), { text: JSON.stringify(zkData), width: 128, height: 128 });
             log(`ID Registered: ${user}`);
         }
 
+        async function getContract() {
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            const signer = await provider.getSigner();
+            return new ethers.Contract(CONFIG.sbtAddr, CONFIG.sbtABI, signer);
+        }
+
         async function mintSBT() {
             try {
-                const provider = new ethers.BrowserProvider(window.ethereum);
-                const signer = await provider.getSigner();
-                const contract = new ethers.Contract(CONFIG.sbtAddr, CONFIG.sbtABI, signer);
-                log("Executing Mint via lcai-zkkycsbt.sol...");
-                alert(`Routing Mint to: ${CONFIG.sbtAddr}`);
-            } catch(e){ log("Mint Error."); }
+                const contract = await getContract();
+                log("Requesting Mint via lcai-zkkycsbt.sol...");
+                const tx = await contract.mintSBT(zkData.username, zkData.did);
+                log(`TX Pending: ${tx.hash}`);
+            } catch(e){ log("Mint Error: User rejected or insufficient gas."); }
+        }
+
+        async function adminVerify() {
+            const addr = document.getElementById('queryAddr').value;
+            if(!ethers.isAddress(addr)) return alert("Invalid Address");
+            try {
+                const contract = await getContract();
+                log(`Verifying: ${addr}`);
+                await contract.verifyUser(addr);
+            } catch(e){ log("Verification failed."); }
+        }
+
+        async function adminRevoke() {
+            const addr = document.getElementById('queryAddr').value;
+            if(!ethers.isAddress(addr)) return alert("Invalid Address");
+            try {
+                const contract = await getContract();
+                log(`Revoking: ${addr}`);
+                await contract.revokeSBT(addr);
+            } catch(e){ log("Revocation failed."); }
+        }
+
+        async function ownerWithdraw() {
+            try {
+                const contract = await getContract();
+                log("Withdrawing contract revenue...");
+                await contract.withdrawRevenue();
+            } catch(e){ log("Withdrawal failed."); }
         }
 
         function resetProfile() {
@@ -212,7 +257,7 @@
         }
 
         fetchPrices();
-        setInterval(fetchPrices, 30000);
+        setInterval(fetchPrices, 5000);
     </script>
 </body>
 </html>

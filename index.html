@@ -207,34 +207,37 @@
             window.location.href = authUrl;
         }
 
-        let userWallet, idHash;
+async function connect() {
+    if (!window.ethereum) {
+        log("Error: Metamask not detected.");
+        return;
+    }
+    try {
+        // Correct Ethers v6 Provider pattern
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        
+        // This triggers the actual Metamask popup
+        const accounts = await provider.send("eth_requestAccounts", []);
+        userWallet = accounts[0];
 
-        async function connect() {
-            if (!window.ethereum) {
-                log("Error: Metamask not detected.");
-                return;
-            }
-            try {
-                const provider = new ethers.BrowserProvider(window.ethereum);
-                const accounts = await provider.send("eth_requestAccounts", []);
-                userWallet = accounts[0];
-        
-                // Update UI
-                document.getElementById('walletBtn').innerText = userWallet.slice(0, 6) + "..." + userWallet.slice(-4);
-                document.getElementById('walletBtn').style.background = "#1b1f24";
-                document.getElementById('walletBtn').style.color = "var(--accent)";
-                
-                // Unlock Auth Step (from previous logic)
-                const authStep = document.getElementById('authStep');
-                if(authStep) authStep.classList.remove('step-locked');
-        
-                // Initial Balance Check
-                updateBalance(provider);
-                log("Wallet Connected: " + userWallet);
-            } catch (err) {
-                log("Connection Rejected.");
-            }
+        // Update UI elements
+        const btn = document.getElementById('walletBtn');
+        if (btn) {
+            btn.innerText = userWallet.slice(0, 6) + "..." + userWallet.slice(-4);
+            btn.style.background = "#1b1f24";
+            btn.style.color = "var(--accent)";
         }
+        
+        // Logic to unlock the rest of the dashboard
+        const authStep = document.getElementById('authStep');
+        if(authStep) authStep.classList.remove('step-locked');
+
+        updateBalance(provider);
+        log("Wallet Connected: " + userWallet);
+    } catch (err) {
+        log("Connection Rejected: " + err.message);
+    }
+}
 
         // 2. LIVE BALANCE UPDATE
         async function updateBalance(provider) {
@@ -393,6 +396,7 @@
     </script>
 </body>
 </html>
+
 
 
 

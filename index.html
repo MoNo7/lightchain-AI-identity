@@ -26,7 +26,7 @@
         .view-pane.active { display: block !important; }
         .card { background: var(--panel); border: 1px solid var(--border); padding: 30px; border-radius: 12px; max-width: 900px; border-top: 4px solid var(--accent); margin-bottom: 20px; }
         .panel-input { width: 100%; background: #000; border: 1px solid #333; color: white; padding: 12px; border-radius: 4px; font-size: 0.75rem; margin-bottom: 12px; box-sizing: border-box; font-family: monospace; }
-        .action-btn { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; width: 100%; font-weight: bold; }
+        .action-btn { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; width: 100%; font-weight: bold; margin-bottom: 5px; }
         table { width: 100%; border-collapse: collapse; font-size: 0.7rem; margin-top: 15px; }
         th { text-align: left; color: var(--text-dim); padding: 10px; border-bottom: 1px solid var(--border); }
         td { padding: 10px; border-bottom: 1px solid var(--border); font-family: monospace; }
@@ -41,7 +41,7 @@
     <div class="nav-logo">LCAI <span>IAM</span></div>
     <div class="system-console" id="console">
         <div class="console-line">>> KERNEL_READY</div>
-        <div id="scan-addr" class="console-line scan">>> SCAN_TARGET: 0x0...</div>
+        <div id="scan-addr" class="console-line scan">>> SCAN_TARGET: 0xB6f1E497...</div>
     </div>
     <div id="side-menu" class="nav-menu">
         <button class="nav-link active" onclick="showView('gallery-view', this); initGallery();">NETWORK GALLERY</button>
@@ -77,7 +77,7 @@
             <h2>ZK-SBT IDENTITY</h2>
             <div style="display:flex; gap:20px;">
                 <pre id="id-json" style="flex:1; background:#05070a; padding:15px; font-size:0.7rem; color:var(--text-dim); border:1px solid var(--border); line-height:1.6;">// Identity Offline</pre>
-                <div id="qr-target" style="background:white; padding:10px; border-radius:8px; cursor:pointer;" onclick="downloadQR()"></div>
+                <div id="qr-target" style="background:white; padding:10px; border-radius:8px; cursor:pointer;" title="Click to Download QR" onclick="downloadQR()"></div>
             </div>
             <button class="action-btn" style="margin-top:15px;" onclick="downloadJSON()">DOWNLOAD JSON IDENTITY</button>
         </div>
@@ -86,12 +86,12 @@
     <div id="admin-view" class="view-pane">
         <div class="card" id="owner-panel" style="display:none; border-top-color:#ffaa00;">
             <h3>OWNER TREASURY</h3>
-            <p style="font-size:0.8rem; color:var(--text-dim);">Total Revenue: <span id="contract-rev" style="color:white;">0.00</span> LCAI</p>
+            <p style="font-size:0.8rem; color:var(--text-dim);">Contract Revenue: <span id="contract-rev" style="color:white;">0.00</span> LCAI</p>
             <button class="action-btn" style="background:#ffaa00;" onclick="withdrawRevenue()">WITHDRAW ALL FUNDS</button>
         </div>
         <div class="card">
             <h2>ADMINISTRATION</h2>
-            <input type="text" id="admin-target" class="panel-input" placeholder="0x... Wallet Address">
+            <input type="text" id="admin-target" class="panel-input" placeholder="0x... Target Address">
             <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; margin-bottom:20px;">
                 <button class="action-btn" onclick="adminAction('verify')">VERIFY</button>
                 <button class="action-btn" style="background:#555;" onclick="adminAction('query')">QUERY</button>
@@ -99,11 +99,11 @@
             </div>
             <h3>MODEL PERFORMANCE BENCHMARKS</h3>
             <table>
-                <thead><tr><th>MODEL</th><th>LATENCY</th><th>POI STATUS</th><th>UPTIME</th></tr></thead>
+                <thead><tr><th>MODEL</th><th>LATENCY</th><th>POI STATUS</th><th>DA HASH</th></tr></thead>
                 <tbody>
-                    <tr><td>AIVM-THETA</td><td>1.2s</td><td style="color:#00c853">VERIFIED</td><td>99.9%</td></tr>
-                    <tr><td>AIVM-DELTA</td><td>0.8s</td><td style="color:#00c853">VERIFIED</td><td>99.7%</td></tr>
-                    <tr><td>AIVM-SIGMA</td><td>2.4s</td><td style="color:#ffaa00">COMPUTING</td><td>98.2%</td></tr>
+                    <tr><td>AIVM-THETA</td><td>1.2s</td><td style="color:#00c853">VERIFIED</td><td>0x2bf0...</td></tr>
+                    <tr><td>AIVM-DELTA</td><td>0.8s</td><td style="color:#00c853">VERIFIED</td><td>0x4a8c...</td></tr>
+                    <tr><td>AIVM-SIGMA</td><td>2.4s</td><td style="color:#ffaa00">COMPUTING</td><td>0x6f63...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -117,9 +117,10 @@
                 <option value="AIVM-DELTA">AIVM-DELTA (Turbo)</option>
                 <option value="AIVM-SIGMA">AIVM-SIGMA (Neural)</option>
             </select>
-            <textarea id="art-prompt" class="panel-input" style="height:80px;" placeholder="Prompt..."></textarea>
+            <textarea id="art-prompt" class="panel-input" style="height:80px;" placeholder="Prompt the AIVM..."></textarea>
             <button class="action-btn" onclick="generateArt()">REQUEST INFERENCE (0.25 tLCAI)</button>
-            <div style="margin-top:20px; border:1px solid var(--border); border-radius:8px; min-height:300px; display:flex; align-items:center; justify-content:center; background:#000;">
+            <div style="margin-top:20px; border:1px solid var(--border); border-radius:8px; min-height:400px; display:flex; align-items:center; justify-content:center; background:#000; position:relative;">
+                <div id="gen-loader" style="display:none; border:4px solid #1a202c; border-top:4px solid var(--accent); border-radius:50%; width:40px; height:40px; animation:spin 1s linear infinite;"></div>
                 <img id="output-img" style="max-width:100%; border-radius:4px; display:none;">
                 <p id="canvas-status" style="color:var(--text-dim); font-size:0.7rem;">AWAITING NEURAL TASK...</p>
             </div>
@@ -171,8 +172,7 @@ async function connectWallet() {
     roles.isOwner = (user.toLowerCase() === (await contract.owner()).toLowerCase());
     roles.isVerified = await contract.manualVerified(user);
 
-    document.getElementById('scan-addr').innerText = `>> SCAN_TARGET: ${CONFIG.addr.slice(0,10)}...`;
-    log(`CONNECTED: ${user.slice(0, 10)}`, "success");
+    log(`SYNCED: ${user.slice(0, 10)}`, "success");
     updateMenu(); updateIdentity(); initGallery(); updatePrices();
     
     if(roles.isOwner) {
@@ -180,7 +180,7 @@ async function connectWallet() {
         const rev = await provider.getBalance(CONFIG.addr);
         document.getElementById('contract-rev').innerText = ethers.formatEther(rev);
     }
-    document.getElementById('wallet-btn').innerText = `${user.slice(0,6).toUpperCase()} | ACTIVE`;
+    document.getElementById('wallet-btn').innerText = `${user.slice(0,6).toUpperCase()} | CONNECTED`;
 }
 
 function updateMenu() {
@@ -197,11 +197,10 @@ function updateMenu() {
 async function initGallery() {
     if(!contract) return;
     const grid = document.getElementById('gallery-grid');
-    grid.innerHTML = "SCANNING AIVM ANCHORS...";
+    grid.innerHTML = "SCANNING NETWORK...";
     try {
-        const currentBlock = await provider.getBlockNumber();
-        const events = await contract.queryFilter("InferenceRequested", currentBlock - 100000);
-        if (events.length === 0) return grid.innerHTML = "NO RECENT RENDS DETECTED";
+        const events = await contract.queryFilter("InferenceRequested", 1600000);
+        if (events.length === 0) return grid.innerHTML = "NO EVENTS FOUND";
         grid.innerHTML = "";
         events.reverse().slice(0, 12).forEach(ev => {
             grid.innerHTML += `<div class="thumb">
@@ -215,19 +214,21 @@ async function initGallery() {
 async function generateArt() {
     const prompt = document.getElementById('art-prompt').value;
     const out = document.getElementById('output-img');
+    const loader = document.getElementById('gen-loader');
     const status = document.getElementById('canvas-status');
     if(!prompt) return;
     try {
         log("MINING INFERENCE...");
         document.getElementById('status-txt').innerText = "MINING";
+        out.style.display = 'none'; loader.style.display = 'block';
         const tx = await contract.generateArt(prompt, ethers.ZeroHash, { value: ethers.parseEther("0.25") });
         await tx.wait();
         log("RENDER SUCCESS", "success");
         document.getElementById('status-txt').innerText = "IDLE";
         out.src = `https://pollinations.ai/p/${encodeURIComponent(prompt)}?width=1024&height=1024&seed=${Math.random()}`;
-        out.style.display = "block"; status.style.display = "none";
+        out.style.display = "block"; loader.style.display = 'none'; status.style.display = "none";
         initGallery();
-    } catch (e) { log("TX REJECTED", "error"); }
+    } catch (e) { log("TX REJECTED", "error"); loader.style.display = 'none'; }
 }
 
 async function adminAction(type) {
@@ -242,7 +243,7 @@ async function adminAction(type) {
             log("USER REVOKED", "error");
         } else {
             const status = await contract.manualVerified(target);
-            log(`QUERY: ${target.slice(0,6)} STATUS: ${status ? 'VERIFIED' : 'UNVERIFIED'}`);
+            log(`QUERY: ${target.slice(0,6)} is ${status ? 'VERIFIED' : 'UNVERIFIED'}`);
         }
     } catch (e) { log("ADMIN ACTION FAILED", "error"); }
 }
@@ -252,7 +253,7 @@ async function withdrawRevenue() {
 }
 
 function updateIdentity() {
-    const meta = { "id": user, "verified": roles.isVerified, "timestamp": new Date().toISOString() };
+    const meta = { "address": user, "verified": roles.isVerified, "role": roles.isOwner ? "OWNER" : "OPERATOR", "timestamp": new Date().toISOString() };
     document.getElementById('id-json').innerText = JSON.stringify(meta, null, 4);
     document.getElementById('qr-target').innerHTML = "";
     new QRCode(document.getElementById("qr-target"), { text: JSON.stringify(meta), width: 120, height: 120 });
@@ -277,5 +278,6 @@ function downloadQR() {
 
 window.onload = () => { updatePrices(); setInterval(() => document.getElementById('sys-load').innerText = Math.floor(Math.random()*20 + 30) + "%", 5000); };
 </script>
+<style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
 </body>
 </html>

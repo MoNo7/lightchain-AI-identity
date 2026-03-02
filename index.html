@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Lightchain AI | IAM Admin Portal (Sirius V2)</title>
+    <title>Lightchain AI | IAM Admin Portal (Testnet 504)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -28,7 +28,8 @@
         .admin-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; padding: 25px; flex: 1; overflow-y: auto; }
         .admin-card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 20px; }
         .card-title { font-size: 0.75rem; color: #484f58; text-transform: uppercase; margin-bottom: 15px; border-bottom: 1px solid #1b1f24; padding-bottom: 10px; font-weight: bold; }
-        input { background: #050608; border: 1px solid var(--border); color: white; padding: 10px; border-radius: 4px; width: 100%; margin-bottom: 10px; box-sizing: border-box; font-size: 0.85rem; }
+        input, textarea { background: #050608; border: 1px solid var(--border); color: white; padding: 10px; border-radius: 4px; width: 100%; margin-bottom: 10px; box-sizing: border-box; font-size: 0.85rem; font-family: inherit; }
+        textarea { height: 60px; resize: none; }
         .btn-zk { background: var(--accent); color: black; border: none; padding: 10px; border-radius: 4px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 5px; }
         #console { height: 140px; background: #000; border-top: 1px solid var(--border); color: var(--green); font-family: monospace; padding: 15px; overflow-y: auto; font-size: 0.75rem; }
         .tele-row { display: flex; justify-content: space-between; font-size: 0.75rem; padding: 5px 0; border-bottom: 1px solid #1b1f24; }
@@ -92,9 +93,8 @@
                     <div style="text-align:left; font-size:0.75rem; background:#050608; padding:10px; border-radius:4px; border:1px solid var(--border);">
                         <span style="color:var(--accent)">USER:</span> <span id="mUser"></span><br>
                         <span style="color:var(--accent)">DID:</span> <span id="mDid" style="word-break:break-all;"></span><br>
-                        <span style="color:var(--accent)">V-LEVEL:</span> <span style="color:white">Tier-3 Admin</span><br>
-                        <span style="color:var(--accent)">ISSUED:</span> <span id="mIssued" style="color:white"></span><br>
-                        <span style="color:var(--accent)">ENC:</span> <span style="color:white">AES-GCM-256</span>
+                        <span style="color:var(--accent)">V-LEVEL:</span> Tier-3 Admin<br>
+                        <span style="color:var(--accent)">ISSUED:</span> <span id="mIssued"></span>
                     </div>
                     <button class="btn-zk" style="background:var(--green)" onclick="mintSBT()">MINT ZK-KYC SBT</button>
                 </div>
@@ -102,27 +102,25 @@
 
             <div class="admin-card view-card" id="adminPanel" style="display:none;">
                 <div class="card-title">Admin Management</div>
-                <input type="text" id="queryAddr" placeholder="Target Wallet Address...">
+                <label style="font-size: 0.65rem; color: #8b949e; margin-bottom: 5px; display: block;">TARGET ADDRESSES (COMMA SEPARATED FOR BATCH)</label>
+                <textarea id="queryAddr" placeholder="0x123..., 0x456..."></textarea>
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                    <button class="btn-zk" onclick="adminVerify()">VERIFY</button>
-                    <button class="btn-zk" style="background:var(--red); color:white" onclick="adminRevoke()">REVOKE</button>
+                    <button class="btn-zk" onclick="batchAction('verify')">BATCH VERIFY</button>
+                    <button class="btn-zk" style="background:var(--red); color:white" onclick="batchAction('revoke')">BATCH REVOKE</button>
                 </div>
-                <button class="btn-zk" style="background:#21262d; color:white; margin-top:10px;" onclick="resetProfile()">DELETE PROFILE & REREGISTER</button>
+                <button class="btn-zk" style="background:#21262d; color:white; margin-top:10px;" onclick="resetProfile()">DELETE MY PROFILE & REREGISTER</button>
             </div>
 
             <div class="admin-card view-card" id="ownerPanel" style="display:none;">
                 <div class="card-title">Owner Revenue</div>
-                <div style="font-size:0.7rem; color:#8b949e;">CONTRACT REVENUE BALANCE</div>
                 <div id="revBalance" style="font-size:1.8rem; font-weight:bold; color:var(--zk-gold); margin-bottom:15px;">0.00 <small>LCAI</small></div>
                 <button class="btn-zk" style="background:var(--accent)" onclick="ownerWithdraw()">WITHDRAW REVENUE</button>
             </div>
 
             <div class="admin-card view-card" id="modelTelemetry" style="display:none;">
-                <div class="card-title">Inference Model Status</div>
+                <div class="card-title">Model Status</div>
                 <div class="tele-row"><span>Llama-3-70B</span><span style="color:var(--green)">ONLINE (12%)</span></div>
                 <div class="tele-row"><span>Stable-Diffusion-XL</span><span style="color:var(--green)">ONLINE (45%)</span></div>
-                <div class="tele-row"><span>Mistral-Large-V2</span><span style="color:var(--zk-gold)">LOAD-BALANCING</span></div>
-                <div class="tele-row"><span>Custom-SBT-Verifier</span><span style="color:var(--green)">ACTIVE</span></div>
             </div>
         </main>
 
@@ -131,12 +129,13 @@
 
     <script>
         const CONFIG = {
-            rpc: "https://rpc2.siriusnet.io",
+            rpc: "https://light-testnet-rpc.lightchain.ai",
+            chainId: 504,
             lcaiPair: "0x0d047a370611437a1b8e6c2a95ea36f69fdda3be",
             sbtAddr: "0xd71462F0002Ee9373fCe05B568583Ed13e75f600",
-            owner: "0x6378A6993C7C77E4A28f8f263e778401309fD9E4",
+            owner: "0x6378A6993C7C77E4A28f8f263e778401309fD9E4", // Ensure this is YOUR deployer address
             sbtABI: [
-                "function mintSBT(string username, string did) public",
+                "function mintSBT(string username, string did) public payable",
                 "function revokeSBT(address user) public",
                 "function verifyUser(address user) public",
                 "function withdrawRevenue() public"
@@ -150,7 +149,7 @@
             try {
                 const eRes = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd');
                 const eData = await eRes.json();
-                document.getElementById('ethPrice').innerText = "$" + eData.ethereum.usd.toLocaleString();
+                document.getElementById('ethPrice').innerText = "$" + (eData.ethereum.usd).toLocaleString();
                 const lRes = await fetch(`https://api.dexscreener.com/latest/dex/pairs/ethereum/${CONFIG.lcaiPair}`);
                 const lData = await lRes.json();
                 document.getElementById('lcaiPrice').innerText = "$" + parseFloat(lData.pair.priceUsd).toFixed(6);
@@ -164,12 +163,8 @@
             currentWallet = accounts[0];
             document.getElementById('walletBtn').innerText = currentWallet.slice(0,6) + "...";
             document.getElementById('zkReg').style.display = 'block';
-            
             document.getElementById('adminMenu').style.display = 'block';
-            if(currentWallet.toLowerCase() === CONFIG.owner.toLowerCase()) {
-                document.getElementById('ownerMenu').style.display = 'block';
-                document.getElementById('revBalance').innerHTML = "42.85 <small>LCAI</small>";
-            }
+            if(currentWallet.toLowerCase() === CONFIG.owner.toLowerCase()) document.getElementById('ownerMenu').style.display = 'block';
             
             const bal = await provider.getBalance(currentWallet);
             document.getElementById('balancePill').innerText = parseFloat(ethers.formatEther(bal)).toFixed(2) + " LCAI";
@@ -182,16 +177,14 @@
             const did = document.getElementById('zkDid').value || `did:lcai:${currentWallet.toLowerCase()}`;
             const now = new Date().toLocaleDateString();
             zkData = { username: user, did: did, level: "Tier-3", issued: now };
-            
             document.getElementById('zkReg').style.display = 'none';
             document.getElementById('zkMeta').style.display = 'block';
             document.getElementById('mUser').innerText = user;
             document.getElementById('mDid').innerText = did;
             document.getElementById('mIssued').innerText = now;
             document.getElementById('zkSidebarStatus').style.display = 'block';
-            
             new QRCode(document.getElementById("qrcode"), { text: JSON.stringify(zkData), width: 128, height: 128 });
-            log(`ID Registered: ${user}`);
+            log(`ID Registered locally: ${user}`);
         }
 
         async function getContract() {
@@ -203,38 +196,49 @@
         async function mintSBT() {
             try {
                 const contract = await getContract();
-                log("Requesting Mint via lcai-zkkycsbt.sol...");
-                const tx = await contract.mintSBT(zkData.username, zkData.did);
-                log(`TX Pending: ${tx.hash}`);
-            } catch(e){ log("Mint Error: User rejected or insufficient gas."); }
+                log("Executing mintSBT with msg.value override...");
+                // Note: Adding manual gas limit and value to match IDE behavior
+                const tx = await contract.mintSBT(zkData.username, zkData.did, {
+                    value: ethers.parseEther("0.1"), // Adjust to your contract's required fee
+                    gasLimit: 300000 
+                });
+                log(`TX Hash: ${tx.hash}`);
+                await tx.wait();
+                log("SBT Minted Successfully.");
+            } catch(e){ log("Mint Failed: Verify fee and gas."); console.error(e); }
         }
 
-        async function adminVerify() {
-            const addr = document.getElementById('queryAddr').value;
-            if(!ethers.isAddress(addr)) return alert("Invalid Address");
+        async function batchAction(type) {
+            const input = document.getElementById('queryAddr').value;
+            const addresses = input.split(',').map(a => a.trim()).filter(a => ethers.isAddress(a));
+            
+            if(addresses.length === 0) return alert("No valid addresses found.");
+            
             try {
                 const contract = await getContract();
-                log(`Verifying: ${addr}`);
-                await contract.verifyUser(addr);
-            } catch(e){ log("Verification failed."); }
-        }
-
-        async function adminRevoke() {
-            const addr = document.getElementById('queryAddr').value;
-            if(!ethers.isAddress(addr)) return alert("Invalid Address");
-            try {
-                const contract = await getContract();
-                log(`Revoking: ${addr}`);
-                await contract.revokeSBT(addr);
-            } catch(e){ log("Revocation failed."); }
+                log(`Processing Batch ${type} for ${addresses.length} users...`);
+                
+                for(let addr of addresses) {
+                    log(`Processing: ${addr.slice(0,10)}...`);
+                    let tx;
+                    if(type === 'verify') tx = await contract.verifyUser(addr, { gasLimit: 100000 });
+                    else tx = await contract.revokeSBT(addr, { gasLimit: 100000 });
+                    
+                    log(`Success: ${tx.hash.slice(0,15)}...`);
+                }
+                log(`Batch ${type} Complete.`);
+            } catch(e) { log(`Batch ${type} encountered an error.`); console.error(e); }
         }
 
         async function ownerWithdraw() {
             try {
                 const contract = await getContract();
-                log("Withdrawing contract revenue...");
-                await contract.withdrawRevenue();
-            } catch(e){ log("Withdrawal failed."); }
+                log("Initiating owner.call{value: balance}...");
+                const tx = await contract.withdrawRevenue({ gasLimit: 100000 });
+                log(`Withdraw Hash: ${tx.hash}`);
+                await tx.wait();
+                log("Withdrawal Finalized.");
+            } catch(e){ log("Withdraw Failed: Check Owner permissions."); }
         }
 
         function resetProfile() {
@@ -242,7 +246,7 @@
             document.getElementById('zkMeta').style.display = 'none';
             document.getElementById('zkReg').style.display = 'block';
             document.getElementById('zkSidebarStatus').style.display = 'none';
-            log("Profile Cleared. Ready for re-registration.");
+            log("Local Profile Cleared.");
         }
 
         function showView(id) {

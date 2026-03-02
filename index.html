@@ -29,6 +29,10 @@
         .panel-input { width: 100%; background: #000; border: 1px solid #333; color: white; padding: 12px; border-radius: 4px; font-size: 0.75rem; margin-bottom: 12px; box-sizing: border-box; font-family: monospace; }
         .action-btn { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; width: 100%; font-weight: bold; margin-bottom: 10px; }
         
+        .card-header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .refresh-btn { background: #1a202c; border: 1px solid #333; color: var(--accent); padding: 5px 12px; border-radius: 4px; font-size: 0.6rem; font-family: monospace; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .refresh-btn:hover { background: var(--accent); color: white; }
+
         .model-row { display: flex; flex-direction: column; padding: 12px; background: rgba(0,0,0,0.3); border-radius: 6px; margin-bottom: 10px; border: 1px solid var(--border); position: relative; }
         .model-meta { font-family: monospace; font-size: 0.6rem; line-height: 1.6; word-break: break-all; }
         .status-badge { position: absolute; top: 12px; right: 12px; padding: 3px 10px; border-radius: 4px; font-size: 0.55rem; font-weight: 900; text-transform: uppercase; }
@@ -107,7 +111,10 @@
         </div>
 
         <div class="card" style="border-top-color: var(--text-dim);">
-            <h3>NODE TESTNET TELEMETRY (LIVE TEE HEARTBEAT)</h3>
+            <div class="card-header-flex">
+                <h3 style="margin:0;">NODE TESTNET TELEMETRY (LIVE TEE HEARTBEAT)</h3>
+                <button class="refresh-btn" onclick="pollActualNodeState(true)">FORCE REFRESH</button>
+            </div>
             <div id="model-container">
                 <div class="model-row">
                     <div id="row-status-1" class="status-badge st-off">Offline</div>
@@ -155,7 +162,6 @@ const CONFIG = {
     artAddr: "0xC477360020176a2D37669c328F9547c285B9fBF2",
     sbtAddr: "0xd71462F0002Ee9373fCe05B568583Ed13e75f600",
     lcaiPair: "0x0d047a370611437a1b8e6c2a95ea36f69fdda3be",
-    // Worker node addresses to monitor
     nodes: [
         "0x74a9f32b8811bc1199e2af9077b288f2cc44",
         "0x21b8a91cde4533f1af9077b288f2cc44bc11",
@@ -179,8 +185,12 @@ const log = (msg, type = "") => {
     cb.scrollTop = cb.scrollHeight;
 };
 
-async function pollActualNodeState() {
-    if(!provider) return;
+async function pollActualNodeState(isManual = false) {
+    if(!provider) {
+        if(isManual) log("CONNECT WALLET TO REFRESH", "error");
+        return;
+    }
+    if(isManual) log("FORCING TELEMETRY SYNC...");
     pollData.total++;
     const onboardContract = new ethers.Contract(CONFIG.idAddr, CONFIG.onboardAbi, provider);
     
@@ -201,7 +211,7 @@ async function pollActualNodeState() {
             if (isActive && isFresh) {
                 rowStatus.innerText = "Active";
                 rowStatus.className = "status-badge st-on";
-                if(i === 0) { // Primary Header Status
+                if(i === 0) { 
                     document.getElementById('status-txt').innerText = `ACTIVE (${diff}s)`;
                     document.getElementById('status-txt').style.color = "#00c853";
                     document.getElementById('sys-uptime').innerText = `${uptime}%`;
@@ -212,6 +222,7 @@ async function pollActualNodeState() {
             }
         } catch (e) { }
     }
+    if(isManual) log("TELEMETRY UPDATED", "success");
 }
 
 async function fetchPrices() {
@@ -375,7 +386,7 @@ function showView(id, btn) {
 window.onload = () => { 
     fetchPrices(); 
     setInterval(fetchPrices, 5000); 
-    setInterval(pollActualNodeState, 10000); 
+    setInterval(() => pollActualNodeState(false), 10000); 
 };
 </script>
 </body>

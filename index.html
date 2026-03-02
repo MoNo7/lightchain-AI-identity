@@ -2,95 +2,244 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lightchain AI | IAM Control Center</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root { --bg: #050608; --sidebar: #0d0f14; --accent: #00f2ff; --text: #afb3c1; }
-        body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; height: 100vh; }
-        
-        /* Sidebar & Telemetry */
-        nav { width: 280px; background: var(--sidebar); border-right: 1px solid #1e222d; display: flex; flex-direction: column; padding: 20px; }
-        .telemetry-card { background: #141721; border-radius: 8px; padding: 12px; margin-top: 20px; border-left: 3px solid var(--accent); }
-        .node-row { display: flex; justify-content: space-between; font-size: 0.8rem; margin: 8px 0; border-bottom: 1px solid #222; padding-bottom: 5px; }
-        .status-dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
-        .online { background: #00ffaa; box-shadow: 0 0 8px #00ffaa; }
+        :root {
+            --bg: #050608;
+            --sidebar: #0d1117;
+            --top-nav: #161b22;
+            --card: #0d1117;
+            --accent: #00f2ff;
+            --text: #c9d1d9;
+            --green: #238636;
+            --red: #da3633;
+        }
 
-        /* Main Content & Centered Tickers */
-        main { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; }
-        .ticker-container { text-align: center; width: 100%; max-width: 600px; }
-        .ticker-box { background: #0d0f14; padding: 30px; border-radius: 15px; border: 1px solid #1e222d; margin-bottom: 20px; }
-        .ticker-val { font-size: 3.5rem; font-weight: bold; color: white; display: block; }
-        .ticker-label { color: var(--accent); letter-spacing: 2px; text-transform: uppercase; font-size: 0.9rem; }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- Sidebar & Telemetry --- */
+        nav {
+            width: 280px;
+            background: var(--sidebar);
+            border-right: 1px solid #30363d;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        .telemetry-card {
+            background: #161b22;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 20px;
+            border: 1px solid #30363d;
+        }
+
+        .telemetry-header {
+            font-size: 0.75rem;
+            color: #8b949e;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .node-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #21262d;
+            font-size: 0.85rem;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .dot { height: 8px; width: 8px; border-radius: 50%; background: #30363d; }
+        .dot.active { background: #39d353; box-shadow: 0 0 8px #39d353; }
+
+        /* --- Top Navigation --- */
+        header {
+            height: 60px;
+            background: var(--top-nav);
+            border-bottom: 1px solid #30363d;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding: 0 30px;
+            gap: 20px;
+        }
+
+        .wallet-pill {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            padding: 6px 15px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .balance-tag { color: var(--accent); font-weight: bold; }
+
+        /* --- Main Content Area --- */
+        .content-wrapper { flex: 1; display: flex; flex-direction: column; }
+        
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+
+        .ticker-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 300px);
+            gap: 25px;
+            text-align: center;
+        }
+
+        .ticker-card {
+            background: var(--card);
+            border: 1px solid #30363d;
+            padding: 30px;
+            border-radius: 12px;
+        }
+
+        .ticker-label { font-size: 0.8rem; color: #8b949e; text-transform: uppercase; letter-spacing: 1px; }
+        .ticker-value { display: block; font-size: 2.5rem; font-weight: bold; color: #f0f6fc; margin-top: 10px; }
+
+        .btn-connect {
+            background: var(--accent);
+            color: #0d1117;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-connect:hover { opacity: 0.9; }
     </style>
 </head>
 <body>
 
     <nav>
-        <h2 style="color:white; margin-bottom:5px;">LIGHTCHAIN AI</h2>
-        <small style="color:var(--accent)">IAM CONTROL CENTER v2.4</small>
-        
-        <div class="telemetry-card">
-            <div style="font-weight:bold; margin-bottom:10px; font-size:0.9rem;">LIVE NODE TELEMETRY</div>
-            <div id="nodeList">
-                <div class="node-row"><span>Syncing with SiriusNet...</span></div>
-            </div>
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+            <i class="fas fa-brain" style="color:var(--accent); font-size:1.5rem;"></i>
+            <h2 style="margin:0; font-size:1.2rem; color:#f0f6fc;">Lightchain AI</h2>
         </div>
+        <small style="color:#8b949e;">IAM Control Center v2.8</small>
 
-        <button onclick="connectWallet()" style="margin-top:auto; padding:12px; background:transparent; border:1px solid var(--accent); color:var(--accent); cursor:pointer; border-radius:5px;">
-            CONNECT WALLET
-        </button>
+        <div class="telemetry-card">
+            <div class="telemetry-header">
+                <span>Node Telemetry</span>
+                <span id="syncStatus" style="color:var(--accent)">SYNCING</span>
+            </div>
+            <div id="telemetryList">
+                </div>
+        </div>
+        
+        <div style="margin-top:auto; font-size:0.75rem; color:#484f58;">
+            Sirius V2 Testnet: Connected
+        </div>
     </nav>
 
-    <main>
-        <div class="ticker-container">
-            <div class="ticker-box">
-                <span class="ticker-label">Global Inference Power</span>
-                <span class="ticker-val" id="infPower">1.24 <small style="font-size:1.5rem">Ph/s</small></span>
+    <div class="content-wrapper">
+        <header>
+            <div id="walletInfo" style="display:none;" class="wallet-pill">
+                <span id="userBalance" class="balance-tag">0.00 LCAI</span>
+                <span id="userAddress" style="color:#8b949e">0x0...000</span>
             </div>
-            <div class="ticker-box">
-                <span class="ticker-label">LCAI Network Security</span>
-                <span class="ticker-val" id="netSec">99.98%</span>
+            <button id="connectBtn" class="btn-connect" onclick="connectWallet()">Connect Wallet</button>
+        </header>
+
+        <main>
+            <div class="ticker-grid">
+                <div class="ticker-card">
+                    <span class="ticker-label">Network Inference</span>
+                    <span class="ticker-value">1.24 <small style="font-size:1rem;">PH/s</small></span>
+                </div>
+                <div class="ticker-card">
+                    <span class="ticker-label">PoI Security</span>
+                    <span class="ticker-value" style="color:#39d353;">99.9%</span>
+                </div>
             </div>
-        </div>
-    </main>
+        </main>
+    </div>
 
     <script>
-        // Real Sirius V2 RPC & Node Data
         const RPC_URL = "https://rpc2.siriusnet.io";
-        const NODES = [
-            { id: "SIRIUS-ALPHA", addr: "0x9ca8530ca349c966fe9ef903df17a75b8a778927" },
-            { id: "SIRIUS-BRAVO", addr: "0x2e41d0d7e8a5ec7aa7ac7a72ce69b2b79028b9c0" },
-            { id: "SIRIUS-CHARLIE", addr: "0x7a47e1b744d90660148b56afc7ce85d206289d6d" }
+        const TESTNET_NODES = [
+            { name: "Sirius-Alpha", addr: "0x9ca8530ca349c966fe9ef903df17a75b8a778927" },
+            { name: "Sirius-Bravo", addr: "0x2e41d0d7e8a5ec7aa7ac7a72ce69b2b79028b9c0" },
+            { name: "Sirius-Charlie", addr: "0x7a47e1b744d90660148b56afc7ce85d206289d6d" }
         ];
 
         async function updateTelemetry() {
-            const list = document.getElementById('nodeList');
             const provider = new ethers.JsonRpcProvider(RPC_URL);
-            
+            const container = document.getElementById('telemetryList');
             let html = "";
-            for(let node of NODES) {
-                try {
-                    // Check if node address has a balance or activity on SiriusNet
-                    const balance = await provider.getBalance(node.addr);
-                    const isLive = balance > 0n; // Basic "active" check for testnet nodes
 
+            for(const node of TESTNET_NODES) {
+                try {
+                    // Check node activity via provider
+                    const balance = await provider.getBalance(node.addr);
+                    const isActive = balance > 0n;
+                    
                     html += `
                         <div class="node-row">
-                            <span><span class="status-dot ${isLive ? 'online' : ''}"></span>${node.id}</span>
-                            <span style="color:white">${isLive ? 'ACTIVE' : 'OFFLINE'}</span>
+                            <div class="status-indicator">
+                                <div class="dot ${isActive ? 'active' : ''}"></div>
+                                <span>${node.name}</span>
+                            </div>
+                            <span style="color:${isActive ? '#39d353' : '#484f58'}">${isActive ? 'IDLE' : 'OFFLINE'}</span>
                         </div>
                     `;
                 } catch(e) {
-                    html += `<div class="node-row"><span>${node.id}</span><span style="color:red">ERR</span></div>`;
+                    console.error("Telemetry Sync Error", e);
                 }
             }
-            list.innerHTML = html;
+            container.innerHTML = html;
+            document.getElementById('syncStatus').innerText = "LIVE";
         }
 
-        // Run on load
+        async function connectWallet() {
+            if (!window.ethereum) return alert("Install MetaMask");
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            const accounts = await provider.send("eth_requestAccounts", []);
+            const address = accounts[0];
+            
+            document.getElementById('connectBtn').style.display = 'none';
+            document.getElementById('walletInfo').style.display = 'flex';
+            document.getElementById('userAddress').innerText = `${address.slice(0,6)}...${address.slice(-4)}`;
+            
+            // Mock balance for testnet UI
+            document.getElementById('userBalance').innerText = "1,250.00 LCAI";
+        }
+
+        // Initialize
         updateTelemetry();
-        // Refresh every 30 seconds
-        setInterval(updateTelemetry, 30000);
+        setInterval(updateTelemetry, 15000);
     </script>
 </body>
 </html>

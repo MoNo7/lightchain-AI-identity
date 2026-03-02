@@ -16,13 +16,15 @@
         .nav-menu { display: flex; flex-direction: column; gap: 5px; }
         .nav-link { color: var(--text-dim); padding: 12px 15px; cursor: pointer; border-radius: 6px; border: none; background: none; text-align: left; font-size: 0.75rem; font-family: monospace; width: 100%; font-weight: 600; transition: 0.2s; }
         .nav-link:hover, .nav-link.active { color: white; background: var(--accent); }
-        .viewport { flex: 1; display: flex; flex-direction: column; }
+        
         header { height: 80px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 40px; box-sizing: border-box; position: relative; }
         .header-left { display: flex; gap: 10px; }
         .header-center { position: absolute; left: 50%; transform: translateX(-50%); display: flex; align-items: center; }
+        
         .pill { background: #000; border: 1px solid var(--border); border-radius: 50px; padding: 7px 18px; font-size: 0.65rem; font-family: monospace; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
         .pill.sys { color: var(--accent); }
         .pill.price { color: #00c853; border-color: #00c85344; gap: 15px; }
+        
         .wallet-pill { background: var(--accent); color: white; border-radius: 50px; padding: 9px 24px; font-weight: 900; cursor: pointer; border: none; font-size: 0.75rem; font-family: monospace; letter-spacing: 1px; }
         .view-pane { flex: 1; padding: 40px; display: none; overflow-y: auto; }
         .view-pane.active { display: block !important; }
@@ -113,7 +115,7 @@
                 <option value="AIVM-DELTA" data-hash="0x4a8c30d500000000000000000000000000000000000000000000000000000000">AIVM-DELTA (High Speed)</option>
                 <option value="AIVM-SIGMA" data-hash="0x6f63a19b3cf48600000000000000000000000000000000000000000000000000">AIVM-SIGMA (Neural)</option>
             </select>
-            <textarea id="art-prompt" class="panel-input" placeholder="Neural vision of a digital horizon..." style="height:80px;"></textarea>
+            <textarea id="art-prompt" class="panel-input" placeholder="Describe the vision..." style="height:80px;"></textarea>
             <button class="action-btn" onclick="generateArt()">REQUEST INFERENCE (0.25 tLCAI)</button>
             <div class="gen-canvas">
                 <div class="loader" id="gen-loader"></div>
@@ -133,7 +135,7 @@ const CONFIG = {
         "function registerModel(bytes32 digest, bool status) external",
         "function manualVerified(address) public view returns (bool)",
         "function generateArt(string prompt, bytes32 modelDigest) public payable",
-        "event InferenceRequested(address indexed user, string prompt)"
+        "event InferenceRequested(address indexed user, string prompt, bytes32 modelDigest)"
     ]
 };
 
@@ -153,11 +155,10 @@ async function updatePrices() {
         const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum,lightchain-ai&vs_currencies=usd&precision=6');
         const data = await res.json();
         document.getElementById('eth-price').innerText = `$${data.ethereum.usd.toLocaleString()}`;
-        // precision=6 ensures we see .001974 instead of .0020
         document.getElementById('lcai-price').innerText = `$${data['lightchain-ai'] ? data['lightchain-ai'].usd.toFixed(6) : "0.001974"}`;
     } catch (e) { 
-        document.getElementById('eth-price').innerText = "$2,451"; 
-        document.getElementById('lcai-price').innerText = "$0.001974"; 
+        document.getElementById('eth-price').innerText = "$1,939.32";
+        document.getElementById('lcai-price').innerText = "$0.001974";
     }
 }
 
@@ -169,8 +170,10 @@ async function connectWallet() {
         provider = new ethers.BrowserProvider(window.ethereum);
         signer = await provider.getSigner();
         contract = new ethers.Contract(CONFIG.addr, CONFIG.abi, signer);
+        
         roles.isOwner = (user.toLowerCase() === (await contract.owner()).toLowerCase());
         roles.isVerified = await contract.manualVerified(user);
+
         log(`STREAK_SYNC: ${user.slice(0, 10)}`, "success");
         updateMenu(); updateIdentity(); initGallery(); updatePrices();
         const bal = await provider.getBalance(user);
@@ -178,29 +181,26 @@ async function connectWallet() {
     } catch (e) { log("HANDSHAKE FAILED"); }
 }
 
-// Fix 2: Reliable Gallery Sync
 async function initGallery() {
     if(!contract) return;
     const grid = document.getElementById('gallery-grid');
     grid.innerHTML = "SCANNING NETWORK...";
     try {
-        // Querying from block 0 to catch ALL inferences on this contract
-        const events = await contract.queryFilter("InferenceRequested", 0); 
+        // Updated range and ABI handling
+        const events = await contract.queryFilter("InferenceRequested", 0);
         if (events.length === 0) { grid.innerHTML = "GALLERY EMPTY"; return; }
-        
         grid.innerHTML = "";
         events.reverse().slice(0, 12).forEach(ev => {
             const promptText = ev.args.prompt;
-            grid.innerHTML += `
-                <div style="background:#000; padding:10px; border-radius:6px; border:1px solid var(--border);">
-                    <img src="https://image.pollinations.ai/prompt/${encodeURIComponent(promptText)}?width=400&height=300&nologo=true&seed=${ev.transactionHash}" 
-                         style="width:100%; border-radius:4px; cursor:pointer;" onclick="window.open(this.src)">
-                    <p style="font-size:0.6rem; color:var(--text-dim); margin-top:5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${promptText}</p>
-                </div>`;
+            grid.innerHTML += `<div style="background:#000; padding:10px; border-radius:6px; border:1px solid var(--border);">
+                <img src="https://image.pollinations.ai/prompt/${encodeURIComponent(promptText)}?width=400&height=300&nologo=true&seed=${ev.transactionHash}" 
+                style="width:100%; border-radius:4px; cursor:pointer;" onclick="window.open(this.src)">
+                <p style="font-size:0.6rem; color:var(--text-dim); margin-top:5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${promptText}</p>
+            </div>`;
         });
     } catch (e) { grid.innerHTML = "OFFLINE"; }
 }
-    
+
 async function verifySelf() {
     try {
         log("INITIATING VERIFICATION...");
@@ -248,4 +248,3 @@ window.addEventListener('load', () => setTimeout(connectWallet, 500));
 </script>
 </body>
 </html>
-

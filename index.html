@@ -173,29 +173,33 @@ async function connectWallet() {
     } catch (e) { log("HANDSHAKE FAILED"); }
 }
 
+// 2. Reliable Gallery Sync (Scanning the correct range)
 async function initGallery() {
     if(!contract) return;
     const grid = document.getElementById('gallery-grid');
     grid.innerHTML = "SCANNING NETWORK...";
     try {
-        // Fix: Use recent blocks to avoid RPC "Block 0" rejection
-        const currentBlock = await provider.getBlockNumber();
-        const startBlock = currentBlock - 50000;
-        const events = await contract.queryFilter("InferenceRequested", startBlock);
+        // Querying from block 1,600,000 to capture your recent activity
+        const events = await contract.queryFilter("InferenceRequested", 1600000); 
         
-        if (events.length === 0) { grid.innerHTML = "GALLERY EMPTY"; return; }
+        if (events.length === 0) {
+            grid.innerHTML = "GALLERY EMPTY - NO RECENT EVENTS DETECTED";
+            return;
+        }
+
         grid.innerHTML = "";
         events.reverse().slice(0, 12).forEach(ev => {
             const promptText = ev.args.prompt;
-            grid.innerHTML += `<div style="background:#000; padding:10px; border-radius:6px; border:1px solid var(--border);">
-                <img src="https://image.pollinations.ai/prompt/${encodeURIComponent(promptText)}?width=400&height=300&nologo=true&seed=${ev.transactionHash}" 
-                style="width:100%; border-radius:4px; cursor:pointer;" onclick="window.open(this.src)">
-                <p style="font-size:0.6rem; color:var(--text-dim); margin-top:5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${promptText}</p>
-            </div>`;
+            grid.innerHTML += `
+                <div style="background:#000; padding:10px; border-radius:6px; border:1px solid var(--border);">
+                    <img src="https://image.pollinations.ai/prompt/${encodeURIComponent(promptText)}?width=400&height=300&nologo=true&seed=${ev.transactionHash}" 
+                         style="width:100%; border-radius:4px; cursor:pointer;" onclick="window.open(this.src)">
+                    <p style="font-size:0.6rem; color:var(--text-dim); margin-top:5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${promptText}</p>
+                </div>`;
         });
     } catch (e) { 
-        console.error(e);
-        grid.innerHTML = "NETWORK SYNC ERROR - CHECK CONSOLE"; 
+        console.error("Sync Error:", e);
+        grid.innerHTML = "OFFLINE"; 
     }
 }
 
@@ -246,3 +250,4 @@ window.addEventListener('load', () => setTimeout(connectWallet, 500));
 </script>
 </body>
 </html>
+

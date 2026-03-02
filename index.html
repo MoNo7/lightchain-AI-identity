@@ -8,43 +8,29 @@
     <style>
         :root { --accent: #0070ff; --bg: #020408; --panel: #0b0e14; --border: #1e2633; --text-dim: #6a768a; --console-bg: #05070a; }
         body { margin: 0; background: var(--bg); color: white; font-family: 'Inter', sans-serif; display: flex; height: 100vh; overflow: hidden; }
-        
-        /* Navigation Sidebar */
         nav { width: 280px; border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 25px; background: var(--panel); box-sizing: border-box; }
         .nav-logo { font-weight: 900; letter-spacing: 2px; color: var(--accent); margin-bottom: 25px; font-size: 1.1rem; text-align: center; }
-        .system-console { background: var(--console-bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: monospace; font-size: 0.65rem; height: 180px; overflow-y: auto; margin-bottom: 20px; color: #4e5d75; line-height: 1.5; }
+        .system-console { background: var(--console-bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: monospace; font-size: 0.65rem; height: 200px; overflow-y: auto; margin-bottom: 20px; color: #4e5d75; line-height: 1.5; }
         .console-line { margin-bottom: 4px; border-left: 2px solid #1a202c; padding-left: 8px; }
         .console-line.success { border-left-color: var(--accent); color: #fff; }
         .console-line.scan { color: #ffaa00; border-left-color: #ffaa00; }
         .nav-menu { display: flex; flex-direction: column; gap: 8px; }
         .nav-link { color: var(--text-dim); padding: 12px 15px; cursor: pointer; border-radius: 6px; border: none; background: rgba(255,255,255,0.03); text-align: left; font-size: 0.75rem; font-family: monospace; width: 100%; font-weight: 600; }
         .nav-link.active { color: white; background: var(--accent); }
-
-        /* Main Viewport */
         .viewport { flex: 1; display: flex; flex-direction: column; }
         header { height: 80px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 40px; box-sizing: border-box; }
         .h-col { flex: 1; display: flex; align-items: center; }
-        .h-center { justify-content: center; }
-        .h-right { justify-content: flex-end; }
-        
         .pill { background: #000; border: 1px solid var(--border); border-radius: 50px; padding: 7px 18px; font-size: 0.65rem; font-family: monospace; display: flex; align-items: center; gap: 10px; }
         .pill.price { color: #00c853; border-color: #00c85344; }
         .wallet-pill { background: var(--accent); color: white; border: none; padding: 9px 24px; border-radius: 50px; font-weight: 900; font-family: monospace; cursor: pointer; font-size: 0.75rem; }
-
         .view-pane { flex: 1; padding: 40px; display: none; overflow-y: auto; }
         .view-pane.active { display: block !important; }
         .card { background: var(--panel); border: 1px solid var(--border); padding: 30px; border-radius: 12px; max-width: 900px; border-top: 4px solid var(--accent); margin-bottom: 20px; }
         .panel-input { width: 100%; background: #000; border: 1px solid #333; color: white; padding: 12px; border-radius: 4px; font-size: 0.75rem; margin-bottom: 12px; box-sizing: border-box; font-family: monospace; }
-        .action-btn { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; width: 100%; font-weight: bold; margin-bottom: 5px; }
-        
-        /* Grid & Table */
+        .action-btn { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; width: 100%; font-weight: bold; }
         #gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-top: 20px; }
         .thumb { background: #000; padding: 10px; border-radius: 8px; border: 1px solid var(--border); text-align: center; }
         .thumb img { width: 100%; border-radius: 4px; cursor: pointer; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.7rem; margin-top: 15px; }
-        th { text-align: left; color: var(--text-dim); padding: 10px; border-bottom: 1px solid var(--border); }
-        td { padding: 10px; border-bottom: 1px solid var(--border); font-family: monospace; }
-        
         .progress-container { width: 100%; background: #000; border: 1px solid var(--border); border-radius: 50px; height: 12px; margin: 15px 0; overflow: hidden; }
         .progress-bar { width: 0%; height: 100%; background: var(--accent); transition: width 0.3s ease; }
     </style>
@@ -56,7 +42,7 @@
     <div class="system-console" id="console">
         <div class="console-line">>> KERNEL_READY</div>
         <div id="scan-log" class="console-line scan">>> SCANNER: IDLE</div>
-        <div id="worker-log" class="console-line" style="color:#00c853;">>> ACTIVE_WORKERS: 0</div>
+        <div id="worker-log" class="console-line" style="color:#00c853;">>> ACTIVE_WORKERS: 124</div>
     </div>
     <div id="side-menu" class="nav-menu">
         <button class="nav-link active" onclick="showView('gallery-view', this); initGallery();">NETWORK GALLERY</button>
@@ -68,14 +54,14 @@
         <div class="h-col">
             <div class="pill sys" style="color:var(--accent)">MODEL: <span id="active-model">THETA</span> | STATE: <span id="status-txt">IDLE</span> | LOAD: <span id="sys-load">42%</span></div>
         </div>
-        <div class="h-col h-center">
+        <div class="h-col" style="justify-content:center">
             <div class="pill price">
                 <span>ETH: <span id="eth-price">...</span></span>
                 <span style="border-left: 1px solid #00c85333; height: 12px;"></span>
                 <span>LCAI: <span id="lcai-price">...</span></span>
             </div>
         </div>
-        <div class="h-col h-right">
+        <div class="h-col" style="justify-content:flex-end">
             <button id="wallet-btn" class="wallet-pill" onclick="connectWallet()">CONNECT WALLET</button>
         </div>
     </header>
@@ -92,30 +78,30 @@
             <h2>ZK-SBT IDENTITY</h2>
             <div style="display:flex; gap:20px;">
                 <pre id="id-json" style="flex:1; background:#05070a; padding:15px; font-size:0.7rem; color:var(--text-dim); border:1px solid var(--border); line-height:1.6;">// Identity Offline</pre>
-                <div id="qr-target" style="background:white; padding:10px; border-radius:8px; cursor:pointer;" title="Click to Download QR" onclick="downloadQR()"></div>
+                <div id="qr-target" style="background:white; padding:10px; border-radius:8px; cursor:pointer;" onclick="downloadQR()"></div>
             </div>
-            <button class="action-btn" style="margin-top:15px;" onclick="downloadJSON()">DOWNLOAD IDENTITY JSON</button>
+            <button class="action-btn" style="margin-top:15px;" onclick="downloadJSON()">DOWNLOAD JSON IDENTITY</button>
         </div>
     </div>
 
     <div id="admin-view" class="view-pane">
         <div class="card" id="owner-panel" style="display:none; border-top-color:#ffaa00;">
             <h3>OWNER TREASURY</h3>
-            <p style="font-size:0.8rem; color:var(--text-dim);">Total Revenue: <span id="contract-rev" style="color:white;">0.00</span> LCAI</p>
+            <p style="font-size:0.8rem; color:var(--text-dim);">Revenue: <span id="contract-rev" style="color:white;">0.00</span> LCAI</p>
             <button class="action-btn" style="background:#ffaa00;" onclick="withdrawRevenue()">WITHDRAW ALL FUNDS</button>
         </div>
         <div class="card">
             <h2>ADMINISTRATION</h2>
-            <button class="action-btn" style="background:#00c853; margin-bottom:20px;" onclick="verifySelf()">VERIFY SELF (SBT ACTIVATION)</button>
-            <input type="text" id="admin-target" class="panel-input" placeholder="0x... Target Wallet Address">
-            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; margin-bottom:20px;">
+            <button class="action-btn" style="background:#00c853; margin-bottom: 20px;" onclick="verifySelf()">VERIFY SELF</button>
+            <input type="text" id="admin-target" class="panel-input" placeholder="0x... Target Address">
+            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; margin-bottom: 20px;">
                 <button class="action-btn" onclick="adminAction('verify')">VERIFY</button>
                 <button class="action-btn" style="background:#555;" onclick="adminAction('query')">QUERY</button>
                 <button class="action-btn" style="background:#ff4444;" onclick="adminAction('revoke')">REVOKE</button>
             </div>
             <h3>MODEL PERFORMANCE BENCHMARKS</h3>
-            <table>
-                <thead><tr><th>MODEL</th><th>LATENCY</th><th>POI STATUS</th><th>UPTIME</th></tr></thead>
+            <table style="width:100%; font-size:0.7rem; border-collapse:collapse;">
+                <thead style="text-align:left; color:var(--text-dim);"><tr><th>MODEL</th><th>LATENCY</th><th>POI STATUS</th><th>UPTIME</th></tr></thead>
                 <tbody>
                     <tr><td>AIVM-THETA</td><td>1.2s</td><td style="color:#00c853">VERIFIED</td><td>99.9%</td></tr>
                     <tr><td>AIVM-DELTA</td><td>0.8s</td><td style="color:#00c853">VERIFIED</td><td>99.7%</td></tr>
@@ -129,19 +115,19 @@
         <div class="card">
             <h2>AIVM NEURAL ENGINE</h2>
             <select id="model-select" class="panel-input" onchange="document.getElementById('active-model').innerText=this.value.split('-')[1]">
-                <option value="AIVM-THETA">AIVM-THETA (Stable)</option>
+                <option value="AIVM-THETA">AIVM-THETA (Balanced)</option>
                 <option value="AIVM-DELTA">AIVM-DELTA (High Speed)</option>
-                <option value="AIVM-SIGMA">AIVM-SIGMA (Deep Neural)</option>
+                <option value="AIVM-SIGMA">AIVM-SIGMA (Neural)</option>
             </select>
-            <textarea id="art-prompt" class="panel-input" style="height:80px;" placeholder="Prompt the AIVM..."></textarea>
+            <textarea id="art-prompt" class="panel-input" style="height:80px;" placeholder="Describe your vision..."></textarea>
             
-            <div id="train-ui" style="display:none;">
+            <div id="training-ui" style="display:none; margin-bottom: 15px;">
                 <p style="font-size:0.6rem; color:var(--text-dim); margin-bottom:5px;">INFERENCE PROGRESS: <span id="prog-val">0%</span></p>
                 <div class="progress-container"><div id="prog-bar" class="progress-bar"></div></div>
             </div>
 
             <button class="action-btn" onclick="generateArt()">REQUEST INFERENCE (0.25 tLCAI)</button>
-            <div style="margin-top:20px; border:1px solid var(--border); border-radius:8px; min-height:400px; display:flex; align-items:center; justify-content:center; background:#000;">
+            <div style="margin-top:20px; border:1px solid var(--border); border-radius:8px; min-height:300px; display:flex; align-items:center; justify-content:center; background:#000;">
                 <img id="output-img" style="max-width:100%; border-radius:4px; display:none;">
                 <p id="canvas-status" style="color:var(--text-dim); font-size:0.7rem;">AWAITING NEURAL TASK...</p>
             </div>
@@ -206,8 +192,7 @@ async function connectWallet() {
 
 async function updateBalanceDisplay() {
     const bal = await provider.getBalance(user);
-    const lcaiVal = Math.floor(Number(ethers.formatEther(bal)));
-    document.getElementById('wallet-btn').innerText = `${user.slice(0,6).toUpperCase()} | ${lcaiVal} LCAI`;
+    document.getElementById('wallet-btn').innerText = `${user.slice(0,6).toUpperCase()} | ${Math.floor(Number(ethers.formatEther(bal)))} LCAI`;
 }
 
 function updateMenu() {
@@ -230,9 +215,10 @@ async function initGallery() {
         const startBlock = currentBlock - 50000;
         document.getElementById('scan-log').innerText = `>> SCANNER: BLK ${startBlock} - ${currentBlock}`;
         
-        const events = await contract.queryFilter("InferenceRequested", startBlock);
-        if (events.length === 0) return grid.innerHTML = "NO RECENT EVENTS FOUND";
+        const filter = contract.filters.InferenceRequested();
+        const events = await contract.queryFilter(filter, startBlock);
         
+        if (events.length === 0) return grid.innerHTML = "NO RECENT RENDERS FOUND";
         grid.innerHTML = "";
         events.reverse().slice(0, 12).forEach(ev => {
             const p = ev.args.prompt;
@@ -241,19 +227,19 @@ async function initGallery() {
                 <p style="font-size:0.6rem; color:#6a768a; margin-top:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p}</p>
             </div>`;
         });
-    } catch (e) { grid.innerHTML = "SYNC ERROR"; }
+    } catch (e) { grid.innerHTML = "SYNC ERROR"; console.error(e); }
 }
 
 async function generateArt() {
     const prompt = document.getElementById('art-prompt').value;
     const out = document.getElementById('output-img');
     const status = document.getElementById('canvas-status');
-    const tUI = document.getElementById('train-ui');
+    const tUI = document.getElementById('training-ui');
     const tBar = document.getElementById('prog-bar');
     const tVal = document.getElementById('prog-val');
     if(!prompt) return;
     try {
-        log("MINING INFERENCE...");
+        log("ANCHORING INFERENCE...");
         document.getElementById('status-txt').innerText = "MINING";
         tUI.style.display = 'block';
         let p = 0;
@@ -273,17 +259,6 @@ async function generateArt() {
     } catch (e) { log("TX REJECTED", "error"); tUI.style.display = 'none'; }
 }
 
-async function adminAction(type) {
-    const target = document.getElementById('admin-target').value;
-    if(!target) return;
-    try {
-        if(type === 'verify') await (await contract.setVerification(target, true)).wait();
-        else if(type === 'revoke') await (await contract.setVerification(target, false)).wait();
-        else log(`QUERY: ${target.slice(0,6)} is ${await contract.manualVerified(target) ? 'VERIFIED' : 'UNVERIFIED'}`);
-        log("ADMIN ACTION SUCCESS", "success");
-    } catch (e) { log("ADMIN FAILURE", "error"); }
-}
-
 async function verifySelf() {
     try {
         log("INITIATING VERIFICATION...");
@@ -291,6 +266,17 @@ async function verifySelf() {
         log("VERIFIED SUCCESS", "success");
         roles.isVerified = true; updateMenu(); updateIdentity();
     } catch (e) { log("VERIFY FAILED"); }
+}
+
+async function adminAction(type) {
+    const target = document.getElementById('admin-target').value;
+    if(!target) return;
+    try {
+        if(type === 'verify') await (await contract.setVerification(target, true)).wait();
+        else if(type === 'revoke') await (await contract.setVerification(target, false)).wait();
+        else log(`QUERY: ${target.slice(0,6)} is ${await contract.manualVerified(target) ? 'VERIFIED' : 'UNVERIFIED'}`);
+        log("ADMIN SUCCESS", "success");
+    } catch (e) { log("ADMIN FAILED", "error"); }
 }
 
 async function withdrawRevenue() {
@@ -304,13 +290,6 @@ function updateIdentity() {
     new QRCode(document.getElementById("qr-target"), { text: JSON.stringify(meta), width: 120, height: 120 });
 }
 
-function showView(id, btn) {
-    document.querySelectorAll('.view-pane').forEach(v => v.classList.remove('active'));
-    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
-    if(btn) btn.classList.add('active');
-}
-
 function downloadJSON() { 
     const b = new Blob([document.getElementById('id-json').innerText], {type:'application/json'});
     const a = document.createElement('a'); a.href=URL.createObjectURL(b); a.download='LCAI_ID.json'; a.click(); 
@@ -319,6 +298,13 @@ function downloadJSON() {
 function downloadQR() {
     const canvas = document.querySelector('#qr-target canvas');
     const a = document.createElement('a'); a.href = canvas.toDataURL("image/png"); a.download = 'LCAI_QR.png'; a.click();
+}
+
+function showView(id, btn) {
+    document.querySelectorAll('.view-pane').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    if(btn) btn.classList.add('active');
 }
 
 window.onload = () => { 

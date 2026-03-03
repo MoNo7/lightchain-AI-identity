@@ -72,7 +72,7 @@
             </div>
 
             <div class="pill-group">
-                <div class="pill" style="border-color:#627EEA">WETH: <span id="ethTicker" style="color:#627EEA">$0.00</span></div>
+                <div class="pill" style="border-color:#627EEA">ETH: <span id="ethTicker" style="color:#627EEA">$0.00</span></div>
                 <div class="pill" style="border-color:var(--green)">LCAI: <span id="lcaiTicker" style="color:var(--green)">$0.000000</span></div>
             </div>
 
@@ -180,11 +180,25 @@
     </div>
 
     <script>
-        const CONFIG = {
-            contract: "0xd71462F0002Ee9373fCe05B568583Ed13e75f600",
-            owner: "0x6378A6993C7C77E4A28f8f263e778401309fD9E4",
-            eth_pair: "0x2287a9620adcbf6250dc71be9ee9b2d3a1ec85a464fc6f5c06669e8d07b61bba"
-        };
+
+        const LCAI_TOKEN = "0x9ca8530ca349c966fe9ef903df17a75b8a778927"; // Lightchain AI
+const WETH_TOKEN = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"; // Wrapped Ethereum
+const LCAI_PAIR = "0x0d047a370611437a1b8e6c2a95ea36f69fdda3be";
+const ETH_TOKEN = "0x0000000000000000000000000000000000000000";
+//owner: "0x6378A6993C7C77E4A28f8f263e778401309fD9E4",    
+const CONFIG = {
+contract: "0xd71462F0002Ee9373fCe05B568583Ed13e75f600",
+address: "0xd71462F0002Ee9373fCe05B568583Ed13e75f600",
+owner: "0x4D36B31d4BFB957A5D816B0f420a9e755EFc6a2c",    
+LCAI_PAIR : "0x0d047a370611437a1b8e6c2a95ea36f69fdda3be",
+ETH_PAIR : "0x96d4b53a38337a5733179751781178a2613306063c511b78cd02684739288c0a",
+LCAI_TOKEN : "0x9ca8530ca349c966fe9ef903df17a75b8a778927",
+ETH_TOKEN : "0x0000000000000000000000000000000000000000",
+USDC_TOKEN : "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",  
+WETH_TOKEN : "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public payable"]
+};
+
 
         let userWallet;
         const inferenceModels = [
@@ -194,20 +208,36 @@
         ];
 
         // --- CORE FUNCTIONS ---
-        async function fetchPrices() {
-            try {
-                const lcRes = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${CONFIG.contract}`);
-                const lcData = await lcRes.json();
-                if(lcData.pairs && lcData.pairs.length > 0) {
-                    document.getElementById('lcaiTicker').innerText = "$" + parseFloat(lcData.pairs[0].priceUsd).toFixed(6);
-                }
+      async function fetchPrices() {
+        try {
+        // Multi-token fetch for efficiency
+        const response = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${LCAI_TOKEN},${ETH_TOKEN}`);
+        const data = await response.json();
 
-                const etRes = await fetch(`https://api.dexscreener.com/latest/dex/pairs/base/${CONFIG.eth_pair}`);
-                const etData = await etRes.json();
-                if(etData.pairs && etData.pairs.length > 0) {
-                    document.getElementById('ethTicker').innerText = "$" + parseFloat(etData.pairs[0].priceUsd).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
-                }
-            } catch(e) { console.warn("Price sync pending..."); }
+        if (data.pairs && data.pairs.length > 0) {
+          // Find LCAI - Target the highest liquidity pair automatically
+          const lcaiPair = data.pairs.find(p => p.baseToken.address.toLowerCase() === LCAI_TOKEN.toLowerCase());
+          if (lcaiPair && document.getElementById('lcaiTicker')) {
+            const price = parseFloat(lcaiPair.priceUsd);
+            document.getElementById('lcaiTicker').innerText = "$" + price.toFixed(6);
+          }
+
+          // Find ETH - Target the highest liquidity pair automatically
+
+          const ethPair = data.pairs.find(p => p.baseToken.address.toLowerCase() === ETH_TOKEN.toLowerCase());
+          if (ethPair && document.getElementById('ethTicker')) {
+            const price = parseFloat(ethPair.priceUsd);
+            document.getElementById('ethTicker').innerText = "$" + price.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+          });
+         }
+            console.log("Tickers updated: " + new Date().toLocaleTimeString());
+        }
+        } catch (error) {
+        // Silently retry to keep the UI clean
+        console.warn("Price sync pending...");
+        }
         }
 
         async function connect() {
@@ -337,3 +367,4 @@
     </script>
 </body>
 </html>
+

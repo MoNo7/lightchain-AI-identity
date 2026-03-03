@@ -181,7 +181,7 @@ document.getElementById('balancePill').innerText = parseFloat(ethers.formatEther
 async function fetchPrices() {
 try {
 // Multi-token fetch for efficiency
-const response = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${LCAI_TOKEN},${WETH_TOKEN}`);
+const response = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${LCAI_TOKEN},${ETH_TOKEN}`);
 const data = await response.json();
 
 if (data.pairs && data.pairs.length > 0) {
@@ -287,6 +287,7 @@ c.scrollTop = c.scrollHeight;
 </script>
 </body>
 </html>
+
 
 
 

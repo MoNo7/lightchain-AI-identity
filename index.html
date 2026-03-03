@@ -67,7 +67,7 @@ input, textarea { background: #000; border: 1px solid var(--border); color: #fff
 </div>
 
 <div class="pill-group">
-<div class="pill" style="border-color:#627EEA">WETH/USD: <span id="wethTicker" style="color:#627EEA">$0.00</span></div>
+<div class="pill" style="border-color:#627EEA">ETH/USD: <span id="ethTicker" style="color:#627EEA">$0.00</span></div>
 <div class="pill" style="border-color:var(--green)">LCAI/USD: <span id="lcaiTicker" style="color:var(--green)">$0.000000</span></div>
 </div>
 
@@ -158,6 +158,12 @@ const ETH_TOKEN = "0x0000000000000000000000000000000000000000";
 const CONFIG = {
 address: "0xd71462F0002Ee9373fCe05B568583Ed13e75f600",
 owner: "0x6378A6993C7C77E4A28f8f263e778401309fD9E4",
+LCAI_PAIR : "0x0d047a370611437a1b8e6c2a95ea36f69fdda3be",
+ETH_PAIR : "0x96d4b53a38337a5733179751781178a2613306063c511b78cd02684739288c0a",
+LCAI_TOKEN : "0x9ca8530ca349c966fe9ef903df17a75b8a778927",
+ETH_TOKEN : "0x0000000000000000000000000000000000000000",
+USDC_TOKEN : "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",  
+WETH_TOKEN : "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
 abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public payable"]
 };
 
@@ -188,10 +194,10 @@ document.getElementById('lcaiTicker').innerText = "$" + price.toFixed(6);
 
 // Find ETH - Target the highest liquidity pair automatically
     
-            const wethPair = data.pairs.find(p => p.baseToken.address.toLowerCase() === WETH_TOKEN.toLowerCase());
-if (wethPair && document.getElementById('wethTicker')) {
-const price = parseFloat(wethPair.priceUsd);
-document.getElementById('wethTicker').innerText = "$" + price.toLocaleString(undefined, {
+            const ethPair = data.pairs.find(p => p.baseToken.address.toLowerCase() === ETH_TOKEN.toLowerCase());
+if (ethPair && document.getElementById('ethTicker')) {
+const price = parseFloat(ethPair.priceUsd);
+document.getElementById('ethTicker').innerText = "$" + price.toLocaleString(undefined, {
 minimumFractionDigits: 2,
 maximumFractionDigits: 2
 });
@@ -281,6 +287,7 @@ c.scrollTop = c.scrollHeight;
 </script>
 </body>
 </html>
+
 
 
 

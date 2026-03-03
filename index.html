@@ -167,6 +167,11 @@ input, textarea { background: #000; border: 1px solid var(--border); color: #fff
         <button class="btn-zk" onclick="batchAction('revoke')" style="background: var(--red); color: white;">REVOKE SBT</button>
         <button class="btn-zk" onclick="batchAction('delete')" style="background: #555; color: white;">DELETE PROFILE</button>
     </div>
+    <div style="margin: 10px 0 20px 0; padding-top: 10px; border-top: 1px solid var(--border);">
+    <button class="btn-zk" onclick="downloadRegistryCSV()" style="background: #2ea44f; color: white;">
+        <i class="fas fa-file-download"></i> DOWNLOAD REGISTRY (.CSV)
+    </button>
+</div>
 </div>
 <div id="revView" class="card" style="display:none;">
     <h3>Protocol Revenue Management</h3>
@@ -448,6 +453,8 @@ async function withdrawRevenue() {
 async function queryIdentity() {
     const input = document.getElementById('queryAddr').value.trim();
     const result = document.getElementById('queryResult');
+
+    console.log(`[SYS] Initiating Query for: ${input}`);
     
     try {
         // Fix 1: Checksum the address to prevent INVALID_ARGUMENT error
@@ -466,8 +473,10 @@ async function queryIdentity() {
         if (profile[3]) { // if profile.exists is true
             const status = profile[2] ? "VERIFIED" : "PENDING";
             const color = profile[2] ? "var(--green)" : "var(--accent)";
+            console.log(`[SYS] Identity Found: ${profile[0]} | Status: ${status}`);
             result.innerHTML = `<span style="color:${color}">${status}:</span> ${profile[0]} (${profile[1]})`;
         } else {
+            console.warn(`[SYS] No record found for ${cleanAddr}`);
             result.innerHTML = `<span style="color:var(--red)">NOT FOUND</span>`;
         }
     } catch (e) {
@@ -589,6 +598,49 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchPrices(); // Initial load
     setInterval(fetchPrices, 5000); // Refresh every 5 seconds
 });
+
+async function downloadRegistryCSV() {
+    const rawInput = document.getElementById('batchAddrs').value;
+    const addrs = rawInput.split(',').map(a => a.trim()).filter(a => ethers.isAddress(a));
+
+    if (addrs.length === 0) {
+        log("Registry is empty. Add addresses to the text area first.");
+        return;
+    }
+
+    log(`[SYS] Exporting ${addrs.length} records to CSV...`);
+    
+    // CSV Headers
+    let csvContent = "data:text/csv;charset=utf-8,Address,Username,DID,Verified\n";
+
+    try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const contract = new ethers.Contract(CONFIG.address, [
+            "function profiles(address) view returns (string, string, bool, bool)"
+        ], provider);
+
+        for (const addr of addrs) {
+            const p = await contract.profiles(addr);
+            if (p[3]) { // If exists
+                const row = `${addr},${p[0]},${p[1]},${p[2]}`;
+                csvContent += row + "\n";
+            }
+        }
+
+        // Trigger Download
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `LCAI_Registry_Export_${new Date().getTime()}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        log("[SUCCESS] Registry downloaded.");
+    } catch (e) {
+        log("[ERROR] CSV Export failed: " + e.message);
+    }
+}
     
 function showView(id) {
 document.querySelectorAll('main > div').forEach(v => v.style.display = 'none');
@@ -607,6 +659,7 @@ c.scrollTop = c.scrollHeight;
 </script>
 </body>
 </html>
+
 
 
 

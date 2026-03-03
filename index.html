@@ -420,10 +420,18 @@ async function withdrawRevenue() {
 async function queryIdentity() {
     const addr = document.getElementById('queryAddr').value;
     const result = document.getElementById('queryResult');
-    if (!ethers.isAddress(addr)) return alert("Invalid Address");
+    
+    // Log start of query to console
+    console.log(`[SYS] Querying Identity Status for: ${addr}`);
+    
+    if (!ethers.isAddress(addr)) {
+        console.error("[SYS] Invalid Ethereum Address provided.");
+        return alert("Invalid Address");
+    }
     
     try {
         const provider = new ethers.BrowserProvider(window.ethereum);
+        // Ensure ABI matches the public mappings in LCAI-ZkKYCSBT.sol
         const contract = new ethers.Contract(CONFIG.address, [
             "function nicknames(address) view returns (string)",
             "function dids(address) view returns (string)"
@@ -431,8 +439,19 @@ async function queryIdentity() {
         
         const nick = await contract.nicknames(addr);
         const did = await contract.dids(addr);
-        result.innerHTML = nick ? `<span style="color:var(--green)">MINTED:</span> ${nick} (${did})` : `<span style="color:var(--red)">NOT FOUND</span>`;
-    } catch (e) { result.innerText = "Error querying identity."; }
+        
+        if (nick && nick !== "") {
+            const statusMsg = `MINTED: ${nick} (DID: ${did})`;
+            console.log(`[SYS] Identity Found: ${statusMsg}`);
+            result.innerHTML = `<span style="color:var(--green)">MINTED:</span> ${nick} (${did})`;
+        } else {
+            console.warn(`[SYS] No identity record found for ${addr}`);
+            result.innerHTML = `<span style="color:var(--red)">NOT FOUND</span>`;
+        }
+    } catch (e) {
+        console.error("[SYS] Contract Query Error:", e);
+        result.innerHTML = `<span style="color:var(--red)">Error querying identity.</span>`;
+    }
 }
     
 function showView(id) {
@@ -452,6 +471,7 @@ c.scrollTop = c.scrollHeight;
 </script>
 </body>
 </html>
+
 
 
 

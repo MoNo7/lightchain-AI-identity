@@ -209,6 +209,37 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
 
 let userWallet;
 
+const OAUTH_CONFIG = {
+    Discord: {
+        url: "https://discord.com/api/oauth2/authorize",
+        client_id: "YOUR_DISCORD_CLIENT_ID",
+        scope: "identify"
+    },
+    GitHub: {
+        url: "https://github.com/login/oauth/authorize",
+        client_id: "YOUR_GITHUB_CLIENT_ID",
+        scope: "read:user"
+    },
+    X: {
+        url: "https://twitter.com/i/oauth2/authorize",
+        client_id: "YOUR_X_CLIENT_ID",
+        scope: "users.read tweet.read"
+    },
+    Google: {
+        url: "https://accounts.google.com/o/oauth2/v2/auth",
+        client_id: "YOUR_GOOGLE_CLIENT_ID",
+        scope: "https://www.googleapis.com/auth/userinfo.profile"
+    },
+    LinkedIn: {
+        url: "https://www.linkedin.com/oauth/v2/authorization",
+        client_id: "YOUR_LINKEDIN_CLIENT_ID",
+        scope: "r_liteprofile"
+    },
+    // Matches your current GitHub Pages or local environment
+    redirect_uri: window.location.origin + window.location.pathname 
+};
+    
+    
 // Configuration for the Neural Models
 const inferenceModels = [
     { name: "Neural-Llama-3-70B", hash: "0xE035b7192a5d816b0f420a9e755efc6a2c1ea51d", baseLoad: 12.4 },
@@ -308,10 +339,7 @@ refreshModelDashboard(); // Initial run
         console.warn("Price sync pending...");
         }
         }
-        document.addEventListener('DOMContentLoaded', () => {
-        fetchPrices(); // Initial load
-        setInterval(fetchPrices, 5000); // Refresh every 5 seconds
-        });
+
     // --- WALLET CONNECT ---
     async function connect() {
     if (!window.ethereum) return log("Metamask not found.");
@@ -453,6 +481,86 @@ async function queryIdentity() {
         result.innerHTML = `<span style="color:var(--red)">Error querying identity.</span>`;
     }
 }
+function startOAuth(providerName) {
+    const provider = OAUTH_CONFIG[providerName];
+    if (!provider) return log(`[SYS] Provider ${providerName} not configured.`);
+
+    // Generate a random state for security
+    const state = Math.random().toString(36).substring(7);
+    localStorage.setItem('oauth_state', state);
+    localStorage.setItem('oauth_provider', providerName);
+
+    log(`[SYS] Redirecting to ${providerName} for zkIdentity verification...`);
+
+    // Construct the OAuth URL
+    const rootUrl = provider.url;
+    const options = {
+        client_id: provider.client_id,
+        redirect_uri: OAUTH_CONFIG.redirect_uri,
+        response_type: "token", // Implicit flow for client-side apps
+        scope: provider.scope,
+        state: state
+    };
+
+    // Special handling for X (Twitter) which requires additional PKCE parameters usually, 
+    // but for simple identity we use a standard query string:
+    const queryString = new URLSearchParams(options).toString();
+    
+    // Redirect the user
+    window.location.href = `${rootUrl}?${queryString}`;
+}
+
+    function handleOAuthCallback() {
+    const hash = window.location.hash.substring(1);
+    const params = new URLSearchParams(hash);
+    const accessToken = params.get('access_token');
+    const state = params.get('state');
+    const savedState = localStorage.getItem('oauth_state');
+    const provider = localStorage.getItem('oauth_provider');
+
+    if (accessToken && state === savedState) {
+        log(`[SYS] ${provider} authenticated successfully.`);
+        
+        // Clean up URL and storage
+        window.history.replaceState({}, document.title, window.location.pathname);
+        localStorage.removeItem('oauth_state');
+
+        // Unlock Step 2: Finalize Identity
+        const mintStep = document.getElementById('mintStep');
+        if (mintStep) {
+            mintStep.classList.remove('step-locked');
+            mintStep.style.opacity = "1";
+        }
+
+        // Generate a pseudo-DID based on the provider and token hash
+        // In a real ZK app, this would be your Semaphore or Circom identity commitment
+        const identityHash = ethers.id(accessToken + provider);
+        const did = `did:lcai:${provider.toLowerCase()}:${identityHash.slice(2, 12)}`;
+        
+        // Show the ID to the user (you can store this in a hidden field for the mint function)
+        log(`[SYS] Generated ZK-Commitment: ${did}`);
+        
+        // Update the QR Code for the identity
+        const qrContainer = document.getElementById('qrcode');
+        if (qrContainer) {
+            qrContainer.innerHTML = "";
+            new QRCode(qrContainer, {
+                text: did,
+                width: 128,
+                height: 128,
+                colorDark: "#030406",
+                colorLight: "#ffffff"
+            });
+        }
+    }
+}
+
+// Add this to your existing DOMContentLoaded listener
+document.addEventListener('DOMContentLoaded', () => {
+    handleOAuthCallback();
+    fetchPrices(); // Initial load
+    setInterval(fetchPrices, 5000); // Refresh every 5 seconds
+});
     
 function showView(id) {
 document.querySelectorAll('main > div').forEach(v => v.style.display = 'none');
@@ -471,6 +579,7 @@ c.scrollTop = c.scrollHeight;
 </script>
 </body>
 </html>
+
 
 
 

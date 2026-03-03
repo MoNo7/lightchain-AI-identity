@@ -446,39 +446,33 @@ async function withdrawRevenue() {
 
 // --- BATCH & QUERY LOGIC ---
 async function queryIdentity() {
-    const addr = document.getElementById('queryAddr').value;
+    const input = document.getElementById('queryAddr').value.trim();
     const result = document.getElementById('queryResult');
     
-    // Log start of query to console
-    console.log(`[SYS] Querying Identity Status for: ${addr}`);
-    
-    if (!ethers.isAddress(addr)) {
-        console.error("[SYS] Invalid Ethereum Address provided.");
-        return alert("Invalid Address");
-    }
-    
     try {
+        // Fix 1: Checksum the address to prevent INVALID_ARGUMENT error
+        const cleanAddr = ethers.getAddress(input);
+        console.log(`[SYS] Querying: ${cleanAddr}`);
+
         const provider = new ethers.BrowserProvider(window.ethereum);
-        // Ensure ABI matches the public mappings in LCAI-ZkKYCSBT.sol
+        // Fix 2: Updated ABI to match the public 'profiles' mapping return types
         const contract = new ethers.Contract(CONFIG.address, [
-            "function nicknames(address) view returns (string)",
-            "function dids(address) view returns (string)"
+            "function profiles(address) view returns (string, string, bool, bool)"
         ], provider);
         
-        const nick = await contract.nicknames(addr);
-        const did = await contract.dids(addr);
+        const profile = await contract.profiles(cleanAddr);
         
-        if (nick && nick !== "") {
-            const statusMsg = `MINTED: ${nick} (DID: ${did})`;
-            console.log(`[SYS] Identity Found: ${statusMsg}`);
-            result.innerHTML = `<span style="color:var(--green)">MINTED:</span> ${nick} (${did})`;
+        // profile[0] is username, profile[2] is isVerified
+        if (profile[3]) { // if profile.exists is true
+            const status = profile[2] ? "VERIFIED" : "PENDING";
+            const color = profile[2] ? "var(--green)" : "var(--accent)";
+            result.innerHTML = `<span style="color:${color}">${status}:</span> ${profile[0]} (${profile[1]})`;
         } else {
-            console.warn(`[SYS] No identity record found for ${addr}`);
             result.innerHTML = `<span style="color:var(--red)">NOT FOUND</span>`;
         }
     } catch (e) {
-        console.error("[SYS] Contract Query Error:", e);
-        result.innerHTML = `<span style="color:var(--red)">Error querying identity.</span>`;
+        console.error("Query Error:", e);
+        result.innerHTML = `<span style="color:var(--red)">Address Error: Check format</span>`;
     }
 }
 function startOAuth(providerName) {
@@ -579,6 +573,7 @@ c.scrollTop = c.scrollHeight;
 </script>
 </body>
 </html>
+
 
 
 

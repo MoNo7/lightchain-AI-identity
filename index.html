@@ -149,9 +149,40 @@ input, textarea { background: #000; border: 1px solid var(--border); color: #fff
 </div>
 
 <div id="batchView" class="card" style="display:none;">
-<h3>Batch Verifier</h3>
-<textarea id="batchAddrs" placeholder="0x..., 0x..."></textarea>
-<button class="btn-zk" onclick="batch('verify')">VERIFY LIST</button>
+    <h3>Protocol Identity Registry</h3>
+    
+    <div style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid var(--border);">
+        <p style="font-size: 0.8rem; color: var(--accent);">Single Identity Query</p>
+        <div style="display: flex; gap: 10px;">
+            <input type="text" id="queryAddr" placeholder="0x..." style="margin:0;">
+            <button class="btn-zk" onclick="queryIdentity()" style="margin:0; width: auto; padding: 0 20px;">CHECK</button>
+        </div>
+        <div id="queryResult" style="margin-top: 10px; font-size: 0.85rem; font-family: monospace;"></div>
+    </div>
+
+    <p style="font-size: 0.8rem; color: var(--accent);">Batch Operations (Comma Separated)</p>
+    <textarea id="batchAddrs" placeholder="0x..., 0x..." style="height: 80px;"></textarea>
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+        <button class="btn-zk" onclick="batchAction('verify')">VERIFY LIST</button>
+        <button class="btn-zk" onclick="batchAction('revoke')" style="background: var(--red); color: white;">REVOKE SBT</button>
+        <button class="btn-zk" onclick="batchAction('delete')" style="background: #555; color: white;">DELETE PROFILE</button>
+    </div>
+</div>
+<div id="revView" class="card" style="display:none;">
+    <h3>Protocol Revenue Management</h3>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+        <div style="background: #000; padding: 20px; border-radius: 8px; border: 1px solid var(--border);">
+            <div style="font-size: 0.7rem; color: #484f58; margin-bottom: 10px;">TOTAL CONTRACT BALANCE</div>
+            <div id="contractBalDisplay" style="font-size: 1.8rem; color: var(--green); font-weight: bold; font-family: monospace;">0.00 LCAI</div>
+        </div>
+        <div style="background: #000; padding: 20px; border-radius: 8px; border: 1px solid var(--border);">
+            <div style="font-size: 0.7rem; color: #484f58; margin-bottom: 10px;">ADMIN ACTIONS</div>
+            <button class="btn-zk" onclick="withdrawRevenue()" style="margin:0;">WITHDRAW REVENUE</button>
+        </div>
+    </div>
+    <div style="margin-top: 20px; font-size: 0.75rem; color: #484f58;">
+        <i class="fas fa-info-circle"></i> Revenue is generated from the 0.01 ether minting fee defined in the ZkKYCSBT contract.
+    </div>
 </div>
 </main>
 
@@ -235,14 +266,16 @@ async function refreshModelDashboard() {
 setInterval(refreshModelDashboard, 3000);
 refreshModelDashboard(); // Initial run  
   
-async function updateBalance(provider) {
-try {
-const bal = await provider.getBalance(userWallet);
-// Format to 2 decimal places
-document.getElementById('balancePill').innerText = parseFloat(ethers.formatEther(bal)).toFixed(2) + " LCAI";
-} catch(e) { console.error("Balance Error", e); }
-}
+    async function updateBalance(provider) {
+        try {
+            const bal = await provider.getBalance(userWallet);
+            // Format to 2 decimal places
+            document.getElementById('balancePill').innerText = parseFloat(ethers.formatEther(bal)).toFixed(2) + " LCAI";
+        } catch(e) { console.error("Balance Error", e); }
+    }
 
+    
+    
     // --- TICKER LOGIC ---
       async function fetchPrices() {
         try {
@@ -271,14 +304,14 @@ document.getElementById('balancePill').innerText = parseFloat(ethers.formatEther
             console.log("Tickers updated: " + new Date().toLocaleTimeString());
         }
         } catch (error) {
-// Silently retry to keep the UI clean
-console.warn("Price sync pending...");
-}
-}
-document.addEventListener('DOMContentLoaded', () => {
-fetchPrices(); // Initial load
-setInterval(fetchPrices, 5000); // Refresh every 5 seconds
-});
+        // Silently retry to keep the UI clean
+        console.warn("Price sync pending...");
+        }
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+        fetchPrices(); // Initial load
+        setInterval(fetchPrices, 5000); // Refresh every 5 seconds
+        });
     // --- WALLET CONNECT ---
     async function connect() {
     if (!window.ethereum) return log("Metamask not found.");
@@ -358,13 +391,57 @@ setInterval(fetchPrices, 5000); // Refresh every 5 seconds
 
 // Initialize the live loop
 setInterval(updateNodeMetrics, 10000); // Update every 10s
-  
-  
+
+// --- REVENUE LOGIC ---
+async function updateRevenueDisplay() {
+    if (!window.ethereum) return;
+    try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const balance = await provider.getBalance(CONFIG.address);
+        const display = document.getElementById('contractBalDisplay');
+        if (display) display.innerText = parseFloat(ethers.formatEther(balance)).toFixed(4) + " LCAI";
+    } catch (e) { console.error("Revenue Sync Error", e); }
+}
+
+async function withdrawRevenue() {
+    try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        const contract = new ethers.Contract(CONFIG.address, ["function withdrawRevenue() public"], signer);
+        log("Initiating revenue withdrawal...");
+        const tx = await contract.withdrawRevenue();
+        await tx.wait();
+        log("Withdrawal Successful.");
+        updateRevenueDisplay();
+    } catch (e) { log("Withdrawal Failed: " + (e.reason || e.message)); }
+}
+
+// --- BATCH & QUERY LOGIC ---
+async function queryIdentity() {
+    const addr = document.getElementById('queryAddr').value;
+    const result = document.getElementById('queryResult');
+    if (!ethers.isAddress(addr)) return alert("Invalid Address");
+    
+    try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const contract = new ethers.Contract(CONFIG.address, [
+            "function nicknames(address) view returns (string)",
+            "function dids(address) view returns (string)"
+        ], provider);
+        
+        const nick = await contract.nicknames(addr);
+        const did = await contract.dids(addr);
+        result.innerHTML = nick ? `<span style="color:var(--green)">MINTED:</span> ${nick} (${did})` : `<span style="color:var(--red)">NOT FOUND</span>`;
+    } catch (e) { result.innerText = "Error querying identity."; }
+}
+    
 function showView(id) {
 document.querySelectorAll('main > div').forEach(v => v.style.display = 'none');
 document.getElementById(id).style.display = 'block';
 document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
 event.currentTarget.classList.add('active');
+
+    if(id === 'revView') updateRevenueDisplay();
 }
 
 function log(m) {
@@ -375,6 +452,7 @@ c.scrollTop = c.scrollHeight;
 </script>
 </body>
 </html>
+
 
 
 

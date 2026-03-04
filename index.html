@@ -607,13 +607,13 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
 
         function unlockArtStudio() {
             const artItem = document.getElementById('artItem');
-            const artlockIcon = document.getElementById('artLockIcon');
+            const artLockIcon = document.getElementById('artLockIcon');
             if (artItem) {
                 artItem.classList.remove('locked-feature');
                 artItem.style.opacity = "1";
                 artItem.style.filter = "grayscale(0)";
                 artItem.style.pointerEvents = "auto";
-                if (artLockicon) artLockicon.className = "fas fa-palette";
+                if (artLockIcon) artLockIcon.className = "fas fa-palette";
             }
 
             // 2. Unlock Gallery
@@ -624,7 +624,7 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
                 galleryItem.style.opacity = "1";
                 galleryItem.style.filter = "grayscale(0)";
                 galleryItem.style.pointerEvents = "auto"; // THIS is what fixes the "unclickable" issue
-                if (galleryLockIcon) galleryLockicon.className = "fas fa-images";
+                if (galleryLockIcon) galleryLockIcon.className = "fas fa-images";
             }
             
             // Switch lock icon to the palette icon
@@ -749,6 +749,7 @@ renderAIVMResult(finalImage, selectedModel);
     </script>
 </body>
 </html>
+
 
 
 

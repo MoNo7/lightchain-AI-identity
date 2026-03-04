@@ -296,61 +296,66 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
         async function queryIdentity() {
             const input = document.getElementById('queryAddr').value.trim();
             const res = document.getElementById('queryResult');
-            
-            if (!ethers.isAddress(input)) {
-                res.innerHTML = `<span style="color:var(--red)">INVALID ADDRESS</span>`;
-                return log("Query failed: Invalid Ethereum address.");
-            }
+            if (!ethers.isAddress(input)) return res.innerHTML = `<span style="color:var(--red)">INVALID ADDRESS</span>`;
         
-            log(`Querying Registry for: ${input}`);
+            log(`Querying Registry: ${input}`);
             try {
                 const provider = new ethers.BrowserProvider(window.ethereum);
-                const contract = new ethers.Contract(CONFIG.contract, ["function profiles(address) view returns (string, string, bool, bool)"], provider);
-                const profile = await contract.profiles(input);
+                // Updated ABI to match your actual contract mappings
+                const contract = new ethers.Contract(CONFIG.contract, [
+                    "function nicknames(address) view returns (string)",
+                    "function dids(address) view returns (string)",
+                    "function verified(address) view returns (bool)"
+                ], provider);
                 
-                if (profile[3]) { // profile[3] is the 'exists' boolean
-                    const status = profile[2] ? "VERIFIED" : "PENDING";
-                    res.innerHTML = `<span style="color:var(--green)">${status}:</span> ${profile[0]} (${profile[1]})`;
-                    log(`Match Found: ${profile[0]} [${profile[1]}] is ${status}`);
+                // Fetch values from individual mappings
+                const name = await contract.nicknames(input);
+                const did = await contract.dids(input);
+                const isVerified = await contract.verified(input);
+        
+                if (name !== "") {
+                    const status = isVerified ? "VERIFIED" : "PENDING";
+                    res.innerHTML = `<span style="color:var(--green)">${status}:</span> ${name} (${did})`;
+                    log(`Match Found: ${name} is ${status}`);
                 } else {
                     res.innerHTML = `<span style="color:var(--red)">NOT FOUND</span>`;
-                    log("No identity record found for this address.");
                 }
             } catch (e) {
-                log("Protocol Error: Unable to fetch profile data.");
+                log("Query Error: Protocol communication failed.");
                 res.innerHTML = `<span style="color:var(--red)">ERROR</span>`;
             }
         }
-
         async function batchAction(action) {
             const input = document.getElementById('batchAddrs').value;
             const addrs = input.split(',').map(a => a.trim()).filter(a => ethers.isAddress(a));
             
-            if (addrs.length === 0) return log("Error: No valid addresses in batch list.");
-            if (!userWallet) return log("Error: Please connect admin wallet first.");
+            if (addrs.length === 0) return log("Error: No valid addresses provided.");
+            if (!userWallet) return log("Error: Connect wallet first.");
         
-            log(`Starting batch ${action} for ${addrs.length} identities...`);
+            log(`Starting batch ${action} for ${addrs.length} users...`);
             try {
                 const provider = new ethers.BrowserProvider(window.ethereum);
                 const signer = await provider.getSigner();
-                // Interface for verification and revocation
+                
+                // Match the function name in your LCAI-ZkKYCSBT.sol: "verifyUser"
                 const contract = new ethers.Contract(CONFIG.contract, [
-                    "function setVerification(address user, bool status) public",
-                    "function revokeIdentity(address user) public"
+                    "function verifyUser(address _u) public"
                 ], signer);
         
                 for (const addr of addrs) {
-                    log(`Sending tx for: ${addr.slice(0,10)}...`);
-                    const tx = (action === 'verify') 
-                        ? await contract.setVerification(addr, true)
-                        : await contract.revokeIdentity(addr);
-                    
-                    await tx.wait();
-                    log(`Success: ${addr.slice(0,6)} updated.`);
+                    log(`Sending Tx: ${addr.slice(0,10)}...`);
+                    // Note: Your current contract only has verifyUser, not a revoke function.
+                    if (action === 'verify') {
+                        const tx = await contract.verifyUser(addr);
+                        await tx.wait();
+                        log(`Success: ${addr.slice(0,6)} verified.`);
+                    } else {
+                        log("Notice: Revoke function not found in current contract.");
+                    }
                 }
-                log(`Registry Update Complete: ${action} sequence finished.`);
+                log("Batch operation finished.");
             } catch (e) {
-                log(`Critical Failure: ${e.reason || e.message}`);
+                log(`Transaction Failed: ${e.message}`);
             }
         }
         
@@ -412,6 +417,7 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
     </script>
 </body>
 </html>
+
 
 
 

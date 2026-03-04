@@ -135,24 +135,25 @@
             <input type="text" id="regDid" placeholder="Social Handle or DID <blank for default did:lcai:walletaddress>">
             <button class="btn-zk" style="background: var(--green);" onclick="registerLocal()">CREATE PROFILE</button>
         </div>
-  
-               <p style="font-size:0.8rem; color:var(--accent);">1. Link Social Provider</p>
-            <div class="social-grid">
-                <button id="btn-discord" class="btn-zk locked-provider" onclick="startOAuth('Discord')"><i class="fab fa-discord"></i> Discord</button>
-                <button id="btn-github" class="btn-zk locked-provider" onclick="startOAuth('GitHub')"><i class="fab fa-github"></i> GitHub</button>
-                <button id="btn-x" class="btn-zk locked-provider" onclick="startOAuth('X')"><i class="fab fa-x-twitter"></i> X / Twitter</button>
-                <button id="btn-google" class="btn-zk locked-provider" onclick="startOAuth('Google')"><i class="fab fa-google"></i> Google</button>
-                <button id="btn-linkedin" class="btn-zk locked-provider" onclick="startOAuth('LinkedIn')"><i class="fab fa-linkedin"></i> LinkedIn</button>
+        <div>
+                   <p style="font-size:0.8rem; color:var(--accent);">1. Link Social Provider</p>
+                <div class="social-grid">
+                    <button id="btn-discord" class="btn-zk locked-provider" onclick="startOAuth('Discord')"><i class="fab fa-discord"></i> Discord</button>
+                    <button id="btn-github" class="btn-zk locked-provider" onclick="startOAuth('GitHub')"><i class="fab fa-github"></i> GitHub</button>
+                    <button id="btn-x" class="btn-zk locked-provider" onclick="startOAuth('X')"><i class="fab fa-x-twitter"></i> X / Twitter</button>
+                    <button id="btn-google" class="btn-zk locked-provider" onclick="startOAuth('Google')"><i class="fab fa-google"></i> Google</button>
+                    <button id="btn-linkedin" class="btn-zk locked-provider" onclick="startOAuth('LinkedIn')"><i class="fab fa-linkedin"></i> LinkedIn</button>
+                </div>
+               <h3>Soulbound Identity Mint</h3>
+            <div id="mintSection" class="step-locked">
+                <h3 style="color: var(--accent);"><i class="fas fa-shield-check"></i> 2. Verify & Mint SBT</h3>
+                    <p style="font-size: 0.8rem; color: var(--text-dim);">Mint your identity to the Lightchain blockchain to unlock Verified features and AIVM Art.</p>
+                    <div id="qrcode" style="background:white; padding:10px; border-radius:4px; width:fit-content; margin:15px auto;"></div>
+                    <input type="text" id="nickName" placeholder="Identity Nickname">
+                    <button class="btn-zk" onclick="mintWithImage()">MINT SBT</button>
             </div>
-           <h3>Soulbound Identity Mint</h3>
-        <div id="mintSection" class="step-locked">
-            <h3 style="color: var(--accent);"><i class="fas fa-shield-check"></i> 2. Verify & Mint SBT</h3>
-                <p style="font-size: 0.8rem; color: var(--text-dim);">Mint your identity to the Lightchain blockchain to unlock Verified features and AIVM Art.</p>
-                <div id="qrcode" style="background:white; padding:10px; border-radius:4px; width:fit-content; margin:15px auto;"></div>
-                <input type="text" id="nickName" placeholder="Identity Nickname">
-                <button class="btn-zk" onclick="mintWithImage()">MINT SBT</button>
         </div>
-  </div>
+</div>
             <div id="batchView" class="card" style="display:none;">
                 <h3>Protocol Identity Registry</h3>
                 <div style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid var(--border);">
@@ -562,6 +563,7 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
     </script>
 </body>
 </html>
+
 
 
 

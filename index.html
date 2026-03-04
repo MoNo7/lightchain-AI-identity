@@ -132,7 +132,7 @@
             <p style="font-size: 0.8rem; color: var(--text-dim);">Create a local profile to unlock registered areas. No gas fee required for this step.</p>
                    
         <div id="authStep" class="step-locked">
-            <input type="text" id="regNick" placeholder="Display Name">
+            <input type="text" id="nickName" placeholder="Display Name">
             <input type="text" id="regDid" placeholder="Social Handle or DID <blank for default did:lcai:walletaddress>">
             <button class="btn-zk" style="background: var(--green);" onclick="registerLocal()">CREATE PROFILE</button>
         </div>
@@ -308,7 +308,7 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
         }
 
         async function registerLocal() {
-            const nick = document.getElementById('regNick').value.trim();
+            const nick = document.getElementById('nickName').value.trim();
             let did = document.getElementById('regDid').value.trim(); // Change const to let
             
             if (!nick) return log("Error: Display Name is required.");
@@ -567,6 +567,7 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
     </script>
 </body>
 </html>
+
 
 
 

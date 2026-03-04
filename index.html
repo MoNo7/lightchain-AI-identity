@@ -609,12 +609,11 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
             const lockIcon = document.getElementById('artLockIcon');
             if (artItem) {
                 artItem.classList.remove('locked-feature');
+                artItem.style.opacity = "1";
+                artItem.style.filter = "grayscale(0)";
+                artItem.style.pointerEvents = "auto";
                 if (artLock) artLock.className = "fas fa-palette";
             }
-
-            artItem.classList.remove('locked-feature');
-            artItem.style.opacity = "1";
-            artItem.style.filter = "grayscale(0)";
 
             // 2. Unlock Gallery
             const galleryItem = document.getElementById('galleryNavItem');
@@ -622,12 +621,12 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
             if (galleryItem) {
                 galleryItem.classList.remove('locked-feature');
                 galleryItem.style.opacity = "1";
+                galleryItem.style.filter = "grayscale(0)";
                 galleryItem.style.pointerEvents = "auto"; // THIS is what fixes the "unclickable" issue
                 if (galleryLock) galleryLock.className = "fas fa-images";
             }
             
             // Switch lock icon to the palette icon
-            lockIcon.className = "fas fa-palette";
             log("Art Studio & Gallery Unlocked!");
         }
 
@@ -655,7 +654,20 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
                 // Here you would send 'selectedModel' and 'finalPrompt' to your backend API
                 await new Promise(resolve => setTimeout(resolve, 3000));
                 
-                // ... (Your existing canvas rendering code) ...
+const canvas = document.getElementById('generatedCanvas');
+const ctx = canvas.getContext('2d');
+canvas.width = 512;
+canvas.height = 512;
+
+// Create a simple visual placeholder on the canvas
+ctx.fillStyle = "#1a1a1a";
+ctx.fillRect(0, 0, 512, 512);
+ctx.fillStyle = "#00f2ff";
+ctx.font = "20px Inter";
+ctx.fillText("AIVM GENERATED ART", 50, 250);
+
+const finalImage = canvas.toDataURL('image/png');
+renderAIVMResult(finalImage, selectedModel);
                 
                 log(`[AIVM] ${selectedModel} successfully rendered image.`);
                 renderAIVMResult(finalImage);
@@ -708,6 +720,13 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
             }
         }
 
+        function updateRevenueDisplay() {
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            provider.getBalance(CONFIG.contract).then(bal => {
+                document.getElementById('contractBalDisplay').innerText = ethers.formatEther(bal) + " LCAI";
+            });
+        }
+
         function showView(id) {
             document.querySelectorAll('main > div').forEach(v => v.style.display = 'none');
             document.getElementById(id).style.display = 'block';
@@ -729,6 +748,7 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
     </script>
 </body>
 </html>
+
 
 
 

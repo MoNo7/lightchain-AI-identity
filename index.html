@@ -136,6 +136,9 @@
             <input type="text" id="regDid" placeholder="Social Handle or DID <blank for default did:lcai:walletaddress>">
             <button class="btn-zk" style="background: var(--green);" onclick="registerLocal()">CREATE PROFILE</button>
         </div>
+
+           </div>
+                 <div id="mintSection" class="step-locked">
                 <div>
                    <p style="font-size:0.8rem; color:var(--accent);">1. Link Social Provider</p>
                     <div class="social-grid">
@@ -146,8 +149,6 @@
                         <button id="btn-linkedin" class="btn-zk locked-provider" onclick="startOAuth('LinkedIn')"><i class="fab fa-linkedin"></i> LinkedIn</button>
                     </div>
                 </div>
-           </div>
-                 <div id="mintSection" class="step-locked">
                    <h3>Soulbound Identity Mint</h3>
                      <h3 style="color: var(--accent);"><i class="fas fa-shield-check"></i> 2. Verify & Mint SBT</h3>
                     <p style="font-size: 0.8rem; color: var(--text-dim);">Mint your identity to the Lightchain blockchain to unlock Verified features and AIVM Art.</p>
@@ -566,6 +567,7 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
     </script>
 </body>
 </html>
+
 
 
 

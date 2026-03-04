@@ -271,13 +271,17 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
             { name: "Mistral-Large-2", hash: "0xbcA3b7b7975c1f544d69392603336feb27b8a83aD8FB", baseLoad: 0 }
         ];
 
-        function handleArtNavClick() {
-            const artItem = document.getElementById('artNavItem');
-            if (artItem.classList.contains('locked-feature')) {
-                log("Action Required: Complete 'Site Registration' to unlock the Art Studio.");
-                showView('zkView'); // Redirect them to the registration page
+        function handleArtClick() {
+            const item = document.getElementById('artNavItem');
+            const lockIcon = document.getElementById('artLockIcon'); // Ensure capital I
+            
+            if (item.classList.contains('locked-feature')) {
+                log("Access Denied: Please Register or Mint an Identity to unlock the Art Studio.");
+                showView('zkView'); 
             } else {
+                // If it's already unlocked, just show the view
                 showView('renderView');
+                if (lockIcon) lockIcon.className = "fas fa-palette"; 
             }
         }
 
@@ -595,15 +599,6 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
             img.onload = () => { loader.style.display = 'none'; img.style.display = 'block'; log(`[RENDER] Inference complete.`); };
         }
 
-        function handleArtClick() {
-            const item = document.getElementById('artNavItem');
-            if (item.classList.contains('locked-feature')) {
-                log("Access Denied: Please Register or Mint an Identity to unlock the Art Studio.");
-                showView('zkView'); // Automatically take them to the registration page
-            } else {
-                showView('renderView');
-            }
-        }
 
         function unlockArtStudio() {
             const artItem = document.getElementById('artItem');
@@ -617,7 +612,7 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
             }
 
             // 2. Unlock Gallery
-            const galleryItem = document.getElementById('galleryNavItem');
+            const galleryItem = document.getElementById('galleryItem');
             const galleryLockicon = document.getElementById('galleryLockIcon');
             if (galleryItem) {
                 galleryItem.classList.remove('locked-feature');
@@ -749,49 +744,3 @@ renderAIVMResult(finalImage, selectedModel);
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

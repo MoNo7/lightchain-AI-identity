@@ -405,6 +405,7 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
             
             // Unlock UI areas
             document.getElementById('artNavItem').style.display = 'flex';
+            document.getElementById('galleryNavItem').style.display = 'flex';
             unlockArtStudio(); // This removes the lock immediately
             document.getElementById('mintSection').classList.remove('step-locked');
 
@@ -623,7 +624,7 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
                 galleryItem.style.opacity = "1";
                 galleryItem.style.filter = "grayscale(0)";
                 galleryItem.style.pointerEvents = "auto"; // THIS is what fixes the "unclickable" issue
-                if (galleryLock) galleryLock.className = "fas fa-images";
+                if (galleryLockIcon) galleryLock.className = "fas fa-images";
             }
             
             // Switch lock icon to the palette icon
@@ -748,6 +749,7 @@ renderAIVMResult(finalImage, selectedModel);
     </script>
 </body>
 </html>
+
 
 
 

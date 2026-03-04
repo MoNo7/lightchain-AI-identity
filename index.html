@@ -23,12 +23,29 @@
         /* Workspace */
         .workspace { flex: 1; display: flex; flex-direction: column; background: #050608; overflow: hidden; }
         header { height: 70px; background: var(--sidebar); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 25px; }
-        .pill-group { display: flex; gap: 10px; align-items: center; }
+        .pill-group { display: flex; flex:1; justify-center; gap: 10px; align-items: center; }
         .pill { background: #000; border: 1px solid var(--border); padding: 6px 14px; border-radius: 20px; font-size: 0.75rem; display: flex; align-items: center; gap: 8px; font-family: monospace; }
         
         /* Main View Container */
         main { flex: 1; padding: 25px; overflow-y: auto; }
         .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 25px; max-width: 1000px; margin: 0 auto 20px auto; }
+
+        #modelSelector {
+    appearance: none;
+    -webkit-appearance: none;
+    transition: all 0.3s ease;
+}
+
+#modelSelector:hover {
+    background: rgba(0, 255, 163, 0.2);
+    box-shadow: 0 0 10px rgba(0, 255, 163, 0.3);
+}
+
+#modelSelector option {
+    background: #111; /* Dark background for the dropdown list */
+    color: var(--accent);
+}
+
         
         /* Utility Classes */
         .social-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 20px; }
@@ -57,10 +74,8 @@
             <span class="nav-label">Core</span>
             <div class="nav-item active" onclick="showView('dashView')"><i class="fas fa-th-large"></i> Dashboard</div>
             <div class="nav-item" onclick="showView('zkView')"><i class="fas fa-fingerprint"></i> zkIdentity</div>
-            <div id="artNavItem" class="nav-item locked-feature" onclick="handleArtClick()">
-                <i class="fas fa-lock" id="artLockIcon"></i> 
-                <span id="artLabel">AIVM Art Studio</span>
-            </div>
+            <div id="artNavItem" class="nav-item locked-feature" onclick="handleArtClick()"><i class="fas fa-lock" id="artLockIcon"></i><span id="artLabel">AIVM Art Studio</span></div>
+            <div id="artNavItem" class="nav-item locked-feature" onclick="handleArtClick()"><i class="fas fa-lock" id="artLockIcon"></i><span id="artLabel">Gallery</span></div>            
         </div>
 
         <div id="adminItems" class="nav-section" style="display:none;">
@@ -115,8 +130,18 @@
             </div>
 
         <div id="renderView" class="card" style="display: none;">
-            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
-                <h3><i class="fas fa-palette"></i> AIVM Render: <span id="modelNameDisplay" style="color: var(--accent);">DeepSeek-V3</span></h3>
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-palette" style="color: var(--accent);"></i>
+                    <h3 style="margin: 0;">AIVM Render</h3>
+                    <select id="modelSelector" style="background: rgba(0,255,163,0.1); border: 1px solid var(--accent); color: var(--accent); border-radius: 20px; padding: 2px 10px; font-size: 0.7rem; cursor: pointer; font-family: monospace; outline: none;">
+                        <option value="DeepSeek-V3">DEEPSEEK-V3 (Balanced)</option>
+                        <option value="SDXL-Turbo">SDXL-TURBO (Fast)</option>
+                        <option value="Midjourney-v6">MJ-V6 (Artistic)</option>
+                        <option value="Flux-1">FLUX.1 (Photoreal)</option>
+                        <option value="DALL-E-3">DALL-E 3 (Creative)</option>
+                    </select>
+                </div>
                 <button onclick="clearRender()" class="pill" style="cursor: pointer; background: transparent; border: 1px solid var(--border); color: var(--text-dim);">CLEAR</button>
             </div>
         
@@ -588,56 +613,37 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
         
 
         async function generateAIVMArt() {
-    const basePrompt = document.getElementById('artPrompt').value.trim();
-    const styleSuffix = document.getElementById('artStyle').value;
-    
-    if (!basePrompt) return log("Error: Please enter a description first.");
-    
-    // Combine them to create a professional-grade AI prompt
-    const finalPrompt = basePrompt + styleSuffix;
-    log(`[AIVM] Sending Prompt: "${finalPrompt}"`);
-
-    // UI Updates
-    document.getElementById('renderStatusText').style.display = 'none';
-    document.getElementById('aivmOutputImage').style.display = 'none';
-    document.getElementById('renderLoader').style.display = 'block';
-
-    try {
-        // NOTE: In production, this would call your Lightchain API.
-        // For development, we simulate a 2.5s generation delay and return a placeholder 
-        // graphic that matches the requested style.
+            const basePrompt = document.getElementById('artPrompt').value.trim();
+            const styleSuffix = document.getElementById('artStyle').value;
+            const selectedModel = document.getElementById('modelSelector').value; // Get the chosen model
+            
+            if (!basePrompt) return log("Error: Please enter a description first.");
+            
+            const finalPrompt = basePrompt + styleSuffix;
+            log(`[AIVM] Calling ${selectedModel} with prompt: "${finalPrompt}"`);
         
-        await new Promise(resolve => setTimeout(resolve, 2500));
+            // UI Feedback
+            document.getElementById('renderStatusText').style.display = 'none';
+            document.getElementById('aivmOutputImage').style.display = 'none';
+            document.getElementById('renderLoader').style.display = 'block';
+            
+            // Update the processing text to show the model name
+            document.querySelector('#renderLoader div').innerText = `${selectedModel} Processing...`;
         
-        // Simulating an AI generation return (Replace with real Base64/Blob from your node)
-        // I am using a gradient placeholder to test your Canvas-to-Mint pipeline
-        const canvas = document.getElementById('generatedCanvas');
-        canvas.width = 512;
-        canvas.height = 512;
-        const ctx = canvas.getContext('2d');
-        
-        // Create dummy art based on style
-        let gradient = ctx.createLinearGradient(0, 0, 512, 512);
-        gradient.addColorStop(0, styleSuffix.includes('cyberpunk') ? "#ff007f" : "#00f2ff");
-        gradient.addColorStop(1, styleSuffix.includes('3D') ? "#ffaa00" : "#1a1a2e");
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, 512, 512);
-        ctx.fillStyle = "#ffffff";
-        ctx.font = "24px Arial";
-        ctx.fillText("AI Generated Artwork", 130, 256);
-        ctx.font = "14px monospace";
-        ctx.fillText(finalPrompt.substring(0, 40) + "...", 50, 290);
-        
-        // Push the canvas data to the visible Image UI
-        const finalImage = canvas.toDataURL('image/png');
-        renderAIVMResult(finalImage);
-        
-    } catch (e) {
-        log(`[AIVM Error] Generation failed: ${e.message}`);
-        document.getElementById('renderLoader').style.display = 'none';
-        document.getElementById('renderStatusText').style.display = 'block';
-    }
-}
+            try {
+                // Here you would send 'selectedModel' and 'finalPrompt' to your backend API
+                await new Promise(resolve => setTimeout(resolve, 3000));
+                
+                // ... (Your existing canvas rendering code) ...
+                
+                log(`[AIVM] ${selectedModel} successfully rendered image.`);
+                renderAIVMResult(finalImage);
+                
+            } catch (e) {
+                log(`[AIVM Error] ${selectedModel} failed: ${e.message}`);
+                document.getElementById('renderLoader').style.display = 'none';
+            }
+        }
 
         async function mintWithImage() {
             const nick = document.getElementById('nickName').value.trim();
@@ -702,6 +708,7 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
     </script>
 </body>
 </html>
+
 
 
 

@@ -362,8 +362,9 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
                     
                     await tx.wait();
                     log(`Success: ${addr.slice(0,6)} updated.`);
-                } catch (e) {
-                log(`Transaction Failed: ${e.message}`);
+                }
+            } catch (e) {
+            log(`Transaction Failed: ${e.message}`);
             }
         }
         
@@ -425,6 +426,7 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
     </script>
 </body>
 </html>
+
 
 
 

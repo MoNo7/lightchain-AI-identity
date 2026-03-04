@@ -109,20 +109,40 @@
                 </div>
             </div>
 
-            <div id="renderView" class="card" style="display: none;">
-                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
-                    <h3>AIVM Render: <span id="modelNameDisplay" style="color: var(--accent);">DeepSeek-V3</span></h3>
-                    <button onclick="clearRender()" class="pill" style="cursor: pointer; background: transparent; border: 1px solid var(--border); color: var(--text-dim);">CLEAR</button>
-                </div>
-                <div id="renderPlaceholder" style="width: 100%; min-height: 300px; background: #000; border: 1px dashed var(--border); border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-top: 15px; overflow: hidden;">
-                    <div id="renderLoader" style="display: none;"><i class="fas fa-sync fa-spin" style="font-size: 2rem; color: var(--accent);"></i></div>
-                    <img id="aivmOutputImage" style="max-width: 100%; display: none;" src="">
-                    <p id="renderStatusText" style="color: var(--text-dim); font-size: 0.8rem;">Awaiting inference result...</p>
-                </div>
-                <div style="margin-top: 10px; font-size: 0.7rem; color: var(--text-dim); font-family: monospace;">
-                    CID: <span id="renderCID" style="color: var(--accent);">Pending...</span>
-                </div>
+        <div id="renderView" class="card" style="display: none;">
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <h3><i class="fas fa-palette"></i> AIVM Render: <span id="modelNameDisplay" style="color: var(--accent);">DeepSeek-V3</span></h3>
+                <button onclick="clearRender()" class="pill" style="cursor: pointer; background: transparent; border: 1px solid var(--border); color: var(--text-dim);">CLEAR</button>
             </div>
+        
+            <div style="margin-top: 15px; display: grid; grid-template-columns: 1fr 200px; gap: 10px;">
+                <input type="text" id="artPrompt" placeholder="Describe your vision (e.g., A futuristic city on Mars)..." style="margin: 0;">
+                <select id="artStyle" style="background: #000; border: 1px solid var(--border); color: #fff; padding: 12px; border-radius: 4px; font-family: inherit;">
+                    <option value="">No Style (Raw)</option>
+                    <option value=", photorealistic, 8k resolution, highly detailed, cinematic lighting, shot on 85mm lens">📸 Photorealistic</option>
+                    <option value=", 3D rendered, Pixar style, vibrant colors, unreal engine 5, octane render">🎬 3D Animation</option>
+                    <option value=", cyberpunk style, neon lighting, dark dystopian atmosphere, highly detailed">🌆 Cyberpunk</option>
+                    <option value=", watercolor painting, impressionist, soft pastel colors, ethereal lighting">🎨 Watercolor</option>
+                    <option value=", surrealism, abstract geometry, Salvador Dali style, dreamlike">🌀 Surreal / Dream</option>
+                </select>
+            </div>
+            <button class="btn-zk" style="width: 100%; margin-top: 10px;" onclick="generateAIVMArt()">GENERATE ART</button>
+        
+            <div id="renderPlaceholder" style="width: 100%; min-height: 350px; background: #000; border: 1px dashed var(--border); border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-top: 15px; overflow: hidden; position: relative;">
+                <canvas id="generatedCanvas" style="display:none;"></canvas>
+                
+                <div id="renderLoader" style="display: none; text-align: center;">
+                    <i class="fas fa-sync fa-spin" style="font-size: 2rem; color: var(--accent); margin-bottom: 10px;"></i>
+                    <div style="color: var(--accent); font-size: 0.8rem; font-family: monospace;">AIVM Processing...</div>
+                </div>
+                <img id="aivmOutputImage" style="max-width: 100%; max-height: 350px; display: none;" src="">
+                <p id="renderStatusText" style="color: var(--text-dim); font-size: 0.8rem;">Awaiting your prompt...</p>
+            </div>
+            <div style="margin-top: 10px; font-size: 0.7rem; color: var(--text-dim); font-family: monospace; display: flex; justify-content: space-between;">
+                <span>CID: <span id="renderCID" style="color: var(--accent);">Pending...</span></span>
+                <span id="costEstimate" style="color: var(--green);">Est. Cost: 0.005 LCAI</span>
+            </div>
+        </div>
 
    <div id="zkView" class="card" style="display:none; max-width: 1200px;">
        <div style="display: grid; grid-template-columns: 0.7fr 1.3fr; gap: 30px;">
@@ -504,6 +524,58 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
             img.onload = () => { loader.style.display = 'none'; img.style.display = 'block'; log(`[RENDER] Inference complete.`); };
         }
 
+        async function generateAIVMArt() {
+    const basePrompt = document.getElementById('artPrompt').value.trim();
+    const styleSuffix = document.getElementById('artStyle').value;
+    
+    if (!basePrompt) return log("Error: Please enter a description first.");
+    
+    // Combine them to create a professional-grade AI prompt
+    const finalPrompt = basePrompt + styleSuffix;
+    log(`[AIVM] Sending Prompt: "${finalPrompt}"`);
+
+    // UI Updates
+    document.getElementById('renderStatusText').style.display = 'none';
+    document.getElementById('aivmOutputImage').style.display = 'none';
+    document.getElementById('renderLoader').style.display = 'block';
+
+    try {
+        // NOTE: In production, this would call your Lightchain API.
+        // For development, we simulate a 2.5s generation delay and return a placeholder 
+        // graphic that matches the requested style.
+        
+        await new Promise(resolve => setTimeout(resolve, 2500));
+        
+        // Simulating an AI generation return (Replace with real Base64/Blob from your node)
+        // I am using a gradient placeholder to test your Canvas-to-Mint pipeline
+        const canvas = document.getElementById('generatedCanvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d');
+        
+        // Create dummy art based on style
+        let gradient = ctx.createLinearGradient(0, 0, 512, 512);
+        gradient.addColorStop(0, styleSuffix.includes('cyberpunk') ? "#ff007f" : "#00f2ff");
+        gradient.addColorStop(1, styleSuffix.includes('3D') ? "#ffaa00" : "#1a1a2e");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 512, 512);
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "24px Arial";
+        ctx.fillText("AI Generated Artwork", 130, 256);
+        ctx.font = "14px monospace";
+        ctx.fillText(finalPrompt.substring(0, 40) + "...", 50, 290);
+        
+        // Push the canvas data to the visible Image UI
+        const finalImage = canvas.toDataURL('image/png');
+        renderAIVMResult(finalImage);
+        
+    } catch (e) {
+        log(`[AIVM Error] Generation failed: ${e.message}`);
+        document.getElementById('renderLoader').style.display = 'none';
+        document.getElementById('renderStatusText').style.display = 'block';
+    }
+}
+
         async function mintWithImage() {
             const nick = document.getElementById('nickName').value.trim();
             const did = document.getElementById('regDid').value.trim();
@@ -567,6 +639,7 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
     </script>
 </body>
 </html>
+
 
 
 

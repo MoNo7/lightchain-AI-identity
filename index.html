@@ -368,6 +368,40 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
             log(`Transaction Failed: ${e.message}`);
             }
         }
+
+        async function withdrawRevenue() {
+            if (!userWallet) return log("Error: Connect admin wallet first.");
+            log("Checking contract treasury...");
+        
+            try {
+                const provider = new ethers.BrowserProvider(window.ethereum);
+                const signer = await provider.getSigner();
+                
+                // Match the exact function name from your Solidity file
+                const contract = new ethers.Contract(CONFIG.contract, [
+                    "function withdrawRevenue() public",
+                    "function owner() view returns (address)"
+                ], signer);
+        
+                // Security check: Verify if the connected wallet is the owner
+                const contractOwner = await contract.owner();
+                if (userWallet.toLowerCase() !== contractOwner.toLowerCase()) {
+                    return log("Critical: Only the Contract Owner can withdraw funds.");
+                }
+        
+                const balance = await provider.getBalance(CONFIG.contract);
+                if (balance == 0n) return log("Treasury is empty (0 LCAI).");
+        
+                log(`Withdrawing ${ethers.formatEther(balance)} LCAI...`);
+                const tx = await contract.withdrawRevenue();
+                await tx.wait();
+                
+                log("Success: Funds transferred to owner wallet.");
+                updateRevenueDisplay(); // Refresh the UI
+            } catch (e) {
+                log(`Withdraw Failed: ${e.reason || e.message}`);
+            }
+        }
         
         async function downloadRegistryCSV() {
             const addrs = document.getElementById('batchAddrs').value.split(',').map(a=>a.trim()).filter(a=>ethers.isAddress(a));
@@ -427,6 +461,7 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
     </script>
 </body>
 </html>
+
 
 
 

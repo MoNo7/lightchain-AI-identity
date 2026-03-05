@@ -752,91 +752,58 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
 let isGenerating = false;
 
 async function generateAIVMArt() {
-    if (isGenerating) return log("Please wait for the current image to finish.");
-    isGenerating = true;
+    // 1. Check if we are already busy
+    if (isGenerating) {
+        log("System busy: Please wait for current inference to resolve.");
+        return;
+    }
+    
     const basePrompt = document.getElementById('artPrompt').value.trim();
     const styleSuffix = document.getElementById('artStyle').value;
-    const selectedModel = document.getElementById('modelSelector').value;
+    if (!basePrompt) return log("Error: Prompt cannot be empty.");
 
-    if (!basePrompt) return log("Error: Please enter a description first.");
-    
+    isGenerating = true; // Lock the button
     const finalPrompt = basePrompt + styleSuffix;
-    log(`[AIVM] Routing to Inference Engine with prompt: "${finalPrompt}"`);
+    log(`[AIVM] Requesting Testnet Inference: "${basePrompt.slice(0,30)}..."`);
 
-    // Reset UI
+    // UI Updates
     document.getElementById('renderStatusText').style.display = 'none';
     document.getElementById('aivmOutputImage').style.display = 'none';
-    const loader = document.getElementById('renderLoader');
-    loader.style.display = 'block';
-    loader.querySelector('div').innerText = `Generating Masterpiece...`;
+    document.getElementById('renderLoader').style.display = 'block';
 
     try {
-        // Safely encode the massive prompt
-        const encodedPrompt = encodeURIComponent(finalPrompt);
-        // A unique seed ensures we don't hit browser cache for failed images
-        const seed = Math.floor(Math.random() * 10000000);
-        
-        // The most stable URL structure. We force the 'flux' model as it handles complex styles best.
-        const aiImageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&seed=${seed}&model=flux&nologo=true`;
+        const seed = Math.floor(Math.random() * 999999);
+        // Optimized URL for stability
+        const aiImageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(finalPrompt)}?width=1024&height=1024&seed=${seed}&nologo=true`;
 
         const img = new Image();
-        img.crossOrigin = "anonymous"; // Mandatory so the Canvas can convert it to Base64 for Minting
+        img.crossOrigin = "anonymous"; 
 
         img.onload = () => {
             const canvas = document.getElementById('generatedCanvas');
             const ctx = canvas.getContext('2d');
-            
-            // Ensure canvas matches the 1024x1024 high-res output
-            canvas.width = 1024;
-            canvas.height = 1024;
-            ctx.clearRect(0, 0, 1024, 1024);
+            canvas.width = 1024; canvas.height = 1024;
             ctx.drawImage(img, 0, 0, 1024, 1024);
             
-            const finalImage = canvas.toDataURL('image/png');
-            renderAIVMResult(finalImage, selectedModel);
-
+            document.getElementById('aivmOutputImage').src = canvas.toDataURL('image/png');
+            document.getElementById('aivmOutputImage').style.display = 'block';
+            document.getElementById('renderLoader').style.display = 'none';
+            
             isGenerating = false; // RELEASE LOCK
-            log(`[AIVM] Success: Render complete. Ready to Mint.`);
+            log("[AIVM] Masterpiece rendered via Flux.1 engine.");
         };
 
         img.onerror = () => {
-            log(`[AIVM Error] Connection reset. Attempting minimal recovery...`);
-            
-            // Ultra-minimal recovery URL with zero extra parameters
-            const fallbackImg = new Image();
-            fallbackImg.crossOrigin = "anonymous";
-            fallbackImg.src = `https://image.pollinations.ai/prompt/${encodedPrompt}?seed=${seed}`;
-            
-            fallbackImg.onload = () => {
-                const canvas = document.getElementById('generatedCanvas');
-                const ctx = canvas.getContext('2d');
-                canvas.width = 1024;
-                canvas.height = 1024;
-                ctx.clearRect(0, 0, 1024, 1024);
-                ctx.drawImage(fallbackImg, 0, 0, 1024, 1024);
-                
-                const finalImage = canvas.toDataURL('image/png');
-                renderAIVMResult(finalImage, selectedModel);
-
-                isGenerating = false; // RELEASE LOCK
-                log(`[AIVM] Recovery Success: Render complete.`);
-            };
-
-            fallbackImg.onerror = () => {
-                isGenerating = false; // RELEASE LOCK
-                log(`[AIVM Error] Engine unavailable. Try a slightly shorter prompt.`);
-                loader.style.display = 'none';
-                document.getElementById('renderStatusText').style.display = 'block';
-                document.getElementById('renderStatusText').innerText = "Inference Error: Please try a different prompt.";
-            };
+            isGenerating = false; // RELEASE LOCK ON ERROR
+            document.getElementById('renderLoader').style.display = 'none';
+            document.getElementById('renderStatusText').style.display = 'block';
+            log("[AIVM Error] Inference engine timed out. Please try a simpler prompt.");
         };
 
-        // Trigger the AI generation
         img.src = aiImageUrl;
     } catch (e) {
-        isGenerating = false; // RELEASE LOCK
-        log(`[Fatal Error] ${e.message}`);
-        loader.style.display = 'none';
+        isGenerating = false;
+        log(`[Fatal] ${e.message}`);
     }
 }
 
@@ -972,3 +939,4 @@ async function generateAIVMArt() {
     </script>
 </body>
 </html>
+

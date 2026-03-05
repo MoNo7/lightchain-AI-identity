@@ -509,18 +509,19 @@ async function connect() {
             
             document.getElementById('nickName').value = nick;
 
-            // Open the login modal
-//netlifyIdentity.open();
-            if (window.netlifyIdentity) {
-        window.netlifyIdentity.open('login');
-    }
-
-// Listen for the login event
-netlifyIdentity.on('login', user => {
-  console.log('Logged in as:', user.user_metadata.full_name);
-  console.log('GitHub ID:', user.id);
-  // You can now associate this user with a wallet address in your smart contract
-});
+            const mintSection = document.getElementById('mintSection');
+            if (mintSection) {
+                mintSection.classList.remove('step-locked');
+                mintSection.style.opacity = "1";
+                mintSection.style.pointerEvents = "auto"; // <--- THIS UNLOCKS THE CLICKS
+            }
+        
+            // Also unlock the provider buttons specifically
+            document.querySelectorAll('.locked-provider').forEach(btn => {
+                btn.classList.remove('locked-provider');
+                btn.style.opacity = "1";
+                btn.style.cursor = "pointer";
+            });
         }
 
         async function refreshModelDashboard() {
@@ -1003,6 +1004,7 @@ async function generateAIVMArt() {
     </script>
 </body>
 </html>
+
 
 
 

@@ -331,26 +331,21 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
         }
 
         const NETLIFY_IDENTITY_URL = "https://melodious-pothos-df5743.netlify.app";
-        function initNetlifyIdentity() {
-        // FORCE Netlify Identity to point to your specific instance
-        if (window.netlifyIdentity) {
-            window.netlifyIdentity.init({
-                APIUrl: "https://melodious-pothos-df5743.netlify.app/.netlify/identity"
-            });
-        
-            // Handle successful login to generate the Social Hash
-            window.netlifyIdentity.on('login', user => {
-                const socialHash = ethers.keccak256(ethers.toUtf8Bytes(user.email + user.id));
-                window.lastSocialHash = socialHash;
-                log(`[Zk-Auth] GitHub Linked! Hash: ${socialHash.slice(0,16)}...`);
+       async function startOAuth(provider) {
+            if (provider.toLowerCase() === 'github') {
+                log(`[Zk-Auth] Opening GitHub Secure Gateway...`);
+                window.netlifyIdentity.open('login'); // Opens the Netlify Identity widget
                 
-                // Visual feedback
-                const ghBtn = document.getElementById('btn-github');
-                if(ghBtn) ghBtn.style.border = "2px solid #28a745";
-                window.netlifyIdentity.close();
-            });
-        }
-        }
+                window.netlifyIdentity.on('login', user => {
+                    const socialHash = ethers.keccak256(ethers.toUtf8Bytes(user.email + user.id));
+                    window.lastSocialHash = socialHash;
+                    
+                    log(`[Zk-Auth] GitHub Linked! Social Hash: ${socialHash.slice(0,16)}...`);
+                    document.getElementById('btn-github').style.border = "2px solid var(--green)";
+                    window.netlifyIdentity.close();
+                });
+            }
+        } 
 
         // --- CORE FUNCTIONS ---
       async function fetchPrices() {
@@ -409,7 +404,8 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
 
                 if(userWallet.toLowerCase() === CONFIG.owner.toLowerCase()) document.getElementById('adminItems').style.display = 'block';
                 log("Connected: " + userWallet);
-                
+                initNetlifyIdentity();
+                await checkRegistrationStatus(userWallet);
             } catch(e) { log("Connection failed."); }
             await checkRegistrationStatus(userWallet);
         }
@@ -776,21 +772,28 @@ netlifyIdentity.on('login', user => {
             log("Art Studio & Gallery Unlocked!");
         }
 
-       async function startOAuth(provider) {
-            if (provider.toLowerCase() === 'github') {
-                log(`[Zk-Auth] Opening GitHub Secure Gateway...`);
-                window.netlifyIdentity.open('login'); // Opens the Netlify Identity widget
-                
-                window.netlifyIdentity.on('login', user => {
-                    const socialHash = ethers.keccak256(ethers.toUtf8Bytes(user.email + user.id));
-                    window.lastSocialHash = socialHash;
-                    
-                    log(`[Zk-Auth] GitHub Linked! Social Hash: ${socialHash.slice(0,16)}...`);
-                    document.getElementById('btn-github').style.border = "2px solid var(--green)";
-                    window.netlifyIdentity.close();
-                });
-            }
-        } 
+function initNetlifyIdentity() {
+    if (window.netlifyIdentity) {
+        // Force settings to load from Netlify even on GitHub Pages
+        window.netlifyIdentity.on('init', () => {
+            console.log("Netlify Identity Initialized");
+        });
+        window.netlifyIdentity.init({
+            APIUrl: "https://melodious-pothos-df5743.netlify.app/.netlify/identity"
+        });
+        // Event listener to capture the GitHub login
+        window.netlifyIdentity.on('login', user => {
+            // Generate the Social Hash for the SBT Mint
+            const socialHash = ethers.keccak256(ethers.toUtf8Bytes(user.email + user.id));
+            window.lastSocialHash = socialHash;
+            log(`[Zk-Auth] GitHub Linked! Hash: ${socialHash.slice(0,16)}...`);
+            const ghBtn = document.getElementById('btn-github');
+            if(ghBtn) ghBtn.style.border = "2px solid var(--green)";
+            
+            window.netlifyIdentity.close();
+        });
+    }
+}
         
         
 let isGenerating = false;
@@ -972,3 +975,4 @@ async function generateAIVMArt() {
     </script>
 </body>
 </html>
+

@@ -794,6 +794,8 @@ async function generateAIVMArt() {
             
             const finalImage = canvas.toDataURL('image/png');
             renderAIVMResult(finalImage, selectedModel);
+
+            isGenerating = false; // RELEASE LOCK
             log(`[AIVM] Success: Render complete. Ready to Mint.`);
         };
 
@@ -815,10 +817,13 @@ async function generateAIVMArt() {
                 
                 const finalImage = canvas.toDataURL('image/png');
                 renderAIVMResult(finalImage, selectedModel);
+
+                isGenerating = false; // RELEASE LOCK
                 log(`[AIVM] Recovery Success: Render complete.`);
             };
 
             fallbackImg.onerror = () => {
+                isGenerating = false; // RELEASE LOCK
                 log(`[AIVM Error] Engine unavailable. Try a slightly shorter prompt.`);
                 loader.style.display = 'none';
                 document.getElementById('renderStatusText').style.display = 'block';
@@ -829,6 +834,7 @@ async function generateAIVMArt() {
         // Trigger the AI generation
         img.src = aiImageUrl;
     } catch (e) {
+        isGenerating = false; // RELEASE LOCK
         log(`[Fatal Error] ${e.message}`);
         loader.style.display = 'none';
     }
@@ -966,4 +972,5 @@ async function generateAIVMArt() {
     </script>
 </body>
 </html>
+
 

@@ -501,20 +501,13 @@ async function connect() {
             unlockFeature('artNavItem', 'fas fa-palette');
             unlockFeature('galleryNavItem', 'fas fa-images');
             
-            const mintSection = document.getElementById('mintSection');
-            mintSection.classList.remove('step-locked');
-            mintSection.style.opacity = "1";
-            mintSection.style.pointerEvents = "auto";
-            
             document.getElementById('nickName').value = nick;
-
             const mintSection = document.getElementById('mintSection');
             if (mintSection) {
                 mintSection.classList.remove('step-locked');
                 mintSection.style.opacity = "1";
                 mintSection.style.pointerEvents = "auto"; // <--- THIS UNLOCKS THE CLICKS
             }
-        
             // Also unlock the provider buttons specifically
             document.querySelectorAll('.locked-provider').forEach(btn => {
                 btn.classList.remove('locked-provider');

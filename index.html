@@ -757,29 +757,32 @@ async function generateAIVMArt() {
     if (!basePrompt) return log("Error: Please enter a description first.");
     
     const finalPrompt = basePrompt + styleSuffix;
-    log(`[AIVM] Routing to ${selectedModel}...`);
+    log(`[AIVM] Routing to Inference Engine with prompt: "${finalPrompt}"`);
 
     // Reset UI
     document.getElementById('renderStatusText').style.display = 'none';
     document.getElementById('aivmOutputImage').style.display = 'none';
     const loader = document.getElementById('renderLoader');
     loader.style.display = 'block';
-    loader.querySelector('div').innerText = `Generating with ${selectedModel}...`;
+    loader.querySelector('div').innerText = `Generating Masterpiece...`;
 
     try {
+        // Safely encode the massive prompt
         const encodedPrompt = encodeURIComponent(finalPrompt);
-        const seed = Math.floor(Math.random() * 1000000);
+        // A unique seed ensures we don't hit browser cache for failed images
+        const seed = Math.floor(Math.random() * 10000000);
         
-        // Simplified, robust URL. 
-        // We use Flux as the default for all models to ensure an image always returns.
-        const aiImageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?seed=${seed}&width=1024&height=1024&nologo=true`;
+        // The most stable URL structure. We force the 'flux' model as it handles complex styles best.
+        const aiImageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&seed=${seed}&model=flux&nologo=true`;
 
         const img = new Image();
-        img.crossOrigin = "anonymous"; // Mandatory for Minting/Canvas support
+        img.crossOrigin = "anonymous"; // Mandatory so the Canvas can convert it to Base64 for Minting
 
         img.onload = () => {
             const canvas = document.getElementById('generatedCanvas');
             const ctx = canvas.getContext('2d');
+            
+            // Ensure canvas matches the 1024x1024 high-res output
             canvas.width = 1024;
             canvas.height = 1024;
             ctx.clearRect(0, 0, 1024, 1024);
@@ -787,23 +790,39 @@ async function generateAIVMArt() {
             
             const finalImage = canvas.toDataURL('image/png');
             renderAIVMResult(finalImage, selectedModel);
-            log(`[AIVM] Success: Render complete.`);
+            log(`[AIVM] Success: Render complete. Ready to Mint.`);
         };
 
         img.onerror = () => {
-            log(`[AIVM Error] Connection reset. Attempting one-time recovery...`);
-            // Minimal recovery URL with no extra parameters
-            img.src = `https://image.pollinations.ai/prompt/${encodedPrompt}?seed=${seed}`;
+            log(`[AIVM Error] Connection reset. Attempting minimal recovery...`);
             
-            // If even recovery fails, then we stop
-            img.onerror = () => {
-                log(`[AIVM Error] Engine unavailable. Check your internet or prompt.`);
+            // Ultra-minimal recovery URL with zero extra parameters
+            const fallbackImg = new Image();
+            fallbackImg.crossOrigin = "anonymous";
+            fallbackImg.src = `https://image.pollinations.ai/prompt/${encodedPrompt}?seed=${seed}`;
+            
+            fallbackImg.onload = () => {
+                const canvas = document.getElementById('generatedCanvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = 1024;
+                canvas.height = 1024;
+                ctx.clearRect(0, 0, 1024, 1024);
+                ctx.drawImage(fallbackImg, 0, 0, 1024, 1024);
+                
+                const finalImage = canvas.toDataURL('image/png');
+                renderAIVMResult(finalImage, selectedModel);
+                log(`[AIVM] Recovery Success: Render complete.`);
+            };
+
+            fallbackImg.onerror = () => {
+                log(`[AIVM Error] Engine unavailable. Try a slightly shorter prompt.`);
                 loader.style.display = 'none';
                 document.getElementById('renderStatusText').style.display = 'block';
-                document.getElementById('renderStatusText').innerText = "Inference Error: Please try again.";
+                document.getElementById('renderStatusText').innerText = "Inference Error: Please try a different prompt.";
             };
         };
 
+        // Trigger the AI generation
         img.src = aiImageUrl;
     } catch (e) {
         log(`[Fatal Error] ${e.message}`);
@@ -943,6 +962,7 @@ async function generateAIVMArt() {
     </script>
 </body>
 </html>
+
 
 
 

@@ -783,8 +783,16 @@ async function generateAIVMArt() {
         // This ensures the task is recorded on-chain before the render proceeds
         // Using the contract ABI for PoI anchoring
         const contract = new ethers.Contract(CONFIG.contract, [
-            "function requestInferenceV2(bytes32 promptId, string prompt) public payable"
+            "function requestInferenceV2(bytes32 promptId, string calldata prompt) public payable",
+            "function verified(address) view returns (bool)"
         ], signer);
+
+        // check if user is verified first to avoid silent revert
+        const isUserVerified = await contract.verified(userWallet);
+        if (!isUserVerified) {
+            isGenerating = false;
+            return log("Error: You must be a Verified Identity to anchor PoI.");
+        }
 
         // Optional: Small fee if required by your specific testnet deployment
         const tx = await contract.requestInferenceV2(promptId, finalPrompt, { 
@@ -959,4 +967,5 @@ async function generateAIVMArt() {
     </script>
 </body>
 </html>
+
 

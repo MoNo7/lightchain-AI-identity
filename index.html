@@ -749,72 +749,67 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
             log("Art Studio & Gallery Unlocked!");
         }
 
-        
-
-async function generateAIVMArt() {
+        async function generateAIVMArt() {
     const basePrompt = document.getElementById('artPrompt').value.trim();
     const styleSuffix = document.getElementById('artStyle').value;
-    const selectedModel = document.getElementById('modelSelector').value; // Get the chosen model
-    
+    const selectedModel = document.getElementById('modelSelector').value;
+
     if (!basePrompt) return log("Error: Please enter a description first.");
+    
+    // Detailed prompt construction
     const finalPrompt = basePrompt + styleSuffix;
     log(`[AIVM] Calling ${selectedModel} with prompt: "${finalPrompt}"`);
 
     // UI Feedback
     document.getElementById('renderStatusText').style.display = 'none';
     document.getElementById('aivmOutputImage').style.display = 'none';
-    document.getElementById('renderLoader').style.display = 'block';
+    const loader = document.getElementById('renderLoader');
+    loader.style.display = 'block';
+    loader.querySelector('div').innerText = `${selectedModel} Processing...`;
 
-    // Update the processing text to show the model name
-    document.querySelector('#renderLoader div').innerText = `${selectedModel} Processing...`;
+    try {
+        // Map UI models to stable API equivalents
+        let apiModel = "flux"; 
+        if (selectedModel.includes("SDXL")) apiModel = "turbo";
 
-try {
-    // Here you would send 'selectedModel' and 'finalPrompt' to your backend API
-    // await new Promise(resolve => setTimeout(resolve, 3000));
-    // 1. Map your UI model selection to the API's available models
-    let apiModel = "flux"; // Default to high-quality FLUX model
-    if (selectedModel.includes("SDXL")) apiModel = "turbo";
+        const encodedPrompt = encodeURIComponent(finalPrompt);
+        // Random seed prevents the browser from caching a "failed" image
+        const seed = Math.floor(Math.random() * 999999);
+        
+        // Use a more stable URL structure
+        const aiImageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&model=${apiModel}&seed=${seed}&nologo=true`;
 
-    // 2. Encode the prompt for the URL
-    const encodedPrompt = encodeURIComponent(finalPrompt);
-    const seed = Math.floor(Math.random() * 1000000); // Ensures unique results every click
-    // 3. Connect to a free, keyless AI Image Generation API
-    // Added 'nologo=true' and 'enhance=true' to improve prompt interpretation
-    const aiImageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&model=${apiModel}&nologo=true&enhance=true`;
-    
-    // 4. Create an Image object to catch the result
-    const img = new Image();
+        const img = new Image();
+        img.crossOrigin = "Anonymous"; 
 
-    // CRITICAL: We must use Anonymous crossOrigin so we don't "taint" your canvas
-    // If the canvas is tainted, your "Mint SBT" and "List to Auction" buttons will break!
-img.crossOrigin = "Anonymous"; 
+        img.onload = () => {
+            const canvas = document.getElementById('generatedCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // SYNCED: Set canvas to 1024 to match the API request
+            canvas.width = 1024;
+            canvas.height = 1024;
+            
+            // Clear and draw
+            ctx.clearRect(0, 0, 1024, 1024);
+            ctx.drawImage(img, 0, 0, 1024, 1024);
+            
+            const finalImage = canvas.toDataURL('image/png');
+            renderAIVMResult(finalImage, selectedModel);
+            log(`[AIVM] ${selectedModel} successfully rendered image.`);
+        };
 
-img.onload = () => {
-    
-    const canvas = document.getElementById('generatedCanvas');
-    const ctx = canvas.getContext('2d');
-    canvas.width = 512;
-    canvas.height = 512;
-    
-    // 5. Draw the real AI image onto your hidden canvas
-    ctx.clearRect(0, 0, 1024, 1024);
-    ctx.drawImage(img, 0, 0, 1024, 1024);            
-    
-    const finalImage = canvas.toDataURL('image/png');
-    renderAIVMResult(finalImage, selectedModel);
-    log(`[AIVM] ${selectedModel} successfully rendered image.`);
-    //renderAIVMResult(finalImage);
-}
-img.onerror = () => {
-    log(`[AIVM Error] Engine timed out or rejected the prompt. Try again.`);
-    document.getElementById('renderLoader').style.display = 'none';
-};
-    // Trigger the AI generation
-    img.src = aiImageUrl;
-} catch (e) {
-    log(`[AIVM Error] ${selectedModel} failed: ${e.message}`);
-    document.getElementById('renderLoader').style.display = 'none';
-}
+        img.onerror = () => {
+            // If the engine fails, we try a fallback URL without extra parameters
+            log(`[AIVM] Primary engine busy. Attempting fallback...`);
+            img.src = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&seed=${seed}`;
+        };
+
+        img.src = aiImageUrl;
+    } catch (e) {
+        log(`[AIVM Error] ${selectedModel} failed: ${e.message}`);
+        document.getElementById('renderLoader').style.display = 'none';
+    }
 }
 
         async function mintWithImage() {
@@ -949,6 +944,7 @@ img.onerror = () => {
     </script>
 </body>
 </html>
+
 
 
 

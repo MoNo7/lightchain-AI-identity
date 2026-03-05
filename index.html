@@ -329,6 +329,33 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
             }
         }
 
+        function checkGitHubCallback() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    
+    if (code) {
+        // 1. Restore the profile from storage
+        const savedProfile = localStorage.getItem('lcai_profile');
+        if (savedProfile) {
+            const profile = JSON.parse(savedProfile);
+            document.getElementById('regNick').value = profile.nick;
+            document.getElementById('regDid').value = profile.did;
+            registerLocal(); // Re-trigger the UI unlock
+            showView('zkView'); // Automatically jump back to the Identity tab
+        }
+
+        log("[Zk-Auth] GitHub Handshake successful!");
+        const socialHash = ethers.keccak256(ethers.toUtf8Bytes(code));
+        window.lastSocialHash = socialHash;
+        
+        const ghBtn = document.getElementById('btn-github');
+        if(ghBtn) ghBtn.style.border = "2px solid var(--green)";
+        
+        log(`[Zk-Auth] Social Hash Linked: ${socialHash.slice(0,16)}...`);
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+}
+        
 async function startOAuth(provider) {
     if (provider.toLowerCase() === 'github') {
         log(`[Zk-Auth] Redirecting to GitHub Secure Gateway...`);
@@ -491,31 +518,35 @@ async function connect() {
     }
 }
 
-        async function registerLocal() {
-            const nick = document.getElementById('regNick').value.trim();
-            if (!nick || !userWallet) return log("Error: Name and Wallet required.");
-        
-            isRegistered = true; // Local state
-            log(`[Local] Welcome ${nick}! Studio & Gallery unlocked.`);
-            
-            // UI Transitions
-            unlockFeature('artNavItem', 'fas fa-palette');
-            unlockFeature('galleryNavItem', 'fas fa-images');
-            
-            document.getElementById('nickName').value = nick;
-            const mintSection = document.getElementById('mintSection');
-            if (mintSection) {
-                mintSection.classList.remove('step-locked');
-                mintSection.style.opacity = "1";
-                mintSection.style.pointerEvents = "auto"; // <--- THIS UNLOCKS THE CLICKS
-            }
-            // Also unlock the provider buttons specifically
-            document.querySelectorAll('.locked-provider').forEach(btn => {
-                btn.classList.remove('locked-provider');
-                btn.style.opacity = "1";
-                btn.style.cursor = "pointer";
-            });
-        }
+async function registerLocal() {
+    const nick = document.getElementById('regNick').value.trim();
+    const did = document.getElementById('regDid').value.trim();
+    if (!nick || !userWallet) return log("Error: Name and Wallet required.");
+
+    // SAVE TO BROWSER STORAGE
+    const profile = { nick, did, wallet: userWallet };
+    localStorage.setItem('lcai_profile', JSON.stringify(profile));
+    
+    isRegistered = true;
+    log(`[Local] Welcome ${nick}! Profile saved for session.`);
+    
+    // UI Transitions
+    unlockFeature('artNavItem', 'fas fa-palette');
+    unlockFeature('galleryNavItem', 'fas fa-images');
+    
+    const mintSection = document.getElementById('mintSection');
+    if (mintSection) {
+        mintSection.classList.remove('step-locked');
+        mintSection.style.opacity = "1";
+        mintSection.style.pointerEvents = "auto";
+    }
+
+    document.querySelectorAll('.locked-provider').forEach(btn => {
+        btn.classList.remove('locked-provider');
+        btn.style.opacity = "1";
+        btn.style.cursor = "pointer";
+    });
+}
 
         async function refreshModelDashboard() {
             const table = document.getElementById('realtimeModelTable');
@@ -792,30 +823,7 @@ async function connect() {
             log("Art Studio & Gallery Unlocked!");
         }
 
-function initNetlifyIdentity() {
-    if (window.netlifyIdentity) {
-        window.netlifyIdentity.init({
-            APIUrl: "https://melodious-pothos-df5743.netlify.app/.netlify/identity"
-        });
-
-        // This force-closes the popup and keeps the data on your GitHub site
-        window.netlifyIdentity.on('login', user => {
-            const socialHash = ethers.keccak256(ethers.toUtf8Bytes(user.email + user.id));
-            window.lastSocialHash = socialHash;
-            
-            log(`[Zk-Auth] GitHub Linked! Hash: ${socialHash.slice(0,16)}...`);
-            
-            // UI Feedback
-            const ghBtn = document.getElementById('btn-github');
-            if(ghBtn) ghBtn.style.border = "2px solid var(--green)";
-            
-            // Stay on the current page
-            window.netlifyIdentity.close();
-            checkRegistrationStatus(userWallet); 
-        });
-    }
-}
-        
+   
         
 let isGenerating = false;
 
@@ -1026,6 +1034,7 @@ async function mintWithImage() {
     </script>
 </body>
 </html>
+
 
 
 

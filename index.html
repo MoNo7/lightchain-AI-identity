@@ -5,6 +5,7 @@
     <title>Lightchain AI | IAM Admin Portal</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script type="text/javascript" src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root { --bg: #030406; --sidebar: #0a0c10; --accent: #00f2ff; --text: #c9d1d9; --text-dim: #484f58; --border: #1b1f24; --panel: #0d1117; --green: #39d353; --red: #ff4444; }
@@ -195,7 +196,7 @@
                    <p style="font-size:0.8rem; color:var(--accent);">1. Link Social Provider</p>
                     <div class="social-grid">
                         <button id="btn-discord" class="btn-zk locked-provider" onclick="startOAuth('Discord')"><i class="fab fa-discord"></i> Discord</button>
-                        <button id="btn-github" class="btn-zk locked-provider" onclick="startOAuth('GitHub')"><i class="fab fa-github"></i> GitHub</button>
+                        <button id="btn-github" data="data-netlify-identity-button" class="btn-zk locked-provider" onclick="startOAuth('GitHub')"><i class="fab fa-github"></i> GitHub</button>
                         <button id="btn-x" class="btn-zk locked-provider" onclick="startOAuth('X')"><i class="fab fa-x-twitter"></i> X / Twitter</button>
                         <button id="btn-google" class="btn-zk locked-provider" onclick="startOAuth('Google')"><i class="fab fa-google"></i> Google</button>
                         <button id="btn-linkedin" class="btn-zk locked-provider" onclick="startOAuth('LinkedIn')"><i class="fab fa-linkedin"></i> LinkedIn</button>
@@ -466,6 +467,16 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
             mintSection.style.pointerEvents = "auto";
             
             document.getElementById('nickName').value = nick;
+
+            // Open the login modal
+netlifyIdentity.open();
+
+// Listen for the login event
+netlifyIdentity.on('login', user => {
+  console.log('Logged in as:', user.user_metadata.full_name);
+  console.log('GitHub ID:', user.id);
+  // You can now associate this user with a wallet address in your smart contract
+});
         }
 
         async function refreshModelDashboard() {
@@ -921,6 +932,7 @@ async function generateAIVMArt() {
     </script>
 </body>
 </html>
+
 
 
 

@@ -77,6 +77,11 @@
             <div id="artNavItem" class="nav-item locked-feature" onclick="handleArtClick()"><i class="fas fa-lock" id="artLockIcon"></i><span id="artLabel">AIVM Art Studio</span></div>
             <div id="galleryNavItem" class="nav-item locked-feature" onclick="handleGalleryClick()"><i id="galleryLockIcon" class="fas fa-lock"></i><span id="artLabel">Gallery</span></div>            
         </div>
+        <div>
+            <span class="nav-label">Marketplace</span>
+            <div class="nav-item " onclick="showView('marketView')"><i class="fas fa-th-large"></i> Shop</div>
+            <div class="marketNavItem" onclick="showView('marketView')"><i class="fas fa-th-large"></i> </div>
+        </div>
 
         <div id="adminItems" class="nav-section" style="display:none;">
             <span class="nav-label">Protocol Management</span>
@@ -823,6 +828,7 @@ renderAIVMResult(finalImage, selectedModel);
     </script>
 </body>
 </html>
+
 
 
 

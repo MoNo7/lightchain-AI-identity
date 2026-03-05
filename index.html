@@ -277,7 +277,7 @@
 
     <script>
 
-        const LCAI_TOKEN = "0x9ca8530ca349c966fe9ef903df17a75b8a778927"; // Lightchain AI
+const LCAI_TOKEN = "0x9ca8530ca349c966fe9ef903df17a75b8a778927"; // Lightchain AI
 const WETH_TOKEN = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"; // Wrapped Ethereum
 const LCAI_PAIR = "0x0d047a370611437a1b8e6c2a95ea36f69fdda3be";
 const ETH_TOKEN = "0x0000000000000000000000000000000000000000";
@@ -307,9 +307,9 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
 
         function handleArtClick() {
             const artitem = document.getElementById('artNavItem');
-            const artLockIcon = document.getElementById('artLockIcon'); // Ensure capital I
+            const lockIcon = document.getElementById('artLockIcon'); // Ensure capital I
             
-            if (item.classList.contains('locked-feature')) {
+            if (artItem && artitem.classList.contains('locked-feature')) {
                 log("Access Denied: Please Register or Mint an Identity to unlock the Art Studio.");
                 showView('zkView'); 
             } else {
@@ -912,4 +912,5 @@ renderAIVMResult(finalImage, selectedModel);
     </script>
 </body>
 </html>
+
 

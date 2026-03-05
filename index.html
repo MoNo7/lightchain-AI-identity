@@ -752,42 +752,41 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
         
 
 async function generateAIVMArt() {
-const basePrompt = document.getElementById('artPrompt').value.trim();
-const styleSuffix = document.getElementById('artStyle').value;
-const selectedModel = document.getElementById('modelSelector').value; // Get the chosen model
+    const basePrompt = document.getElementById('artPrompt').value.trim();
+    const styleSuffix = document.getElementById('artStyle').value;
+    const selectedModel = document.getElementById('modelSelector').value; // Get the chosen model
+    
+    if (!basePrompt) return log("Error: Please enter a description first.");
+    const finalPrompt = basePrompt + styleSuffix;
+    log(`[AIVM] Calling ${selectedModel} with prompt: "${finalPrompt}"`);
 
-if (!basePrompt) return log("Error: Please enter a description first.");
+    // UI Feedback
+    document.getElementById('renderStatusText').style.display = 'none';
+    document.getElementById('aivmOutputImage').style.display = 'none';
+    document.getElementById('renderLoader').style.display = 'block';
 
-const finalPrompt = basePrompt + styleSuffix;
-log(`[AIVM] Calling ${selectedModel} with prompt: "${finalPrompt}"`);
-
-// UI Feedback
-document.getElementById('renderStatusText').style.display = 'none';
-document.getElementById('aivmOutputImage').style.display = 'none';
-document.getElementById('renderLoader').style.display = 'block';
-
-// Update the processing text to show the model name
-document.querySelector('#renderLoader div').innerText = `${selectedModel} Processing...`;
+    // Update the processing text to show the model name
+    document.querySelector('#renderLoader div').innerText = `${selectedModel} Processing...`;
 
 try {
-// Here you would send 'selectedModel' and 'finalPrompt' to your backend API
-// await new Promise(resolve => setTimeout(resolve, 3000));
-// 1. Map your UI model selection to the API's available models
-let apiModel = "flux"; // Default to high-quality FLUX model
-if (selectedModel.includes("SDXL")) apiModel = "turbo";
+    // Here you would send 'selectedModel' and 'finalPrompt' to your backend API
+    // await new Promise(resolve => setTimeout(resolve, 3000));
+    // 1. Map your UI model selection to the API's available models
+    let apiModel = "flux"; // Default to high-quality FLUX model
+    if (selectedModel.includes("SDXL")) apiModel = "turbo";
 
-// 2. Encode the prompt for the URL
-const encodedPrompt = encodeURIComponent(finalPrompt);
+    // 2. Encode the prompt for the URL
+    const encodedPrompt = encodeURIComponent(finalPrompt);
 
-// 3. Connect to a free, keyless AI Image Generation API
-// Added 'nologo=true' and 'enhance=true' to improve prompt interpretation
-const aiImageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&model=${apiModel}&nologo=true&enhance=true`;
+    // 3. Connect to a free, keyless AI Image Generation API
+    // Added 'nologo=true' and 'enhance=true' to improve prompt interpretation
+    const aiImageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&model=${apiModel}&nologo=true&enhance=true`;
+    
+    // 4. Create an Image object to catch the result
+    const img = new Image();
 
-// 4. Create an Image object to catch the result
-const img = new Image();
-
-// CRITICAL: We must use Anonymous crossOrigin so we don't "taint" your canvas
-// If the canvas is tainted, your "Mint SBT" and "List to Auction" buttons will break!
+    // CRITICAL: We must use Anonymous crossOrigin so we don't "taint" your canvas
+    // If the canvas is tainted, your "Mint SBT" and "List to Auction" buttons will break!
 img.crossOrigin = "Anonymous"; 
 
 img.onload = () => {
@@ -955,6 +954,7 @@ img.onerror = () => {
     </script>
 </body>
 </html>
+
 
 
 

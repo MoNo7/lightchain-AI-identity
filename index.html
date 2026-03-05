@@ -749,14 +749,13 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
             log("Art Studio & Gallery Unlocked!");
         }
 
-        async function generateAIVMArt() {
+async function generateAIVMArt() {
     const basePrompt = document.getElementById('artPrompt').value.trim();
     const styleSuffix = document.getElementById('artStyle').value;
     const selectedModel = document.getElementById('modelSelector').value;
 
     if (!basePrompt) return log("Error: Please enter a description first.");
     
-    // Detailed prompt construction
     const finalPrompt = basePrompt + styleSuffix;
     log(`[AIVM] Calling ${selectedModel} with prompt: "${finalPrompt}"`);
 
@@ -767,16 +766,16 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
     loader.style.display = 'block';
     loader.querySelector('div').innerText = `${selectedModel} Processing...`;
 
+    let retryCount = 0; // SAFETY: Prevents infinite fallback loops
+
     try {
-        // Map UI models to stable API equivalents
         let apiModel = "flux"; 
         if (selectedModel.includes("SDXL")) apiModel = "turbo";
 
         const encodedPrompt = encodeURIComponent(finalPrompt);
-        // Random seed prevents the browser from caching a "failed" image
         const seed = Math.floor(Math.random() * 999999);
         
-        // Use a more stable URL structure
+        // Construct the primary URL
         const aiImageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&model=${apiModel}&seed=${seed}&nologo=true`;
 
         const img = new Image();
@@ -785,30 +784,34 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
         img.onload = () => {
             const canvas = document.getElementById('generatedCanvas');
             const ctx = canvas.getContext('2d');
-            
-            // SYNCED: Set canvas to 1024 to match the API request
             canvas.width = 1024;
             canvas.height = 1024;
-            
-            // Clear and draw
             ctx.clearRect(0, 0, 1024, 1024);
             ctx.drawImage(img, 0, 0, 1024, 1024);
             
             const finalImage = canvas.toDataURL('image/png');
             renderAIVMResult(finalImage, selectedModel);
-            log(`[AIVM] ${selectedModel} successfully rendered image.`);
+            log(`[AIVM] Success: Render complete.`);
         };
 
         img.onerror = () => {
-            // If the engine fails, we try a fallback URL without extra parameters
-            log(`[AIVM] Primary engine busy. Attempting fallback...`);
-            img.src = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&seed=${seed}`;
+            if (retryCount === 0) {
+                retryCount++;
+                log(`[AIVM] Engine busy. Attempting one-time fallback...`);
+                // Fallback URL: Shorter, simpler parameters
+                img.src = `https://image.pollinations.ai/prompt/${encodedPrompt}?seed=${seed}`;
+            } else {
+                log(`[AIVM Error] Both primary and fallback engines are currently unavailable.`);
+                loader.style.display = 'none'; // Clear the stuck loader
+                document.getElementById('renderStatusText').style.display = 'block';
+                document.getElementById('renderStatusText').innerText = "Inference Error: Please try a different prompt.";
+            }
         };
 
         img.src = aiImageUrl;
     } catch (e) {
-        log(`[AIVM Error] ${selectedModel} failed: ${e.message}`);
-        document.getElementById('renderLoader').style.display = 'none';
+        log(`[Fatal Error] ${e.message}`);
+        loader.style.display = 'none';
     }
 }
 
@@ -824,10 +827,10 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
                 ], provider);
         
                 // Pre-flight check
-                const isNameTaken = await contract.usedNicknames(name);
+                const isNameTaken = await contract.usedNicknames(nick);
                 const isDidTaken = await contract.usedDIDs(did);
         
-                if (isNameTaken) return log(`Error: The name '${name}' is already taken.`);
+                if (isNameTaken) return log(`Error: The name '${nick}' is already taken.`);
                 if (isDidTaken) return log(`Error: The DID '${did}' is already registered.`);
             } catch (e) {
                 log("Validation failed: " + e.message);
@@ -944,6 +947,7 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
     </script>
 </body>
 </html>
+
 
 
 

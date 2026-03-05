@@ -426,12 +426,12 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
                     "function owner() view returns (address)"
                 ], provider);
         
-            const [nickname, isVerified, isAdmin, contractOwner] = await Promise.all([
-                contract.nicknames(address),
-                contract.verified(address),
-                contract.isAdmin(address),
-                contract.owner()
-            ]);
+const [nickname, isVerified, adminStatus, contractOwner] = await Promise.all([
+    contract.nicknames(address),
+    contract.verified(address),
+    contract.isAdmin(address),
+    contract.owner()
+]);
                 // ALWAYS keep the item visible (flex)
             //    artItem.style.display = 'flex';
                 
@@ -445,10 +445,11 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
         }
 
         // 2. Check Verified Status (Unlock Auction House interaction)
-        if (isVerified) {
-            if (auctionBtn) auctionBtn.style.display = 'block';
-            log("Identity Verified: Full Auction access granted.");
-        } else {
+// Verified Status -> Unlocks Auction Posting/Bidding
+if (isVerified) {
+    document.getElementById('auctionNavItem').classList.remove('locked-feature');
+    log("[SYS] Verified Role: Full Marketplace access granted.");
+} else {
             if (auctionBtn) auctionBtn.style.display = 'none';
         }
 
@@ -458,6 +459,11 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
         } else {
             adminPanel.style.display = 'none';
         }
+                if (window.netlifyIdentity) {
+    window.netlifyIdentity.init({
+        APIUrl: "https://melodious-pothos-df5743.netlify.app/.netlify/identity"
+    });
+}
             } catch (e) {
                 console.error("Status check failed", e);
                 // Fallback: Keep it visible but locked if node fails
@@ -966,6 +972,7 @@ async function generateAIVMArt() {
     </script>
 </body>
 </html>
+
 
 
 

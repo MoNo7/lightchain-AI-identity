@@ -386,8 +386,13 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
                 let providerChoice = window.ethereum;
                 // If multiple wallets are installed, find MetaMask in the providers array
                 if (window.ethereum.providers) {
-                    providerChoice = window.ethereum.providers.find((p) => p.isMetaMask);
-                } else if (!window.ethereum.isMetaMask && window.ethereum.isCoinbaseWallet) {
+                        const mm = window.ethereum.providers.find(p => p.isMetaMask);
+                        if (mm) {
+                            providerChoice = mm;
+                            log("[SYS] Multi-provider detected: Forcing MetaMask.");
+                        }
+                    }
+                 else if (!window.ethereum.isMetaMask && window.ethereum.isCoinbaseWallet) {
                     return log("Error: Coinbase is hijacking the connection. Please disable 'Default Wallet' in Coinbase settings.");
                 }
 
@@ -987,6 +992,7 @@ async function generateAIVMArt() {
     </script>
 </body>
 </html>
+
 
 
 

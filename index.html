@@ -816,7 +816,7 @@ renderAIVMResult(finalImage, selectedModel);
                 const contract = new ethers.Contract(CONFIG.contract, [
                     "function nicknames(address) view returns (string)",
                     "function mintWithSocial(string _n, string _d, bytes32 _h, string _img) public payable"
-                ], provider);
+                ], signer);
 
                 // CHECK BEFORE MINTING
                 const existingName = await contract.nicknames(userWallet);
@@ -912,6 +912,7 @@ renderAIVMResult(finalImage, selectedModel);
     </script>
 </body>
 </html>
+
 
 
 

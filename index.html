@@ -380,50 +380,41 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
         }
         }
 
-        async function connect() {
-            if(!window.ethereum) return log("Metamask not found.");
-            try {
-                let providerChoice = window.ethereum;
-                // If multiple wallets are installed, find MetaMask in the providers array
-                if (window.ethereum.providers) {
-                        const mm = window.ethereum.providers.find(p => p.isMetaMask);
-                        if (mm) {
-                            providerChoice = mm;
-                            log("[SYS] Multi-provider detected: Forcing MetaMask.");
-                        }
-                    }
-                 else if (!window.ethereum.isMetaMask && window.ethereum.isCoinbaseWallet) {
-                    return log("Error: Coinbase is hijacking the connection. Please disable 'Default Wallet' in Coinbase settings.");
-                }
+async function connect() {
+    if (!window.ethereum) return log("Metamask not found.");
+    
+    try {
+        let providerChoice = window.ethereum;
 
-
-                const provider = new ethers.BrowserProvider(window.ethereum);
-                const accounts = await provider.send("eth_requestAccounts", []);
-
-                userWallet = ethers.getAddress(accounts[0]);
-                document.getElementById('walletBtn').innerText = userWallet.slice(0,6) + "...";
-                
-                const bal = await provider.getBalance(userWallet);
-                document.getElementById('balancePill').innerText = parseFloat(ethers.formatEther(bal)).toFixed(2) + " LCAI";
-                
-                // Unlock Socials
-                document.getElementById('authStep').classList.remove('step-locked');
-                ['discord','github','x','google','linkedin'].forEach(p => {
-                    const btn = document.getElementById(`btn-${p}`);
-                    if(btn) {
-                        btn.classList.remove('locked-provider');
-                        btn.style.background = p==='discord'?'#5865F2':p==='github'?'#333':p==='x'?'#000':p==='google'?'#ea4335':'#0077b5';
-                        btn.style.color = '#fff';
-                    }
-                });
-
-                if(userWallet.toLowerCase() === CONFIG.owner.toLowerCase()) document.getElementById('adminItems').style.display = 'block';
-                log("Connected: " + userWallet);
-                initNetlifyIdentity();
-                await checkRegistrationStatus(userWallet);
-            } catch(e) { log("Connection failed."); }
-            await checkRegistrationStatus(userWallet);
+        // FORCE MetaMask if multiple providers (like Coinbase) are present
+        if (window.ethereum.providers) {
+            const mm = window.ethereum.providers.find(p => p.isMetaMask);
+            if (mm) {
+                providerChoice = mm;
+                log("[SYS] Multi-provider detected: Forcing MetaMask.");
+            }
+        } 
+        // Fail-safe: If only one is present but it is Coinbase
+        else if (!window.ethereum.isMetaMask && window.ethereum.isCoinbaseWallet) {
+            return log("Error: Coinbase is hijacking. Disable 'Default Wallet' in Coinbase settings.");
         }
+
+        const provider = new ethers.BrowserProvider(providerChoice);
+        const accounts = await provider.send("eth_requestAccounts", []);
+        
+        userWallet = ethers.getAddress(accounts[0]);
+        document.getElementById('walletBtn').innerText = userWallet.slice(0,6) + "...";
+        
+        const bal = await provider.getBalance(userWallet);
+        document.getElementById('balancePill').innerText = parseFloat(ethers.formatEther(bal)).toFixed(2) + " LCAI";
+
+        log("Connected via MetaMask: " + userWallet);
+        initNetlifyIdentity();
+        await checkRegistrationStatus(userWallet);
+    } catch(e) { 
+        log("Connection failed: " + e.message); 
+    }
+}
 
         
 
@@ -992,6 +983,7 @@ async function generateAIVMArt() {
     </script>
 </body>
 </html>
+
 
 
 

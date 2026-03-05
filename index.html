@@ -329,6 +329,18 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
             }
         }
 
+
+        
+async function startOAuth(provider) {
+    if (provider.toLowerCase() === 'github') {
+        log(`[Zk-Auth] Redirecting to GitHub Secure Gateway...`);
+        const clientId = "Ov23liu6ofJwlcYN1dc7"; 
+        // Force the redirect to the specific worker URL to prevent dashboard looping
+        const redirectUri = encodeURIComponent("https://lightchain-ai-iam.lcaitestnet.workers.dev/");
+        window.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=user:email`;
+    }
+}
+
         function checkGitHubCallback() {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
@@ -352,34 +364,6 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
         if(ghBtn) ghBtn.style.border = "2px solid var(--green)";
         
         log(`[Zk-Auth] Social Hash Linked: ${socialHash.slice(0,16)}...`);
-        window.history.replaceState({}, document.title, window.location.pathname);
-    }
-}
-        
-async function startOAuth(provider) {
-    if (provider.toLowerCase() === 'github') {
-        log(`[Zk-Auth] Redirecting to GitHub Secure Gateway...`);
-        const clientId = "Ov23liu6ofJwlcYN1dc7"; 
-        // Force the redirect to the specific worker URL to prevent dashboard looping
-        const redirectUri = encodeURIComponent("https://lightchain-ai-iam.lcaitestnet.workers.dev/");
-        window.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=user:email`;
-    }
-}
-
-        // Check for the GitHub code in the URL after redirect
-function checkGitHubCallback() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get('code');
-    if (code) {
-        log("[Zk-Auth] GitHub Handshake successful!");
-        // We generate a deterministic hash based on the auth code for the SBT
-        const socialHash = ethers.keccak256(ethers.toUtf8Bytes(code));
-        window.lastSocialHash = socialHash;
-        
-        document.getElementById('btn-github').style.border = "2px solid var(--green)";
-        log(`[Zk-Auth] Social Hash Linked: ${socialHash.slice(0,16)}...`);
-        
-        // Clean the URL
         window.history.replaceState({}, document.title, window.location.pathname);
     }
 }
@@ -1034,6 +1018,7 @@ async function mintWithImage() {
     </script>
 </body>
 </html>
+
 
 
 

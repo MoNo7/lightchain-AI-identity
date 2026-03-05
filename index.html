@@ -385,6 +385,16 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
             try {
                 const provider = new ethers.BrowserProvider(window.ethereum);
                 const accounts = await provider.send("eth_requestAccounts", []);
+
+                let providerChoice = window.ethereum;
+                // If multiple wallets are installed, find MetaMask in the providers array
+                if (window.ethereum.providers) {
+                    providerChoice = window.ethereum.providers.find((p) => p.isMetaMask);
+                } else if (!window.ethereum.isMetaMask && window.ethereum.isCoinbaseWallet) {
+                    return log("Error: Coinbase is hijacking the connection. Please disable 'Default Wallet' in Coinbase settings.");
+                }
+
+                
                 userWallet = ethers.getAddress(accounts[0]);
                 document.getElementById('walletBtn').innerText = userWallet.slice(0,6) + "...";
                 
@@ -977,5 +987,6 @@ async function generateAIVMArt() {
     </script>
 </body>
 </html>
+
 
 

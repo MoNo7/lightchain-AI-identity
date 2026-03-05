@@ -306,10 +306,10 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
         ];
 
         function handleArtClick() {
-            const artItem = document.getElementById('artNavItem');
+            const item = document.getElementById('artNavItem');
             const lockIcon = document.getElementById('artLockIcon'); // Ensure capital I
             
-            if (artItem && artitem.classList.contains('locked-feature')) {
+            if (item && item.classList.contains('locked-feature')) {
                 log("Access Denied: Please Register or Mint an Identity to unlock the Art Studio.");
                 showView('zkView'); 
             } else {
@@ -912,6 +912,7 @@ renderAIVMResult(finalImage, selectedModel);
     </script>
 </body>
 </html>
+
 
 
 

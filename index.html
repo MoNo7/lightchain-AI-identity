@@ -907,28 +907,29 @@ async function generateAIVMArt() {
         const nick = document.getElementById('regNick').value.trim();
         const did = document.getElementById('regDid').value.trim();
         const canvas = document.getElementById('generatedCanvas');
-        const imgData = canvas.toDataURL('image/png');try {
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const signer = await provider.getSigner();
-        const contract = new ethers.Contract(CONFIG.contract, [
-            "function mintWithSocial(string _n, string _d, bytes32 _h, string _img) public payable",
-            "function nicknames(address) view returns (string)"
-        ], signer);
-
-        ///const idHash = ethers.keccak256(ethers.toUtf8Bytes(nick + did + userWallet));
-        const idHash = window.lastSocialHash || ethers.keccak256(ethers.toUtf8Bytes(nick + did + userWallet));
-        
-        log("Sending transaction to Lightchain...");
-        const tx = await contract.mintWithSocial(nick, did, idHash, imgData, {
-            value: ethers.parseEther("0.01")
-        });
-
-        await tx.wait();
-        log(`Transaction Confirmed: ${tx.hash.slice(0,12)}`);
-        checkRegistrationStatus(userWallet);
-    } catch (e) {
-        log(`Minting Failed: ${e.message}`);
-    }
+        const imgData = canvas.toDataURL('image/png');
+        try {
+                const provider = new ethers.BrowserProvider(window.ethereum);
+                const signer = await provider.getSigner();
+                const contract = new ethers.Contract(CONFIG.contract, [
+                    "function mintWithSocial(string _n, string _d, bytes32 _h, string _img) public payable",
+                    "function nicknames(address) view returns (string)"
+                ], signer);
+    
+            ///const idHash = ethers.keccak256(ethers.toUtf8Bytes(nick + did + userWallet));
+            const idHash = window.lastSocialHash || ethers.keccak256(ethers.toUtf8Bytes(nick + did + userWallet));
+            
+            log("Sending transaction to Lightchain...");
+            const tx = await contract.mintWithSocial(nick, did, idHash, imgData, {
+                value: ethers.parseEther("0.01")
+            });
+    
+            await tx.wait();
+            log(`Transaction Confirmed: ${tx.hash.slice(0,12)}`);
+            checkRegistrationStatus(userWallet);
+        } catch (e) {
+            log(`Minting Failed: ${e.message}`);
+        }
         }
 
         async function ownerRemoveSBT() {
@@ -1024,6 +1025,7 @@ async function generateAIVMArt() {
     </script>
 </body>
 </html>
+
 
 
 

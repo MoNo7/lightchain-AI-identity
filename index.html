@@ -200,6 +200,11 @@
                         <button id="btn-google" class="btn-zk locked-provider" onclick="startOAuth('Google')"><i class="fab fa-google"></i> Google</button>
                         <button id="btn-linkedin" class="btn-zk locked-provider" onclick="startOAuth('LinkedIn')"><i class="fab fa-linkedin"></i> LinkedIn</button>
                     </div>
+                    <div id="mfaStep" style="display:none; margin-top: 15px; border: 1px solid var(--accent); padding: 15px; border-radius: 8px;">
+                        <p style="font-size: 0.8rem; color: var(--accent);">Verification Code Sent to Email/Social</p>
+                        <input type="text" id="mfaCode" placeholder="Enter 6-digit code" maxlength="6" style="text-align:center; letter-spacing: 5px;">
+                        <button class="btn-zk" onclick="verifyMFACode()">VERIFY & UNLOCK MINT</button>
+                    </div>
                 </div>
                      <h3 style="color: var(--accent);"><i class="fas fa-shield-check"></i> 2. Verify & Mint SBT</h3>
                     <p style="font-size: 0.8rem; color: var(--text-dim);">Mint your identity to the Lightchain blockchain to unlock Verified features and AIVM Art.</p>
@@ -839,6 +844,16 @@ async function generateAIVMArt() {
             const nick = document.getElementById('regNick').value.trim();
             const did = document.getElementById('regDid').value.trim();
 
+
+            if (!nick || !did) return log("Error: Complete Site Registration (Step 1) first.");
+            if (!userWallet) return log("Error: Please connect your wallet.");
+        
+            // Check if the Art Studio has an image ready
+            const canvas = document.getElementById('generatedCanvas');
+            const imgData = canvas.toDataURL('image/png');
+            
+            log("Initiating Identity Mint on LightchainAI Testnet...");
+                    
             try {
                 const provider = new ethers.BrowserProvider(window.ethereum);
                 const contract = new ethers.Contract(CONFIG.contract, [
@@ -869,15 +884,13 @@ async function generateAIVMArt() {
                 const provider = new ethers.BrowserProvider(window.ethereum);
                 const signer = await provider.getSigner();
                 const contract = new ethers.Contract(CONFIG.contract, [
-                    "function nicknames(address) view returns (string)",
-                    "function mintWithSocial(string _n, string _d, bytes32 _h, string _img) public payable"
+                "function mintWithSocial(string _n, string _d, bytes32 _h, string _img) public payable",
+                "function nicknames(address) view returns (string)"
                 ], signer);
 
                 // CHECK BEFORE MINTING
-                const existingName = await contract.nicknames(userWallet);
-                if (existingName && existingName !== "") {
-                    log("Error: Identity already exists for this wallet. Use 'Owner -> Wipe' to reset.");
-                    return; 
+                const existing = await contract.nicknames(userWallet);
+                        if (existing) return log("Error: This wallet already has a minted SBT.");
                 }
         
                 // Generate a unique identity hash (using nick + did + wallet)
@@ -893,7 +906,7 @@ async function generateAIVMArt() {
                 );
         
                 await tx.wait();
-                log("Success! zkIdentity Minted with AIVM Art.");
+                llog(`Transaction Sent: ${tx.hash.slice(0,12)}... awaiting block.`);
                 
                 // Unlock the Art Studio menu item now that they are registered
                 checkRegistrationStatus(userWallet); 
@@ -967,6 +980,7 @@ async function generateAIVMArt() {
     </script>
 </body>
 </html>
+
 
 
 

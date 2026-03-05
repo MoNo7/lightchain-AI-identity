@@ -408,8 +408,8 @@ abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public p
             log(`Registration Successful: Welcome, ${nick}!`);
             
             // Unlock UI areas
-            document.getElementById('artNavItem').style.display = 'flex';
-            document.getElementById('galleryNavItem').style.display = 'flex';
+            //document.getElementById('artNavItem').style.display = 'flex';
+            //document.getElementById('galleryNavItem').style.display = 'flex';
             unlockArtStudio(); // This removes the lock immediately
             document.getElementById('mintSection').classList.remove('step-locked');
 
@@ -744,3 +744,4 @@ renderAIVMResult(finalImage, selectedModel);
     </script>
 </body>
 </html>
+

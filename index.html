@@ -314,7 +314,7 @@ abi: [
         "function verified(address) view returns (bool)",
         "function base64Image() view returns (string)",
         "function removeSBT(address _u) public",
-        "function withdraw() public",
+        "function withdrawRevenue() public", // Matches restored Solidity
         "function owner() view returns (address)"
 
     ]
@@ -556,19 +556,17 @@ async function checkRegistrationStatus(addr, contract) {
             });
 
 
-            // 2. VIEW SWITCH: Ensure zkView is the active main container
-            showView('zkView');
-
-            // 3. PASSPORT RENDER: Inject the actual Identity Card
-            setTimeout(() => {
-                    renderPassport(addr, nick, contract);
-                }, 100);
-            }
 
             // 4. Reveal Admin menu if owner
             if (addr.toLowerCase() === CONFIG.owner.toLowerCase()) {
                 const adminMenu = document.getElementById('adminItems');
                 if (adminMenu) adminMenu.style.setProperty('display', 'block', 'important');
+            }
+
+        // 1. Sidebar Name Update (ZK Identity -> MiMo)
+            const sideLabel = document.querySelector('.nav-item[onclick*="zkView"]');
+            if (sideLabel) {
+                sideLabel.innerHTML = `<i class="fas fa-fingerprint" style="color:var(--green)"></i> ${nick}`;
             }
         
             // 4. SIDEBAR SYNC: Update the label to "MiMo"
@@ -578,8 +576,22 @@ async function checkRegistrationStatus(addr, contract) {
             }
 
             // Unlock Art Studio & Gallery
+        // 2. Force View to zkView and Render Passport
             unlockArtStudio();
-        
+            
+            // 2. VIEW SWITCH: Ensure zkView is the active main container
+            showView('zkView');
+
+            // 3. PASSPORT RENDER: Inject the actual Identity Card
+            setTimeout(() => {
+                    renderPassport(addr, nick, contract);
+                }, 100);
+            }
+        // 3. Unlock Admin Features if Owner
+            if (addr.toLowerCase() === CONFIG.owner.toLowerCase()) {
+                const adminPanel = document.getElementById('adminItems');
+                if (adminPanel) adminPanel.style.setProperty('display', 'block', 'important');
+            }
     } catch (e) {
         console.error("Identity check failed:", e);
     }
@@ -853,39 +865,21 @@ async function registerLocal() {
             }
         }
 
-        async function withdrawRevenue() {
-            if (!userWallet) return log("Error: Connect admin wallet first.");
-            log("Checking contract treasury...");
+async function withdrawRevenue() {
+    try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        const contract = new ethers.Contract(CONFIG.contract, CONFIG.abi, signer);
 
-            try {
-                const provider = new ethers.BrowserProvider(window.ethereum);
-                const signer = await provider.getSigner();
-
-                // Match the exact function name from your Solidity file
-                const contract = new ethers.Contract(CONFIG.contract, [
-                    "function withdrawRevenue() public",
-                    "function owner() view returns (address)"
-                ], signer);
-
-                // Security check: Verify if the connected wallet is the owner
-                const contractOwner = await contract.owner();
-                if (userWallet.toLowerCase() !== contractOwner.toLowerCase()) {
-                    return log("Critical: Only the Contract Owner can withdraw funds.");
-                }
-
-                const balance = await provider.getBalance(CONFIG.contract);
-                if (balance == 0n) return log("Treasury is empty (0 LCAI).");
-
-                log(`Withdrawing ${ethers.formatEther(balance)} LCAI...`);
-                const tx = await contract.withdrawRevenue();
-                await tx.wait();
-
-                log("Success: Funds transferred to owner wallet.");
-                updateRevenueDisplay(); // Refresh the UI
-            } catch (e) {
-                log(`Withdraw Failed: ${e.reason || e.message}`);
-            }
-        }
+        log("Requesting treasury release...");
+        const tx = await contract.withdrawRevenue(); // Updated function name
+        await tx.wait();
+        log("Success: Revenue transferred to owner.");
+        updateRevenueDisplay();
+    } catch (e) {
+        log(`Withdraw Failed: ${e.reason || "Unauthorized. Use Owner Wallet."}`);
+    }
+}
 
         async function downloadRegistryCSV() {
             const addrs = document.getElementById('batchAddrs').value.split(',').map(a=>a.trim()).filter(a=>ethers.isAddress(a));
@@ -1160,17 +1154,17 @@ async function mintWithSocial() {
         }
 
 function showView(id) {
-    // Hide all views
+    // 1. Hide all views
     document.querySelectorAll('main > div').forEach(v => v.style.display = 'none');
     
-    // Show target view
+    // 2. Show target view
     const target = document.getElementById(id);
     if (target) target.style.display = 'block';
 
-    // Update Sidebar state safely
+    // 3. Update Sidebar Active State Safely
     document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
     
-    // Highlight sidebar item even if called via script
+    // Find the sidebar item that matches this view and highlight it
     const navItem = document.querySelector(`.nav-item[onclick*="${id}"]`);
     if (navItem) navItem.classList.add('active');
 }
@@ -1254,6 +1248,7 @@ function triggerBlink(element, className) {
     </script>
 </body>
 </html>
+
 
 
 

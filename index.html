@@ -321,25 +321,33 @@ abi: [
 };
 
 window.onload = async () => {
-// 1. Handle OAuth Popups first to prevent loops
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('code') && window.opener) {
-        window.opener.postMessage({ type: 'GITHUB_AUTH', code: urlParams.get('code') }, "*");
+const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+
+    // --- POPUP LOGIC ---
+    if (code) {
+        // Save code so the main window can see it
+        localStorage.setItem('gh_auth_code', code);
+        // Direct call to opener as fallback
+        if (window.opener) {
+            window.opener.postMessage({ type: 'GITHUB_AUTH', code: code }, "*");
+        }
         window.close();
         return; 
     }
 
-
-    // Restore previous sessions 
-    const savedUser = localStorage.getItem('lcai_user');
-    if (savedUser) {
-        const user = JSON.parse(savedUser);
-        console.log("Welcome back, " + user.nickname);
-    }
+    // --- MAIN WINDOW LOGIC ---
+    // Listen for the popup's message
+    window.addEventListener('storage', (event) => {
+        if (event.key === 'gh_auth_code' && event.newValue) {
+            processGitHubLink(event.newValue);
+            localStorage.removeItem('gh_auth_code');
+        }
+    });
 
     // Auto-sync wallet
     await autoConnectWallet();
-    // Start your normal UI tickers
+
     setInterval(fetchPrices, 3000);
     setInterval(refreshModelDashboard, 3000);
     fetchPrices();
@@ -392,7 +400,11 @@ async function autoConnectWallet() {
                 
                 // Update your UI button (adjust ID if yours is different)
                 const connectBtn = document.querySelector('.connect-btn'); 
-                if (connectBtn) connectBtn.innerHTML = `${userWallet.slice(0,6)}...${userWallet.slice(-4)}`;
+                if (connectBtn) {
+                    connectBtn.innerHTML = `${userWallet.slice(0,6)}...${userWallet.slice(-4)}`;
+                    connectBtn.style.background = "var(--panel)"; // Subtle look when connected
+                    connectBtn.style.color = "var(--accent)";
+                }
                 
                 log(`[SYS] Wallet auto-synced: ${userWallet.slice(0,8)}...`);
                 
@@ -1335,5 +1347,6 @@ function triggerBlink(element, className) {
     </script>
 </body>
 </html>
+
 
 

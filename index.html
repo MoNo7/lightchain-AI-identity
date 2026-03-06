@@ -9,7 +9,7 @@
     <style>
         :root { --bg: #030406; --sidebar: #0a0c10; --accent: #00f2ff; --text: #c9d1d9; --text-dim: #484f58; --border: #1b1f24; --panel: #0d1117; --green: #39d353; --red: #ff4444; }
         body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; display: flex; height: 100vh; overflow: hidden; }
-        
+
         /* Navigation */
         nav { width: 260px; background: var(--sidebar); border-right: 1px solid var(--border); padding: 20px; display: flex; flex-direction: column; }
         .nav-header { padding-bottom: 25px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
@@ -19,13 +19,13 @@
         .nav-item:hover, .nav-item.active { background: var(--panel); color: var(--accent); }
         .nav-item i.fa-lock { font-size: 0.7rem; color: var(--text-dim); }
         .locked-feature {  opacity: 0.5; cursor: not-allowed !important; filter: grayscale(1); }
-        
+
         /* Workspace */
         .workspace { flex: 1; display: flex; flex-direction: column; background: #050608; overflow: hidden; }
         header { height: 70px; background: var(--sidebar); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 25px; }
         .pill-group { display: flex; flex:1; justify-center; gap: 10px; align-items: center; }
         .pill { background: #000; border: 1px solid var(--border); padding: 6px 14px; border-radius: 20px; font-size: 0.75rem; display: flex; align-items: center; gap: 8px; font-family: monospace; }
-        
+
         /* Main View Container */
         main { flex: 1; padding: 25px; overflow-y: auto; }
         .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 25px; max-width: 1000px; margin: 0 auto 20px auto; }
@@ -46,20 +46,20 @@
     color: var(--accent);
 }
 
-        
+
         /* Utility Classes */
         .social-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 20px; }
         .btn-zk { background: var(--accent); color: #000; border: none; padding: 12px; border-radius: 4px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; transition: 0.2s; }
         .btn-zk.locked-provider { background: #1b1f24 !important; color: var(--text-dim) !important; cursor: not-allowed; opacity: 0.6; }
         .step-locked { opacity: 0.25; pointer-events: none; }
         input, textarea { background: #000; border: 1px solid var(--border); color: #fff; padding: 12px; width: 100%; margin: 10px 0; border-radius: 4px; box-sizing: border-box; font-family: inherit; }
-        
+
         /* Status Colors */
         .status-text.online { color: #00ff88; }
         .status-text.working { color: #00d4ff; }
         .status-text.locked { color: #ffcc00; }
         .status-text.offline { color: #ff4d4d; }
-        
+
         #console { height: 120px; background: #000; border-top: 1px solid var(--border); color: var(--green); padding: 15px; font-family: monospace; overflow-y: auto; font-size: 0.75rem; }
     </style>
 </head>
@@ -126,7 +126,7 @@
                         </tbody>
                 </table>
                 <div style="margin-top: 25px; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid var(--border);">
-  
+
                 </div>
             </div>
 
@@ -145,7 +145,7 @@
                 </div>
                 <button onclick="clearRender()" class="pill" style="cursor: pointer; background: transparent; border: 1px solid var(--border); color: var(--text-dim);">CLEAR</button>
             </div>
-        
+
             <div style="margin-top: 15px; display: grid; grid-template-columns: 1fr 200px; gap: 10px;">
                 <input type="text" id="artPrompt" placeholder="Describe your vision (e.g., A futuristic city on Mars)..." style="margin: 0;">
 <select id="artStyle" style="background: #000; border: 1px solid var(--border); color: #fff; padding: 12px; border-radius: 4px; font-family: inherit;">
@@ -158,10 +158,10 @@
 </select>
             </div>
             <button class="btn-zk" style="width: 100%; margin-top: 10px;" onclick="generateAIVMArt()">GENERATE ART</button>
-        
+
             <div id="renderPlaceholder" style="width: 100%; min-height: 350px; background: #000; border: 1px dashed var(--border); border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-top: 15px; overflow: hidden; position: relative;">
                 <canvas id="generatedCanvas" style="display:none;"></canvas>
-                
+
                 <div id="renderLoader" style="display: none; text-align: center;">
                     <i class="fas fa-sync fa-spin" style="font-size: 2rem; color: var(--accent); margin-bottom: 10px;"></i>
                     <div style="color: var(--accent); font-size: 0.8rem; font-family: monospace;">AIVM Processing...</div>
@@ -177,11 +177,11 @@
 
    <div id="zkView" class="card" style="display:none; max-width: 1200px;">
        <div style="display: grid; grid-template-columns: 0.7fr 1.3fr; gap: 30px;">
-           
+
            <div style="border-right: 1px solid var(--border); padding-right: 30px;">
             <h3 style="color: var(--accent);"><i class="fas fa-user-plus"></i> 1. Site Registration</h3>
             <p style="font-size: 0.8rem; color: var(--text-dim);">Create a local profile to unlock registered areas. No gas fee required for this step.</p>
-                   
+
         <div id="authStep" class="step-locked">
             <input type="text" id="regNick" placeholder="Display Name">
             <input type="text" id="regDid" placeholder="Social Handle or DID <blank for default did:lcai:walletaddress>">
@@ -262,7 +262,7 @@
                     </div>
                     <button class="pill" onclick="openMintSelect()" style="background:var(--accent); color:#000; font-weight:bold; cursor:pointer; border:none;">+ LIST NFT FOR AUCTION</button>
                 </div>
-            
+
                 <div id="auctionGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;">
                     <div id="auctionEmpty" style="grid-column: 1/-1; text-align: center; padding: 40px; border: 1px dashed var(--border); border-radius: 8px;">
                         <i class="fas fa-gavel" style="font-size: 2rem; color: var(--text-dim); margin-bottom: 10px;"></i>
@@ -280,7 +280,6 @@
 const LCAI_TOKEN = "0x9ca8530ca349c966fe9ef903df17a75b8a778927"; // Lightchain AI
 const WETH_TOKEN = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"; // Wrapped Ethereum
 const LCAI_PAIR = "0x0d047a370611437a1b8e6c2a95ea36f69fdda3be";
-const lcaipair = "0x5B2d46cb1e3451aA3d584f28E714892373D7c7C6";
 const ETH_TOKEN = "0x0000000000000000000000000000000000000000";
 //owner: "0x6378A6993C7C77E4A28f8f263e778401309fD9E4",    
 const CONFIG = {
@@ -290,12 +289,11 @@ owner: "0x4D36B31d4BFB957A5D816B0f420a9e755EFc6a2c",
 LCAI_PAIR : "0x0d047a370611437a1b8e6c2a95ea36f69fdda3be",
 ETH_PAIR : "0x96d4b53a38337a5733179751781178a2613306063c511b78cd02684739288c0a",
 LCAI_TOKEN : "0x9ca8530ca349c966fe9ef903df17a75b8a778927",
-lcaipair : "0x5B2d46cb1e3451aA3d584f28E714892373D7c7C6",
 ETH_TOKEN : "0x0000000000000000000000000000000000000000",
 USDC_TOKEN : "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",  
 WETH_TOKEN : "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
 abi: [
-        "function mintWithSocial(string , string , bytes32 ) public payable",
+        "function mintWithSocial(string _n, string _d, bytes32 _h) public payable",
         "function nicknames(address) view returns (string)",
         "function verified(address) view returns (bool)",
         "function imageData(address) view returns (string)",
@@ -305,9 +303,21 @@ abi: [
     ]
 };
 
-        let userWallet = null;
+window.onload = async () => {
+    // Start tickers first so they show up regardless of wallet
+    setInterval(updateTickers, 3000);
+    updateTickers(); 
+
+    // Check if user was already logged in locally
+    const savedUser = localStorage.getItem('lcai_user');
+    if (savedUser) {
+        const user = JSON.parse(savedUser);
+        console.log("Welcome back, " + user.nickname);
+    }
+};
+        let userWallet;
         let isRegistered = false;
-        
+
         const inferenceModels = [
             { name: "Neural-Llama-3-70B", hash: "0xE035b7192a5d816b0f420a9e755efc6a2c1ea51d", baseLoad: 12.4 },
             { name: "DeepSeek-V3-Base", hash: "0xB6f1E497D6879C325c65fa77cB717227976fd04E", baseLoad: 45.8 },
@@ -317,7 +327,7 @@ abi: [
         function handleArtClick() {
             const item = document.getElementById('artNavItem');
             const lockIcon = document.getElementById('artLockIcon'); // Ensure capital I
-            
+
             if (item && item.classList.contains('locked-feature')) {
                 log("Access Denied: Please Register or Mint an Identity to unlock the Art Studio.");
                 showView('zkView'); 
@@ -338,7 +348,13 @@ abi: [
             }
         }
 
-        
+const contractOwner = await contract.owner();
+if (userWallet.toLowerCase() === contractOwner.toLowerCase()) {
+    document.getElementById('adminSection').style.display = 'block';
+    document.getElementById('ownerSection').style.display = 'block';
+    console.log("Admin Access Verified");
+}
+
 async function startOAuth(provider) {
     if (provider.toLowerCase() === 'github') {
         log(`[Zk-Auth] Redirecting to GitHub Secure Gateway...`);
@@ -352,7 +368,7 @@ async function startOAuth(provider) {
 function checkGitHubCallback() {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
-    
+
     // Check for saved profile to restore "MiMo"
     const savedProfile = localStorage.getItem('lcai_profile');
     if (savedProfile) {
@@ -364,7 +380,7 @@ function checkGitHubCallback() {
 
     if (code) {
         log("[Zk-Auth] GitHub Handshake detected. Unlocking Minting...");
-        
+
         // MANUALLY UNLOCK THE MINT SECTION
         const mintSection = document.getElementById('mintSection');
         if (mintSection) {
@@ -375,79 +391,85 @@ function checkGitHubCallback() {
 
         const socialHash = ethers.keccak256(ethers.toUtf8Bytes(code));
         window.lastSocialHash = socialHash;
-        
+
         const ghBtn = document.getElementById('btn-github');
         if(ghBtn) {
             ghBtn.style.border = "2px solid var(--green)";
             ghBtn.innerHTML = '<i class="fab fa-github"></i> GitHub Linked';
         }
-        
+
         log(`[Zk-Auth] Social Hash Linked: ${socialHash.slice(0,16)}...`);
         window.history.replaceState({}, document.title, window.location.pathname);
     }
 }
 
-async function fetchPrices() {
-    try {
-        const provider = new ethers.JsonRpcProvider("https://testnet-rpc.lightchain.ai");
-        
-        // 1. LCAI PRICE (from your LCAI_PAIR)
-        const lcaiPair = new ethers.Contract(
-            "0x0d047a370611437a1b8e6c2a95ea36f69fdda3be", 
-            ["function getReserves() view returns (uint112, uint112, uint32)"], 
-            provider
-        );
-        const lcaiReserves = await lcaiPair.getReserves();
-        const lcaiPrice = Number(lcaiReserves[0]) / Number(lcaiReserves[1]);
-        const lcaiEl = document.getElementById('lcaiTicker');
-        if (lcaiEl) lcaiEl.innerText = "$" + lcaiPrice.toFixed(6);
 
-        // 2. ETH PRICE (restored from commit e3ec38a)
-        // Note: In that commit, you used a separate pair or a mock for the testnet ETH price
-        const ethEl = document.getElementById('ethTicker');
-        if (ethEl) {
-            // This restores the logic that was calculating ETH relative to LCAI or using a fixed oracle
-            const ethPrice = (lcaiPrice * 2500000).toFixed(2); // Example ratio from that commit
-            ethEl.innerText = "$" + ethPrice;
+        // --- CORE FUNCTIONS ---
+      async function fetchPrices() {
+        try {
+        // Multi-token fetch for efficiency
+        const response = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${LCAI_TOKEN},${ETH_TOKEN}`);
+        const data = await response.json();
+
+        if (data.pairs && data.pairs.length > 0) {
+          // Find LCAI - Target the highest liquidity pair automatically
+          const lcaiPair = data.pairs.find(p => p.baseToken.address.toLowerCase() === LCAI_TOKEN.toLowerCase());
+          if (lcaiPair && document.getElementById('lcaiTicker')) {
+            const price = parseFloat(lcaiPair.priceUsd);
+            document.getElementById('lcaiTicker').innerText = "$" + price.toFixed(6);
+          }
+
+          // Find ETH - Target the highest liquidity pair automatically
+
+          const ethPair = data.pairs.find(p => p.baseToken.address.toLowerCase() === ETH_TOKEN.toLowerCase());
+          if (ethPair && document.getElementById('ethTicker')) {
+            const price = parseFloat(ethPair.priceUsd);
+            document.getElementById('ethTicker').innerText = "$" + price.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+          });
+         }
+            console.log("Tickers updated: " + new Date().toLocaleTimeString());
         }
-
-        // 3. NETWORK LOAD (the "pills" logic)
-        const loadEl = document.getElementById('loadPill');
-        if (loadEl) {
-            loadEl.innerText = (Math.random() * 5 + 1).toFixed(1) + "%";
+        } catch (error) {
+        // Silently retry to keep the UI clean
+        console.warn("Price sync pending...");
         }
-
-    } catch (e) {
-        console.warn("FetchPrices failed - Check if elements lcaiTicker/ethTicker exist:", e.message);
-    }
-}
+        }
 
 async function connect() {
-    try {
+try {
         if (!window.ethereum) return alert("MetaMask not found!");
+
         const provider = new ethers.BrowserProvider(window.ethereum);
         const accounts = await provider.send("eth_requestAccounts", []);
-        userWallet = accounts[0];
+        const userAddress = accounts[0];
 
-        const btn = document.getElementById('walletBtn');
-        if (btn) btn.innerText = userWallet.slice(0, 6) + "...";
-
-        // Unlock steps
-        const auth = document.getElementById('authStep');
-        if (auth) {
-            auth.classList.remove('step-locked');
-            auth.style.opacity = "1";
-        }
+        window.userWallet = accounts[0];
 
         const signer = await provider.getSigner();
         const contract = new ethers.Contract(CONFIG.contract, CONFIG.abi, signer);
-        await checkStatus(userWallet, contract);
-    } catch (e) {
-        console.error("Connection failed", e);
+
+        // Update UI
+        document.getElementById('walletBtn').innerText = userWallet.slice(0,6) + "...";
+
+        // Trigger status check
+        await checkRegistrationStatus(userAddress, contract);
+      // Unlock the registration panel
+        const authStep = document.getElementById('authStep');
+        if (authStep) {
+            authStep.classList.remove('step-locked');
+            authStep.style.opacity = "1";
+        }
+    / Check if this wallet is the Owner/Admin
+        await checkRegistrationStatus(userWallet, contract);
+        console.log("Connected Successfully:", userAddress);
+    } catch (err) {
+        console.error("Connection Error:", err.message);
     }
 }
 
-        
+
 
 async function checkRegistrationStatus(addr, contract) {
     try {
@@ -457,81 +479,68 @@ async function checkRegistrationStatus(addr, contract) {
         const nick = await contract.nicknames(addr);
 
         console.log("[SYS] Contract Owner:", ownerAddr);
+        console.log("[SYS] User Verified:", isVerified);
 
-// 1. UNLOCK OWNER/ADMIN SECTION
-if (addr.toLowerCase() === ownerAddr.toLowerCase() || addr.toLowerCase() === CONFIG.owner.toLowerCase()) {
-            const admin = document.getElementById('adminSection') || document.getElementById('adminItems');
-            if (admin) admin.style.display = 'block';
-        }
-// 2. UNLOCK VERIFIED FEATURES
-        if (isVerified) {
-            
-            const nick = await contract.nicknames(addr);
-            const authStep = document.getElementById('authStep');
-            const mintSection = document.getElementById('mintSection');
-            if (authStep) authStep.style.display = 'none';
-            if (mintSection) mintSection.style.display = 'none';
-            document.querySelectorAll('.locked-feature').forEach(el => {
-                el.classList.remove('locked-feature');
-            });
-            if (typeof renderPassport === 'function') renderPassport(addr, nick, contract);
-            const features = ['artNavItem', 'galleryNavItem', 'passportNavItem'];
-            features.forEach(id => {
-                const el = document.getElementById(id);
-                if (el) {
-                    el.classList.remove('locked-feature');
-                    el.style.opacity = "1";
-                    el.style.pointerEvents = "auto";
-                    // Update the icon to show it's unlocked
-                    const icon = el.querySelector('i');
-                    if (icon) icon.className = icon.className.replace('fa-lock', 'fa-check-circle');
-                }
+        // 1. UNLOCK OWNER/ADMIN SECTION
+        if (addr.toLowerCase() === ownerAddr.toLowerCase()) {
+            // We target both possible IDs to be safe
+            const adminPanel = document.getElementById('adminSection') || document.getElementById('adminItems');
+            if (adminPanel) {
+                adminPanel.style.display = 'block';
+                adminPanel.style.opacity = '1';
+                console.log("[ADMIN] Registry Unlocked");
             }
+        }
+
+        // 2. UNLOCK VERIFIED FEATURES
+        if (isVerified) {
+            // Hide the registration boxes
+            if (document.getElementById('authStep')) document.getElementById('authStep').style.display = 'none';
+            if (document.getElementById('mintSection')) document.getElementById('mintSection').style.display = 'none';
+
+            // Unlock the Sidebar Nav Items
             unlockFeature('artNavItem', 'fas fa-palette');
             unlockFeature('galleryNavItem', 'fas fa-images');
+
+            // Show the Passport
+            renderPassport(addr, nick, contract);
         }
     } catch (e) {
-        console.error("Status Check Failed (Possibly contract address mismatch):", e);
+        console.error("Status Check Failed:", e);
     }
 }
 
 // Move this OUTSIDE as a standalone function
 async function renderPassport(addr, nick, contract) {
-    try{
     let img = await contract.base64Image();
     if (!img.startsWith("data:image")) img = "data:image/png;base64," + img;
 
     const zkView = document.getElementById('zkView');
-zkView.innerHTML = `
-    <div style="text-align: center; padding: 40px; background: var(--panel); border-radius: 15px; border: 1px solid var(--green);">
-        <h2 style="color: var(--green);"><i class="fas fa-check-circle"></i> Identity Verified</h2>
-        <div style="margin: 20px auto; width: 300px; border: 2px solid var(--accent); border-radius: 10px; overflow: hidden; background: #000;">
-            <img src="${img}" style="width: 100%; display: block;">
-            <div style="padding: 15px;">
-                <div style="font-size: 1.2rem; font-weight: bold; color: var(--accent);">${nick}</div>
-                <div style="font-size: 0.7rem; color: var(--text-dim); font-family: monospace;">${addr}</div>
+    zkView.innerHTML = `
+        <div style="text-align: center; padding: 40px; background: var(--panel); border-radius: 15px; border: 1px solid var(--green);">
+            <h2 style="color: var(--green);"><i class="fas fa-check-circle"></i> Identity Verified</h2>
+            <div style="margin: 20px auto; width: 300px; border: 2px solid var(--accent); border-radius: 10px; overflow: hidden; background: #000;">
+                <img src="${sbtImg}" style="width: 100%; display: block;">
+                <div style="padding: 15px;">
+                    <div style="font-size: 1.2rem; font-weight: bold; color: var(--accent);">${nickName}</div>
+                    <div style="font-size: 0.7rem; color: var(--text-dim); font-family: monospace;">${address}</div>
+                </div>
             </div>
+            <div id="verifiedQR" style="background: white; padding: 10px; border-radius: 8px; margin: 20px auto; width: fit-content; cursor: pointer;" onclick="window.open('https://testnet.lightscan.app/address/${address}')"></div>
         </div>
-        <div id="verifiedQR" style="background: white; padding: 10px; border-radius: 8px; margin: 20px auto; width: fit-content; cursor: pointer;" onclick="window.open('https://testnet.lightscan.app/address/${addr}')"></div>
-    </div>
-`;
+    `;
 
     new QRCode(document.getElementById("verifiedQR"), {
-        text: `lcai:id:${addr}`,
+        text: `lcai:id:${address}`,
         width: 128,
         height: 128
     });
-    } catch (e) {
-        console.error("Status Check Failed (Possibly contract address mismatch):", e);
-    }
 }
 
 
 async function registerLocal() {
-const nickEl = document.getElementById('regNick');
-    const didEl = document.getElementById('regDid');
-    const nick = nickEl ? nickEl.value.trim() : "";
-    const did = didEl ? didEl.value.trim() : "";
+    const nick = document.getElementById('regNick').value.trim();
+    const did = document.getElementById('regDid').value.trim();
     if (!nick || !userWallet) return log("Error: Name and Wallet required.");
 
     // SAVE TO BROWSER STORAGE
@@ -545,22 +554,14 @@ const nickEl = document.getElementById('regNick');
         registered: true,
         timestamp: Date.now()
     };
-    
-    // Save to local storage so the site remembers you
-    localStorage.setItem('lcai_user', JSON.stringify({
-        nickname: nick,
-        did: did,
-        wallet: userWallet,
-        timestamp: Date.now()
-    }));
-    
+
     isRegistered = true;
     log(`[Local] Welcome ${nick}! Profile saved for session.`);
-    
+
     // UI Transitions
     unlockFeature('artNavItem', 'fas fa-palette');
     unlockFeature('galleryNavItem', 'fas fa-images');
-    
+
     const mintSection = document.getElementById('mintSection');
     if (mintSection) {
         mintSection.classList.remove('step-locked');
@@ -573,7 +574,13 @@ const nickEl = document.getElementById('regNick');
         btn.style.opacity = "1";
         btn.style.cursor = "pointer";
     });
-  
+    // Save to local storage so the site remembers you
+    localStorage.setItem('lcai_user', JSON.stringify({
+        nickname: nick,
+        did: did,
+        wallet: userWallet,
+        timestamp: Date.now()
+    }));
     // Save and Unlock
     //localStorage.setItem('lcai_user', JSON.stringify({nickname: nick, wallet: userWallet}));
     document.getElementById('authStep').style.display = 'none';
@@ -611,22 +618,22 @@ const nickEl = document.getElementById('regNick');
 
         function openMintSelect() {
             if (!isRegistered) return log("Error: You must be registered to list art.");
-            
+
             // For this surgical fix, we grab the last generated art from your canvas
             const canvas = document.getElementById('generatedCanvas');
             if (canvas.style.display === "none") {
                 return log("Action Required: Generate art in the Art Studio first to list it!");
             }
-        
+
             const imgData = canvas.toDataURL();
             const nftName = prompt("Enter a name for your Masterpiece:", "AIVM Genesis #1");
             const startPrice = prompt("Set starting bid (LCAI):", "0.05");
-        
+
             if (nftName && startPrice) {
                 postToAuction(nftName, startPrice, imgData);
             }
         }
-        
+
         function postToAuction(name, price, img) {
             const auctionItem = {
                 id: Date.now(),
@@ -636,18 +643,18 @@ const nickEl = document.getElementById('regNick');
                 image: img,
                 endTime: Date.now() + (24 * 60 * 60 * 1000) // 24 Hour Auction
             };
-        
+
             activeAuctions.push(auctionItem);
             renderAuctions();
             log(`[MARKET] Success: ${name} listed for ${price} LCAI.`);
         }
-        
+
         function renderAuctions() {
             const grid = document.getElementById('auctionGrid');
             const empty = document.getElementById('auctionEmpty');
-            
+
             if (activeAuctions.length > 0) empty.style.display = 'none';
-            
+
             grid.innerHTML = activeAuctions.map(a => `
                 <div class="card" style="margin:0; padding:15px; border-color:var(--border);">
                     <img src="${a.image}" style="width:100%; border-radius:8px; margin-bottom:10px;">
@@ -666,14 +673,14 @@ const nickEl = document.getElementById('regNick');
                 </div>
             `).join('');
         }
-        
+
 
         // --- ADMIN FUNCTIONS ---
         async function queryIdentity() {
             const input = document.getElementById('queryAddr').value.trim();
             const res = document.getElementById('queryResult');
             if (!ethers.isAddress(input)) return res.innerHTML = `<span style="color:var(--red)">INVALID ADDRESS</span>`;
-        
+
             log(`Querying Registry: ${input}`);
             try {
                 const provider = new ethers.BrowserProvider(window.ethereum);
@@ -684,13 +691,13 @@ const nickEl = document.getElementById('regNick');
                     "function verified(address) view returns (bool)",
                     "function isAdmin(address) view returns (bool)"
                 ], provider);
-                
+
                 // Fetch values from individual mappings
                 const name = await contract.nicknames(input);
                 const did = await contract.dids(input);
                 const isVerified = await contract.verified(input);
                 const adminStatus = await contract.isAdmin(input); 
-                
+
             if (name && name !== "") {
                 const status = isVerified ? "VERIFIED" : "PENDING";
                 const adminTag = adminStatus ? " <span style='color:var(--accent)'>[ADMIN]</span>" : "";
@@ -708,22 +715,22 @@ const nickEl = document.getElementById('regNick');
         async function batchAction(action) {
             const input = document.getElementById('batchAddrs').value;
             const addrs = input.split(',').map(a => a.trim()).filter(a => ethers.isAddress(a));
-            
+
             if (addrs.length === 0) return log("Error: No valid addresses provided.");
             if (!userWallet) return log("Error: Connect wallet first.");
-        
+
             log(`Starting batch ${action} for ${addrs.length} users...`);
             try {
                 const provider = new ethers.BrowserProvider(window.ethereum);
                 const signer = await provider.getSigner();
-                
+
                 // Match the function name in your LCAI-ZkKYCSBT.sol: "verifyUser"
                 const contract = new ethers.Contract(CONFIG.contract, [
                     "function verifyUser(address _u) public",
                     "function revokeUser(address _u) public",
                     "function removeSBT(address _u) public"
                 ], signer);
-        
+
                 for (const addr of addrs) {
                     log(`Processing: ${addr.slice(0,10)}...`);
                     let tx;
@@ -736,7 +743,7 @@ const nickEl = document.getElementById('regNick');
                         // This calls the function that wipes all data
                         tx = await contract.removeSBT(addr);
                     }
-                    
+
                     await tx.wait();
                     log(`Success: ${addr.slice(0,6)} updated.`);
                 }
@@ -748,37 +755,37 @@ const nickEl = document.getElementById('regNick');
         async function withdrawRevenue() {
             if (!userWallet) return log("Error: Connect admin wallet first.");
             log("Checking contract treasury...");
-        
+
             try {
                 const provider = new ethers.BrowserProvider(window.ethereum);
                 const signer = await provider.getSigner();
-                
+
                 // Match the exact function name from your Solidity file
                 const contract = new ethers.Contract(CONFIG.contract, [
                     "function withdrawRevenue() public",
                     "function owner() view returns (address)"
                 ], signer);
-        
+
                 // Security check: Verify if the connected wallet is the owner
                 const contractOwner = await contract.owner();
                 if (userWallet.toLowerCase() !== contractOwner.toLowerCase()) {
                     return log("Critical: Only the Contract Owner can withdraw funds.");
                 }
-        
+
                 const balance = await provider.getBalance(CONFIG.contract);
                 if (balance == 0n) return log("Treasury is empty (0 LCAI).");
-        
+
                 log(`Withdrawing ${ethers.formatEther(balance)} LCAI...`);
                 const tx = await contract.withdrawRevenue();
                 await tx.wait();
-                
+
                 log("Success: Funds transferred to owner wallet.");
                 updateRevenueDisplay(); // Refresh the UI
             } catch (e) {
                 log(`Withdraw Failed: ${e.reason || e.message}`);
             }
         }
-        
+
         async function downloadRegistryCSV() {
             const addrs = document.getElementById('batchAddrs').value.split(',').map(a=>a.trim()).filter(a=>ethers.isAddress(a));
             if(addrs.length === 0) return log("Registry empty.");
@@ -809,22 +816,20 @@ const nickEl = document.getElementById('regNick');
             placeholder.style.display = 'none';
             img.style.display = 'none';
             //document.getElementById('modelNameDisplay').innerText = model;
-            
+
             if(data.startsWith('data:image')) { img.src = data; document.getElementById('renderCID').innerText = "Base64 Stream"; }
             else { img.src = `https://ipfs.io/ipfs/${data}`; document.getElementById('renderCID').innerText = data; }
 
             img.onload = () => { loader.style.display = 'none'; img.style.display = 'block'; log(`[RENDER] Inference complete.`); };
         }
-        
+
         function unlockFeature(id, iconClass) {
-            constitem = document.getElementById(id);
-            if (item) {
-                item.classList.remove('locked-feature');
-                const icon = item.querySelector('i');
-                if (icon) icon.className = iconClass;
-            }
+            const el = document.getElementById(id);
+            el.classList.remove('locked-feature');
+            el.style.pointerEvents = "auto";
+            el.querySelector('i').className = iconClass;
         }
-        
+
         function lockFeature(id) {
             const el = document.getElementById(id);
             el.classList.add('locked-feature');
@@ -854,18 +859,18 @@ const nickEl = document.getElementById('regNick');
                 galleryItem.style.pointerEvents = "auto"; // THIS is what fixes the "unclickable" issue
                 if (galleryLockIcon) galleryLockIcon.className = "fas fa-images";
             }
-            
+
             // Switch lock icon to the palette icon
             log("Art Studio & Gallery Unlocked!");
         }
 
-   
-        
+
+
 let isGenerating = false;
 
 async function generateAIVMArt() {
     if (isGenerating) return log("System busy: Awaiting protocol PoI...");
-    
+
     const basePrompt = document.getElementById('artPrompt').value.trim();
     const styleSuffix = document.getElementById('artStyle').value;
     const selectedModel = document.getElementById('modelSelector').value;
@@ -886,7 +891,7 @@ async function generateAIVMArt() {
     try {
         const provider = new ethers.BrowserProvider(window.ethereum);
         const signer = await provider.getSigner();
-        
+
         // --- STEP 1: PROTOCOL ANCHOR (PoI) ---
         // We anchor the prompt hash to the LCAI AIVM V2 Registry
         const promptId = ethers.keccak256(ethers.toUtf8Bytes(finalPrompt + Date.now()));
@@ -926,7 +931,7 @@ async function generateAIVMArt() {
             const ctx = canvas.getContext('2d');
             canvas.width = 1024; canvas.height = 1024;
             ctx.drawImage(img, 0, 0, 1024, 1024);
-            
+
             renderAIVMResult(canvas.toDataURL('image/png'), selectedModel);
             isGenerating = false; 
             log(`[AIVM] Success: Render complete. PoI Verified on-chain.`);
@@ -946,11 +951,11 @@ async function generateAIVMArt() {
         loader.style.display = 'none';
     }
 }
-        
+
 async function mintWithSocial() {
     const nick = document.getElementById('regNick').value.trim();
     const did = document.getElementById('regDid').value.trim();
-    
+
     // Instead of the dynamic canvas, we use your specified stable asset
     const sbtImage = "https://testnet.lightscan.app/assets/images/banner/banner-thumb.png";
 
@@ -962,15 +967,15 @@ async function mintWithSocial() {
         ], signer);
 
         const idHash = window.lastSocialHash || ethers.keccak256(ethers.toUtf8Bytes(nick + did + userWallet));
-        
+
         log(`[SYS] Minting SBT with Banner Identity...`);
         const tx = await contract.mintWithSocial(nick, did, idHash, {
             value: ethers.parseEther("0.01") 
         });
-        
+
         await tx.wait();
         log(`[SUCCESS] SBT Minted! Tx: ${tx.hash.slice(0,12)}`);
-        
+
         checkRegistrationStatus(userWallet);
     } catch (e) {
         log(`[MINT ERROR] ${e.message}`);
@@ -979,34 +984,34 @@ async function mintWithSocial() {
 
         async function ownerRemoveSBT() {
             const targetAddr = document.getElementById('removeAddrInput').value.trim();
-            
+
             if (!ethers.isAddress(targetAddr)) return log("Error: Invalid address provided.");
             if (!userWallet) return log("Error: Please connect your admin wallet.");
-        
+
             log(`[OWNER] Initiating permanent wipe for: ${targetAddr}`);
-            
+
             try {
                 const provider = new ethers.BrowserProvider(window.ethereum);
                 const signer = await provider.getSigner();
-                
+
                 // Define the contract with the removeSBT interface
                 const contract = new ethers.Contract(CONFIG.contract, [
                     "function removeSBT(address _u) public",
                     "function owner() view returns (address)"
                 ], signer);
-        
+
                 // Pre-flight check
                 const contractOwner = await contract.owner();
                 if (userWallet.toLowerCase() !== contractOwner.toLowerCase()) {
                     return log("Critical Error: Unauthorized. Only the contract owner can wipe identities.");
                 }
-        
+
                 const tx = await contract.removeSBT(targetAddr);
                 log("Transaction sent. Waiting for block confirmation...");
-                
+
                 await tx.wait();
                 log(`Success: Identity for ${targetAddr.slice(0,10)}... has been wiped from the blockchain.`);
-                
+
                 // Clear input after success
                 document.getElementById('removeAddrInput').value = "";
             } catch (e) {
@@ -1029,11 +1034,11 @@ async function mintWithSocial() {
                     "function imageData(address) view returns (string)",
                     "function nicknames(address) view returns (string)"
                 ], provider);
-        
+
                 // For this testnet version, we pull the user's latest mint
                 const img = await contract.imageData(userWallet);
                 const name = await contract.nicknames(userWallet);
-        
+
                 if (img && img.startsWith('data:image')) {
                     grid.innerHTML = `
                         <div class="card" style="margin:0; padding:10px; border-color:var(--accent);">
@@ -1061,20 +1066,6 @@ async function mintWithSocial() {
             c.scrollTop = c.scrollHeight;
         }
 
-window.onload = async () => {
-    // Start tickers first so they show up regardless of wallet
-    setInterval(fetchPrices, 3000);
-    fetchPrices(); 
-    
-    // Check if user was already logged in locally
-    const savedUser = localStorage.getItem('lcai_user');
-    if (savedUser) {
-        const user = JSON.parse(savedUser);
-        console.log("Welcome back, " + user.nickname);
-    }
-};
-        
-        
         // Init
         setInterval(fetchPrices, 5000);
         setInterval(refreshModelDashboard, 3000);
@@ -1084,12 +1075,3 @@ window.onload = async () => {
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-

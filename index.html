@@ -918,7 +918,8 @@ async function registerLocal() {
                     "function socialProvider(address) view returns (string)", // Added
                     "function identityHashes(address) view returns (bytes32)", // Added
                     "function verified(address) view returns (bool)",
-                    "function isAdmin(address) view returns (bool)"
+                    "function isAdmin(address) view returns (bool)",
+                    "function creationTime(address) view returns (uint256)"
                 ], provider);
 
                 // Fetch values from individual mappings
@@ -928,11 +929,21 @@ async function registerLocal() {
                 const adminStatus = await contract.isAdmin(input); 
                 const providerName = await contract.socialProvider(input);
                 const idHash = await contract.identityHashes(input);
+                const rawTime = await contract.creationTime(input);
 
                 if (name && name !== "") {
+                    const dateObj = new Date(Number(rawTime) * 1000);
+                    const formattedDate = dateObj.toLocaleDateString('en-US', {
+                        month: 'long',
+                        day: 'numeric',
+                        year: 'numeric'
+                    });
                     const status = isVerified ? "VERIFIED" : "PENDING";
                     const adminTag = adminStatus ? " <span style='color:var(--accent)'>[ADMIN]</span>" : "";
-                    res.innerHTML = `<span style="color:var(--green)">${status}:</span> ${name} (${did})${adminTag}(${providerName})`;
+                    res.innerHTML = `
+                    <span style="color:var(--green)">${status}:</span> ${name} (${did})${adminTag}(${providerName})
+                    <br><span style="color:var(--text-dim); font-size:0.75rem;">Member Since: ${formattedDate}</span>
+                    `;
                     log(`Match Found: ${name} is ${status}`);
                 } else {
                     res.innerHTML = `<span style="color:var(--red)">NOT FOUND</span>`;
@@ -1382,6 +1393,7 @@ function triggerBlink(element, className) {
     </script>
 </body>
 </html>
+
 
 
 

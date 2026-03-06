@@ -537,6 +537,13 @@ async function checkRegistrationStatus(addr, contract) {
             const authStep = document.getElementById('authStep');
             const passportView = document.getElementById('zkView');
             if (authStep) authStep.style.display = 'none';
+            // Switch the view to the Passport automatically upon login
+            showView('zkView');
+
+            // Ensure the Passport is actually rendered
+            if (typeof renderPassport === 'function') {
+                renderPassport(userWallet, nick, contract);
+            }
 
             // Update the Sidebar or Identity View
             // Since you don't have a 'userGreeting' ID, we update the zk Identity label
@@ -1239,5 +1246,6 @@ function triggerBlink(element, className) {
     </script>
 </body>
 </html>
+
 
 

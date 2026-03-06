@@ -394,8 +394,43 @@ async function startOAuth(provider) {
         const clientId = "Ov23liu6ofJwlcYN1dc7"; 
         // Force the redirect to the specific worker URL to prevent dashboard looping
         const redirectUri = encodeURIComponent("https://lightchain-ai-iam.lcaitestnet.workers.dev/");
+        const authUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=user:email`;
         window.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=user:email`;
+
+        // SURGICAL FIX: Open in a popup instead of redirecting the main page
+        const popup = window.open(authUrl, "GitHub Auth", "width=600,height=700");
+
+        const checkPopup = setInterval(() => {
+            try {
+                if (popup.location.href.includes("code=")) {
+                    const urlParams = new URLSearchParams(popup.location.search);
+                    const code = urlParams.get('code');
+                    popup.close();
+                    clearInterval(checkPopup);
+                    
+                    // Manually trigger the callback logic without refreshing the main page
+                    processGitHubLink(code);
+                }
+            } catch (e) { /* Ignore cross-origin errors during auth */ }
+            if (popup.closed) clearInterval(checkPopup);
+        }, 1000);
+        
     }
+}
+
+
+function processGitHubLink(code) {
+    log("[Zk-Auth] GitHub Handshake successful. Unlocking Minting...");
+    const socialHash = ethers.keccak256(ethers.toUtf8Bytes(code));
+    window.lastSocialHash = socialHash;
+    
+    const ghBtn = document.getElementById('btn-github');
+    if (ghBtn) {
+        ghBtn.style.border = "2px solid var(--green)";
+        ghBtn.style.color = "var(--green)";
+        ghBtn.innerHTML = '<i class="fab fa-github"></i> GitHub Linked';
+    }
+    log(`[Zk-Auth] Social Hash Linked: ${socialHash.slice(0,16)}...`);
 }
 
 function checkGitHubCallback() {
@@ -435,6 +470,8 @@ function checkGitHubCallback() {
         window.history.replaceState({}, document.title, window.location.pathname);
     }
 }
+
+        
 
 
         // --- CORE FUNCTIONS ---
@@ -1253,6 +1290,7 @@ function triggerBlink(element, className) {
     </script>
 </body>
 </html>
+
 
 
 

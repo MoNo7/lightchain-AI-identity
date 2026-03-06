@@ -638,44 +638,44 @@ async function registerLocal() {
     unlockFeature('galleryNavItem', 'fas fa-images');
 }
 
-        async function refreshModelDashboard() {
-            try {
-                    const rpcUrl = "https://light-testnet-rpc.lightchain.ai";
-                    
-                    // Use a standard RPC call (eth_syncing or net_listening) instead of /node/health
-                    const response = await fetch(rpcUrl, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            jsonrpc: "2.0",
-                            method: "eth_syncing", 
-                            params: [],
-                            id: 1
-                        })
-                    });
-            
-                    const data = await response.json();
-                    
-                    // If the node responds, it's healthy
-                    const statusEl = document.getElementById('nodeStatus');
-                    if (statusEl) statusEl.innerText = "Online";
-            
-                    // Simulate Load based on Block Gas Limit vs Used (Standard Stress Test metric)
-                    const loadPill = document.getElementById('loadPill');
-                    if (loadPill) {
-                        // Official Testnet Block Gas Limit is 45,000,000
-                        // We use a randomized stress-level for the UI display
-                        const simulatedLoad = (Math.random() * 12 + 2).toFixed(1); 
-                        loadPill.innerText = simulatedLoad + "%";
-                    }
-            
-            } catch (e) {
-                console.warn("RPC Health check failed:", e.message);
-                if (document.getElementById('nodeStatus')) {
-                    document.getElementById('nodeStatus').innerText = "Degraded";
-            }
-    }
+  function refreshModelDashboard() {
+    try {
+        // 1. Target the correct container. 
+        // Update 'modelsContainer' to match the EXACT id in your HTML
+        const container = document.getElementById('modelsContainer') || document.querySelector('.models-list');
+        
+        // If the container isn't on the screen right now, stop safely.
+        if (!container) return; 
+
+        // 2. Ensure your array from line 333 exists
+        if (typeof inferenceModels === 'undefined') {
+            console.warn("[SYS] inferenceModels array not found.");
+            return;
         }
+
+        // 3. Build the HTML dynamically
+        let html = '';
+        inferenceModels.forEach(model => {
+            // Add a little random fluctuation to the load to make it look "live"
+            const simulatedLoad = (parseFloat(model.load) + (Math.random() * 1.5 - 0.5)).toFixed(1) + "%";
+            const statusColor = model.status === 'ONLINE' ? '#39d353' : '#f1e05a';
+
+            html += `
+            <div style="display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #222; font-size: 0.9rem;">
+                <span style="flex: 2; font-weight: bold; color: #c9d1d9;">${model.name}</span>
+                <span style="flex: 1; color: ${statusColor}; font-weight: 600;">${model.status}</span>
+                <span style="flex: 1; color: #c9d1d9;">${simulatedLoad}</span>
+                <span style="flex: 2; font-family: monospace; color: #8b949e; text-align: right;">${model.hash}</span>
+            </div>`;
+        });
+
+        // 4. Inject it into the UI
+        container.innerHTML = html;
+
+    } catch (e) {
+        console.warn("Model Dashboard UI Sync Error:", e.message);
+    }
+}
 
         let activeAuctions = [];
 
@@ -1207,6 +1207,7 @@ function triggerBlink(element, className) {
     </script>
 </body>
 </html>
+
 
 
 

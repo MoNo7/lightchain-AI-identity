@@ -461,18 +461,16 @@ if (addr.toLowerCase() === ownerAddr.toLowerCase()) {
         console.log("[ADMIN] Registry Unlocked");
     }
 }
-        // 2. UNLOCK VERIFIED FEATURES
+// 2. UNLOCK VERIFIED FEATURES
         if (isVerified) {
-            // Safe hide: Check if elements exist before hiding
-            const auth = document.getElementById('authStep');
-            const mint = document.getElementById('mintSection');
-            if (auth) auth.style.display = 'none';
-            if (mint) mint.style.display = 'none';
+            const authStep = document.getElementById('authStep');
+            const mintSection = document.getElementById('mintSection');
+            if (authStep) authStep.style.display = 'none';
+            if (mintSection) mintSection.style.display = 'none';
 
             unlockFeature('artNavItem', 'fas fa-palette');
             unlockFeature('galleryNavItem', 'fas fa-images');
             
-            // Only render passport if the function is defined
             if (typeof renderPassport === 'function') {
                 renderPassport(addr, nick, contract);
             }
@@ -513,8 +511,10 @@ zkView.innerHTML = `
 
 
 async function registerLocal() {
-    const nick = document.getElementById('regNick').value.trim();
-    const did = document.getElementById('regDid').value.trim();
+const nickEl = document.getElementById('regNick');
+    const didEl = document.getElementById('regDid');
+    const nick = nickEl ? nickEl.value.trim() : "";
+    const did = didEl ? didEl.value.trim() : "";
     if (!nick || !userWallet) return log("Error: Name and Wallet required.");
 
     // SAVE TO BROWSER STORAGE
@@ -1066,4 +1066,5 @@ window.onload = async () => {
     </script>
 </body>
 </html>
+
 

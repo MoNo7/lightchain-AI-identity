@@ -472,9 +472,10 @@ async function connect() {
             "function nicknames(address) view returns (string)",
             "function verified(address) view returns (bool)",
             "function isAdmin(address) view returns (bool)",
+            "function imageData(address) view returns (string)"
             "function owner() view returns (address)"
         ], provider);
-
+        const isVerifiedOnChain = await contract.verified(address);
         const [nickname, isVerified, adminStatus, contractOwner] = await Promise.all([
             contract.nicknames(address),
             contract.verified(address),
@@ -490,7 +491,43 @@ async function connect() {
             lockFeature('artNavItem');
             lockFeature('galleryNavItem');
         }
+if (isVerifiedOnChain) {
+            const nick = await contract.nicknames(address);
+            const sbtImg = await contract.imageData(address);
+            
+            // 1. Hide the Registration & Minting boxes
+            document.getElementById('authStep').style.display = 'none';
+            document.getElementById('mintSection').style.display = 'none';
+            
+            // 2. Show the "Verified Passport" View
+            const zkCard = document.querySelector('#zkView div'); 
+            zkCard.innerHTML = `
+                <div style="text-align: center; padding: 20px;">
+                    <h2 style="color: var(--green); margin-bottom: 5px;"><i class="fas fa-check-circle"></i> Identity Verified</h2>
+                    <p style="color: var(--text-dim); font-size: 0.8rem; margin-bottom: 20px;">Your Soulbound Identity is anchored to Testnet-504</p>
+                    
+                    <div style="background: var(--bg); border: 1px solid var(--accent); border-radius: 12px; padding: 20px; display: inline-block; min-width: 300px;">
+                        <img src="${sbtImg}" style="width: 100%; border-radius: 8px; margin-bottom: 15px; border: 1px solid var(--border);">
+                        <div style="font-size: 1.2rem; font-weight: bold; color: var(--accent);">${nick}</div>
+                        <div style="font-size: 0.7rem; color: var(--text-dim); font-family: monospace; margin-top: 5px;">${address}</div>
+                        
+                        <div id="verifiedQR" style="background: white; padding: 10px; border-radius: 8px; margin: 20px auto; width: fit-content; cursor: pointer;" onclick="window.open('https://lightchain.ai/explorer/address/${address}')"></div>
+                        <p style="font-size: 0.6rem; color: var(--text-dim);">Click QR to view on Explorer</p>
+                    </div>
+                </div>
+            `;
+            
+            // Generate the QR Code (pointing to your on-chain identity)
+            new QRCode(document.getElementById("verifiedQR"), {
+                text: `lcai:identity:${address}`,
+                width: 128,
+                height: 128
+            });
 
+            // Unlock the rest of the Portal
+            unlockFeature('artNavItem', 'fas fa-palette');
+            unlockFeature('galleryNavItem', 'fas fa-images');
+        }
         // 2. Check Verified Status (Unlock Auction House)
         if (isVerified) {
             const auctionNav = document.getElementById('marketNavItem');
@@ -507,6 +544,7 @@ async function connect() {
             adminPanel.style.display = 'none';
         }
         loadGallery()
+        
     } catch (e) {
         console.error("Status check failed", e);
         if(artItem) artItem.classList.add('locked-feature');
@@ -1030,6 +1068,7 @@ async function mintWithImage() {
     </script>
 </body>
 </html>
+
 
 
 

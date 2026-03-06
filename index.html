@@ -422,14 +422,14 @@ function checkGitHubCallback() {
         }
 
 async function connect() {
-    const contractOwner = await contract.owner();
-if (address.toLowerCase() === contractOwner.toLowerCase()) {
-    console.log("[SYS] Owner detected. Unlocking Admin Registry.");
-    document.getElementById('adminSection').style.display = 'block'; 
-}
-    if (!window.ethereum) return log("Metamask not found.");
-    
+
     try {
+        if (address.toLowerCase() === contractOwner.toLowerCase()) {
+            console.log("[SYS] Owner detected. Unlocking Admin Registry.");
+            document.getElementById('adminSection').style.display = 'block'; 
+        }
+        if (!window.ethereum) return log("Metamask not found.");
+    
         let providerChoice = window.ethereum;
 
         // FORCE MetaMask if multiple providers (like Coinbase) are present
@@ -445,8 +445,13 @@ if (address.toLowerCase() === contractOwner.toLowerCase()) {
             return log("Error: Coinbase is hijacking. Disable 'Default Wallet' in Coinbase settings.");
         }
 
+        const contractOwner = await contract.owner();
         const provider = new ethers.BrowserProvider(providerChoice);
         const accounts = await provider.send("eth_requestAccounts", []);
+        const address = accounts[0];
+
+        const signer = await provider.getSigner();
+        const contract = new ethers.Contract(CONFIG.contract, CONFIG.abi, signer);
         
         userWallet = ethers.getAddress(accounts[0]);
         document.getElementById('walletBtn').innerText = userWallet.slice(0,6) + "...";
@@ -463,8 +468,9 @@ if (address.toLowerCase() === contractOwner.toLowerCase()) {
             authStep.style.opacity = "1";
             authStep.style.pointerEvents = "auto";
         }
-        
+        console.log("ConnectedL", address);
         log("Connected via MetaMask: " + userWallet);
+        await checkRegistrationStatus(address, contract);
         await checkRegistrationStatus(userWallet);
     } catch(e) { 
         log("Connection failed: " + e.message); 
@@ -1087,6 +1093,7 @@ async function mintWithSocial() {
     </script>
 </body>
 </html>
+
 
 
 

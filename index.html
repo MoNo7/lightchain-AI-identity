@@ -918,7 +918,7 @@ async function registerLocal() {
                     "function socialProvider(address) view returns (string)",
                     "function verified(address) view returns (bool)",
                     "function isAdmin(address) view returns (bool)"
-                ], provider);
+                ], readProvider);
 
                 // Fetch values from individual mappings
                 const name = await contract.nicknames(input);
@@ -1381,6 +1381,7 @@ function triggerBlink(element, className) {
     </script>
 </body>
 </html>
+
 
 
 

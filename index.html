@@ -348,12 +348,6 @@ window.onload = async () => {
             }
         }
 
-const contractOwner = await contract.owner();
-if (userWallet.toLowerCase() === contractOwner.toLowerCase()) {
-    document.getElementById('adminSection').style.display = 'block';
-    document.getElementById('ownerSection').style.display = 'block';
-    console.log("Admin Access Verified");
-}
         
 async function startOAuth(provider) {
     if (provider.toLowerCase() === 'github') {
@@ -459,7 +453,7 @@ try {
             authStep.classList.remove('step-locked');
             authStep.style.opacity = "1";
         }
-    / Check if this wallet is the Owner/Admin
+    // Check if this wallet is the Owner/Admin
         await checkRegistrationStatus(userWallet, contract);
         console.log("Connected Successfully:", userAddress);
     } catch (err) {
@@ -514,19 +508,19 @@ async function renderPassport(addr, nick, contract) {
     if (!img.startsWith("data:image")) img = "data:image/png;base64," + img;
 
     const zkView = document.getElementById('zkView');
-    zkView.innerHTML = `
-        <div style="text-align: center; padding: 40px; background: var(--panel); border-radius: 15px; border: 1px solid var(--green);">
-            <h2 style="color: var(--green);"><i class="fas fa-check-circle"></i> Identity Verified</h2>
-            <div style="margin: 20px auto; width: 300px; border: 2px solid var(--accent); border-radius: 10px; overflow: hidden; background: #000;">
-                <img src="${sbtImg}" style="width: 100%; display: block;">
-                <div style="padding: 15px;">
-                    <div style="font-size: 1.2rem; font-weight: bold; color: var(--accent);">${nickName}</div>
-                    <div style="font-size: 0.7rem; color: var(--text-dim); font-family: monospace;">${address}</div>
-                </div>
+zkView.innerHTML = `
+    <div style="text-align: center; padding: 40px; background: var(--panel); border-radius: 15px; border: 1px solid var(--green);">
+        <h2 style="color: var(--green);"><i class="fas fa-check-circle"></i> Identity Verified</h2>
+        <div style="margin: 20px auto; width: 300px; border: 2px solid var(--accent); border-radius: 10px; overflow: hidden; background: #000;">
+            <img src="${img}" style="width: 100%; display: block;">
+            <div style="padding: 15px;">
+                <div style="font-size: 1.2rem; font-weight: bold; color: var(--accent);">${nick}</div>
+                <div style="font-size: 0.7rem; color: var(--text-dim); font-family: monospace;">${addr}</div>
             </div>
-            <div id="verifiedQR" style="background: white; padding: 10px; border-radius: 8px; margin: 20px auto; width: fit-content; cursor: pointer;" onclick="window.open('https://testnet.lightscan.app/address/${address}')"></div>
         </div>
-    `;
+        <div id="verifiedQR" style="background: white; padding: 10px; border-radius: 8px; margin: 20px auto; width: fit-content; cursor: pointer;" onclick="window.open('https://testnet.lightscan.app/address/${addr}')"></div>
+    </div>
+`;
 
     new QRCode(document.getElementById("verifiedQR"), {
         text: `lcai:id:${address}`,
@@ -1073,4 +1067,5 @@ async function mintWithSocial() {
     </script>
 </body>
 </html>
+
 

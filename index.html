@@ -303,7 +303,18 @@ abi: [
     ]
 };
 
-
+window.onload = async () => {
+    // Start tickers first so they show up regardless of wallet
+    setInterval(updateTickers, 3000);
+    updateTickers(); 
+    
+    // Check if user was already logged in locally
+    const savedUser = localStorage.getItem('lcai_user');
+    if (savedUser) {
+        const user = JSON.parse(savedUser);
+        console.log("Welcome back, " + user.nickname);
+    }
+};
         let userWallet;
         let isRegistered = false;
         
@@ -434,19 +445,24 @@ try {
         const accounts = await provider.send("eth_requestAccounts", []);
         const userAddress = accounts[0];
 
+        window.userWallet = accounts[0];
+    
         const signer = await provider.getSigner();
         const contract = new ethers.Contract(CONFIG.contract, CONFIG.abi, signer);
 
         // Update UI
-        document.getElementById('walletBtn').innerText = userAddress.slice(0, 6) + "...";
+        document.getElementById('walletBtn').innerText = userWallet.slice(0,6) + "...";
         
         // Trigger status check
         await checkRegistrationStatus(userAddress, contract);
+      // Unlock the registration panel
         const authStep = document.getElementById('authStep');
-if (authStep) {
-    authStep.classList.remove('step-locked'); // Removes the dimming effect
-    authStep.style.pointerEvents = 'auto';    // Allows clicking/typing
-}
+        if (authStep) {
+            authStep.classList.remove('step-locked');
+            authStep.style.opacity = "1";
+        }
+    / Check if this wallet is the Owner/Admin
+        await checkRegistrationStatus(userWallet, contract);
         console.log("Connected Successfully:", userAddress);
     } catch (err) {
         console.error("Connection Error:", err.message);
@@ -1059,6 +1075,7 @@ async function mintWithSocial() {
     </script>
 </body>
 </html>
+
 
 
 

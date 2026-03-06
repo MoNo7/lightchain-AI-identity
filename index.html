@@ -326,32 +326,17 @@ window.onload = async () => {
 const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
 
-if (code && window.opener) {
+    // 1. POPUP MODE: If this is the popup, talk to the main window and DIE
+    if (code && window.opener) {
+        // Send the code to the parent window
         window.opener.postMessage({ type: 'GITHUB_OAUTH', code: code }, "*");
+        // Close the popup immediately to prevent it from loading the dashboard
         window.close();
-        return; // Stop execution in the popup
+        return; 
     }
 
-    // IF THIS IS THE MAIN WINDOW: Listen for the code
-    window.addEventListener('message', (event) => {
-        if (event.data && event.data.type === 'GITHUB_OAUTH') {
-            processGitHubLink(event.data.code);
-        }
-    });
-
-    if (window.ethereum) {
-        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-        if (accounts.length > 0) {
-            userWallet = accounts[0];
-            const navBtn = document.getElementById('walletBtn');
-            if (navBtn) navBtn.innerText = `${userWallet.slice(0,6)}...${userWallet.slice(-4)}`;
-            
-            const provider = new ethers.BrowserProvider(window.ethereum);
-            const signer = await provider.getSigner();
-            const contract = new ethers.Contract(CONFIG.contract, CONFIG.abi, signer);
-            checkRegistrationStatus(userWallet, contract);
-        }
-    }
+    // 2. MAIN WINDOW MODE: Restore wallet sync
+    await autoConnectWallet();
 
     setInterval(fetchPrices, 3000);
     setInterval(refreshModelDashboard, 3000);
@@ -455,11 +440,24 @@ async function startOAuth(provider) {
     }
 }
 
+        window.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'GITHUB_OAUTH') {
+        log("[Zk-Auth] Secure payload received from popup.");
+        processGitHubLink(event.data.code);
+    }
+});
 
 function processGitHubLink(code) {
     log("[Zk-Auth] GitHub Handshake successful. Unlocking Minting...");
     const socialHash = ethers.keccak256(ethers.toUtf8Bytes(code));
     window.lastSocialHash = socialHash;
+
+    const ghBtn = document.getElementById('btn-github');
+    if (ghBtn) {
+        ghBtn.style.border = "2px solid var(--green)";
+        ghBtn.style.color = "var(--green)";
+        ghBtn.innerHTML = '<i class="fab fa-github"></i> GitHub Linked';
+    }
 
     const mintSection = document.getElementById('mintSection');
     if (mintSection) {
@@ -468,12 +466,7 @@ function processGitHubLink(code) {
         mintSection.style.pointerEvents = "auto";
     }
     
-    const ghBtn = document.getElementById('btn-github');
-    if (ghBtn) {
-        ghBtn.style.border = "2px solid var(--green)";
-        ghBtn.style.color = "var(--green)";
-        ghBtn.innerHTML = '<i class="fab fa-github"></i> GitHub Linked';
-    }
+
     log(`[Zk-Auth] Social Hash Linked: ${socialHash.slice(0,16)}...`);
 }
 
@@ -1352,6 +1345,7 @@ function triggerBlink(element, className) {
     </script>
 </body>
 </html>
+
 
 
 

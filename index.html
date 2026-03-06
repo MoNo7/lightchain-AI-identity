@@ -565,9 +565,8 @@ async function registerLocal() {
         wallet: userWallet,
         timestamp: Date.now()
     }));
-    document.getElementById('authStep').style.display = 'none';
     // Save and Unlock
-    localStorage.setItem('lcai_user', JSON.stringify({nickname: nick, wallet: userWallet}));
+    //localStorage.setItem('lcai_user', JSON.stringify({nickname: nick, wallet: userWallet}));
     document.getElementById('authStep').style.display = 'none';
 
     unlockFeature('artNavItem', 'fas fa-palette');
@@ -1060,6 +1059,7 @@ async function mintWithSocial() {
     </script>
 </body>
 </html>
+
 
 
 

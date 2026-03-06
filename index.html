@@ -337,7 +337,12 @@ abi: [
             }
         }
 
-
+const contractOwner = await contract.owner();
+if (userWallet.toLowerCase() === contractOwner.toLowerCase()) {
+    document.getElementById('adminSection').style.display = 'block';
+    document.getElementById('ownerSection').style.display = 'block';
+    console.log("Admin Access Verified");
+}
         
 async function startOAuth(provider) {
     if (provider.toLowerCase() === 'github') {
@@ -525,6 +530,14 @@ async function registerLocal() {
     // SAVE TO BROWSER STORAGE
     const profile = { nick, did, wallet: userWallet };
     localStorage.setItem('lcai_profile', JSON.stringify(profile));
+
+    const userData = {
+        nickname: nick,
+        did: did,
+        wallet: userWallet,
+        registered: true,
+        timestamp: Date.now()
+    };
     
     isRegistered = true;
     log(`[Local] Welcome ${nick}! Profile saved for session.`);
@@ -1047,6 +1060,7 @@ async function mintWithSocial() {
     </script>
 </body>
 </html>
+
 
 
 

@@ -481,7 +481,7 @@ async function checkRegistrationStatus(addr, contract) {
         // 1. UNLOCK OWNER/ADMIN SECTION
         if (addr.toLowerCase() === ownerAddr.toLowerCase()) {
             // We target both possible IDs to be safe
-            const adminPanel = document.getElementById('adminSection') || document.getElementById('adminItems');
+            const adminPanel = document.getElementById('adminItems');
             if (adminPanel) {
                 adminPanel.style.display = 'block';
                 adminPanel.style.opacity = '1';
@@ -1072,5 +1072,6 @@ async function mintWithSocial() {
     </script>
 </body>
 </html>
+
 
 

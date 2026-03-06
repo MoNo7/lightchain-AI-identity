@@ -321,6 +321,18 @@ abi: [
 };
 
 window.onload = async () => {
+    // 1. SURGICAL FIX: Detect if this is the Auth Popup
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    
+    if (code && window.opener) {
+        // Send the code to the main window and close this popup immediately
+        window.opener.processGitHubLink(code);
+        window.close();
+        return; // Stop the rest of the script from loading the site in the popup
+    }
+
+    
     // Start tickers first so they show up regardless of wallet
     setInterval(fetchPrices, 3000);
     setInterval(refreshModelDashboard, 3000);
@@ -398,23 +410,7 @@ async function startOAuth(provider) {
         // window.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=user:email`;
 
         // SURGICAL FIX: Open in a popup instead of redirecting the main page
-        const popup = window.open(authUrl, "GitHub Auth", "width=600,height=700");
-
-        const checkPopup = setInterval(() => {
-            try {
-                if (popup.location.href.includes("code=")) {
-                    const urlParams = new URLSearchParams(popup.location.search);
-                    const code = urlParams.get('code');
-                    popup.close();
-                    clearInterval(checkPopup);
-                    
-                    // Manually trigger the callback logic without refreshing the main page
-                    processGitHubLink(code);
-                }
-            } catch (e) { /* Ignore cross-origin errors during auth */ }
-            if (popup.closed) clearInterval(checkPopup);
-        }, 1000);
-        
+        window.open(authUrl, "GitHub Auth", "width=600,height=700");
     }
 }
 
@@ -1290,6 +1286,7 @@ function triggerBlink(element, className) {
     </script>
 </body>
 </html>
+
 
 
 

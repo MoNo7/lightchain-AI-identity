@@ -280,7 +280,7 @@
 const LCAI_TOKEN = "0x9ca8530ca349c966fe9ef903df17a75b8a778927"; // Lightchain AI
 const WETH_TOKEN = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"; // Wrapped Ethereum
 const LCAI_PAIR = "0x0d047a370611437a1b8e6c2a95ea36f69fdda3be";
-const lcaipair = "0x0d047a370611437a1b8e6c2a95ea36f69fdda3be";
+const lcaipair = "0x5B2d46cb1e3451aA3d584f28E714892373D7c7C6";
 const ETH_TOKEN = "0x0000000000000000000000000000000000000000";
 //owner: "0x6378A6993C7C77E4A28f8f263e778401309fD9E4",    
 const CONFIG = {
@@ -290,6 +290,7 @@ owner: "0x4D36B31d4BFB957A5D816B0f420a9e755EFc6a2c",
 LCAI_PAIR : "0x0d047a370611437a1b8e6c2a95ea36f69fdda3be",
 ETH_PAIR : "0x96d4b53a38337a5733179751781178a2613306063c511b78cd02684739288c0a",
 LCAI_TOKEN : "0x9ca8530ca349c966fe9ef903df17a75b8a778927",
+lcaipair : "0x5B2d46cb1e3451aA3d584f28E714892373D7c7C6",
 ETH_TOKEN : "0x0000000000000000000000000000000000000000",
 USDC_TOKEN : "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",  
 WETH_TOKEN : "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
@@ -414,6 +415,7 @@ try {
         const provider = new ethers.BrowserProvider(window.ethereum);
         const accounts = await provider.send("eth_requestAccounts", []);
         userAddress = accounts[0];
+    userWallet = accounts[0]; // This shares the address with the rest of the file
     
         const signer = await provider.getSigner();
         const contract = new ethers.Contract(CONFIG.contract, CONFIG.abi, signer);
@@ -449,16 +451,16 @@ async function checkRegistrationStatus(addr, contract) {
 
         console.log("[SYS] Contract Owner:", ownerAddr);
 
-        // 1. UNLOCK OWNER/ADMIN SECTION (Safe check)
-        if (addr.toLowerCase() === ownerAddr.toLowerCase()) {
-            const adminPanel = document.getElementById('adminSection') || document.getElementById('adminItems');
-            if (adminPanel) {
-                adminPanel.style.display = 'block';
-                adminPanel.style.opacity = '1';
-                console.log("[ADMIN] Registry Unlocked");
-            }
-        }
-
+// 1. UNLOCK OWNER/ADMIN SECTION
+if (addr.toLowerCase() === ownerAddr.toLowerCase()) {
+    // Try both IDs to prevent the crash
+    const adminPanel = document.getElementById('adminSection') || document.getElementById('adminItems');
+    if (adminPanel) {
+        adminPanel.style.display = 'block';
+        adminPanel.style.opacity = '1';
+        console.log("[ADMIN] Registry Unlocked");
+    }
+}
         // 2. UNLOCK VERIFIED FEATURES
         if (isVerified) {
             // Safe hide: Check if elements exist before hiding
@@ -1064,3 +1066,4 @@ window.onload = async () => {
     </script>
 </body>
 </html>
+

@@ -493,7 +493,9 @@ zkView.innerHTML = `
         width: 128,
         height: 128
     });
-}
+    } catch (e) {
+        console.error("Status Check Failed (Possibly contract address mismatch):", e);
+    }
 }
 
 
@@ -1053,6 +1055,7 @@ window.onload = async () => {
     </script>
 </body>
 </html>
+
 
 
 

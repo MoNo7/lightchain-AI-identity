@@ -1057,9 +1057,7 @@ async function mintWithSocial() {
     try {
         const provider = new ethers.BrowserProvider(window.ethereum);
         const signer = await provider.getSigner();
-        const contract = new ethers.Contract(CONFIG.contract, [
-            "function mintWithSocial(string _n, string _d, bytes32 _h) public payable"
-        ], signer);
+        const contract = new ethers.Contract(CONFIG.contract, CONFIG.abi, signer);
 
         const idHash = window.lastSocialHash || ethers.keccak256(ethers.toUtf8Bytes(nick + did + userWallet));
         const isAlreadyVerified = await contract.verified(userWallet);
@@ -1075,7 +1073,7 @@ async function mintWithSocial() {
         await tx.wait();
         log(`[SUCCESS] SBT Minted! Tx: ${tx.hash.slice(0,12)}`);
 
-        checkRegistrationStatus(userWallet);
+        checkRegistrationStatus(userWallet, contract);
     } catch (e) {
         log(`[MINT ERROR] ${e.message}`);
     }
@@ -1248,6 +1246,7 @@ function triggerBlink(element, className) {
     </script>
 </body>
 </html>
+
 
 
 

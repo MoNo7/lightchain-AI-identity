@@ -524,14 +524,31 @@ async function checkRegistrationStatus(addr, contract) {
             if (regInput) regInput.value = nick;
 
             // Hide the registration prompt
+            const dashboardView = document.getElementById('dashboardView'); // Ensure ID matches your main view
             const authStep = document.getElementById('authStep');
+            const passportView = document.getElementById('zkView');
             if (authStep) authStep.style.display = 'none';
 
             // Update the Sidebar or Identity View
             // Since you don't have a 'userGreeting' ID, we update the zk Identity label
             const identityLabel = document.querySelector('.nav-item[onclick*="zkView"]');
-            if (identityLabel) {
-                identityLabel.innerHTML = `<i class="fas fa-fingerprint"></i> ${nick}`;
+            if (identityLabel) identityLabel.innerHTML = `<i class="fas fa-fingerprint"></i> ${nick}`;
+
+            if (authStep) authStep.style.display = 'none';
+            if (dashboardView) dashboardView.style.display = 'none'; // Force the dashboard to hide
+            if (passportView) {
+                passportView.style.display = 'block';
+                passportView.style.opacity = '1';
+            }
+
+            // 3. SAFELY call the render function
+            if (typeof renderPassport === 'function') {
+                if (addr && nick) {
+                    // Pass the correct variables to prevent the "Name and Wallet required" crash
+                    renderPassport(addr, nick, contract);
+                } else {
+                    console.error("Missing data for passport render.");
+                }
             }
 
             // Unlock restricted features
@@ -1190,6 +1207,7 @@ function triggerBlink(element, className) {
     </script>
 </body>
 </html>
+
 
 
 

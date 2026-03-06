@@ -349,6 +349,7 @@ window.onload = async () => {
         }
 
 //const contractOwner = await contract.owner();
+        if (typeof userWallet === 'string' && typeof contractOwner === 'string') {
 if (userWallet.toLowerCase() === contractOwner.toLowerCase()) {
     const adminSection = document.getElementById('adminSection');
         if (adminSection) {
@@ -365,7 +366,10 @@ if (userWallet.toLowerCase() === contractOwner.toLowerCase()) {
     document.getElementById('ownerSection').style.display = 'block';
     console.log("Admin Access Verified");
 }
-
+            } else {
+    // Handle the scenario where one or both are not strings (e.g., undefined)
+    console.error("userWallet or contractOwner is not a string:", { userWallet, contractOwner });
+        }
 async function startOAuth(provider) {
     if (provider.toLowerCase() === 'github') {
         log(`[Zk-Auth] Redirecting to GitHub Secure Gateway...`);
@@ -1086,6 +1090,7 @@ async function mintWithSocial() {
     </script>
 </body>
 </html>
+
 
 
 

@@ -389,8 +389,6 @@ function checkGitHubCallback() {
 
         async function updateTickers() {
     try {
-        const provider = new ethers.JsonRpcProvider("https://testnet-rpc.lightchain.ai");
-        
         // Example logic for LCAI Price
         const provider = new ethers.JsonRpcProvider("https://testnet-rpc.lightchain.ai");
         const pairAbi = ["function getReserves() view returns (uint112, uint112, uint32)"];
@@ -1055,6 +1053,7 @@ window.onload = async () => {
     </script>
 </body>
 </html>
+
 
 
 

@@ -885,6 +885,7 @@ async function registerLocal() {
                 const contract = new ethers.Contract(CONFIG.contract, [
                     "function nicknames(address) view returns (string)",
                     "function dids(address) view returns (string)",
+                    "function socialProvider(address) view returns (string)",
                     "function verified(address) view returns (bool)",
                     "function isAdmin(address) view returns (bool)"
                 ], provider);
@@ -894,6 +895,7 @@ async function registerLocal() {
                 const did = await contract.dids(input);
                 const isVerified = await contract.verified(input);
                 const adminStatus = await contract.isAdmin(input); 
+                const provider = await contract.socialProvider(input);
                 const idHash = await contract.identityHashes(input);
 
                 if (name && name !== "") {
@@ -1158,7 +1160,7 @@ async function mintWithSocial() {
             return checkRegistrationStatus(userWallet, contract);
         }
         log(`[SYS] Minting SBT with Banner Identity...`);
-        const tx = await contract.mintWithSocial(nick, did, idHash, {
+        const tx = await contract.mintWithSocial(nick, did, provider, idHash, {
             value: ethers.parseEther("0.01") 
         });
 
@@ -1349,6 +1351,7 @@ function triggerBlink(element, className) {
     </script>
 </body>
 </html>
+
 
 
 

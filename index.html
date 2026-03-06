@@ -308,6 +308,8 @@ identity: "0x9A07d6a0eF4a8037318a0731E41bd4061f27B172",
 artStudio: "0x666aBe9641727273A1C5Acf0538161887C01dF32",
 RPC: "https://light-testnet-rpc.lightchain.ai",
 abi: [
+        "function isAdmin(address) view returns (bool)",
+        "function isOwner(address) view returns (bool)",
         "function imageData(address) view returns (string)",
         "function mintWithSocial(string, string, bytes32) payable",
         "function nicknames(address) view returns (string)",
@@ -324,28 +326,22 @@ window.onload = async () => {
 const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
 
-    // --- POPUP LOGIC ---
-    if (code) {
-        // Save code so the main window can see it
-        localStorage.setItem('gh_auth_code', code);
-        // Direct call to opener as fallback
-        if (window.opener) {
-            window.opener.postMessage({ type: 'GITHUB_AUTH', code: code }, "*");
-        }
-        window.close();
+    // IF THIS IS THE POPUP
+    if (code && window.opener) {
+        localStorage.setItem('gh_code', code); // Trigger storage event for parent
+        window.opener.processGitHubLink(code); // Attempt direct call
+        window.close(); // Kill popup
         return; 
     }
 
-    // --- MAIN WINDOW LOGIC ---
-    // Listen for the popup's message
-    window.addEventListener('storage', (event) => {
-        if (event.key === 'gh_auth_code' && event.newValue) {
-            processGitHubLink(event.newValue);
-            localStorage.removeItem('gh_auth_code');
+    // IF THIS IS THE MAIN WINDOW: Listen for the code
+    window.addEventListener('storage', (e) => {
+        if (e.key === 'gh_code' && e.newValue) {
+            processGitHubLink(e.newValue);
+            localStorage.removeItem('gh_code');
         }
     });
 
-    // Auto-sync wallet
     await autoConnectWallet();
 
     setInterval(fetchPrices, 3000);
@@ -389,33 +385,26 @@ const urlParams = new URLSearchParams(window.location.search);
             }
         }
 async function autoConnectWallet() {
-    if (window.ethereum) {
-        try {
-            // Silently check for already connected accounts
-            const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-            if (accounts.length > 0) {
-                userWallet = accounts[0];
-                const provider = new ethers.BrowserProvider(window.ethereum);
-                const signer = await provider.getSigner();
-                
-                // Update your UI button (adjust ID if yours is different)
-                const connectBtn = document.querySelector('.connect-btn'); 
-                if (connectBtn) {
-                    connectBtn.innerHTML = `${userWallet.slice(0,6)}...${userWallet.slice(-4)}`;
-                    connectBtn.style.background = "var(--panel)"; // Subtle look when connected
-                    connectBtn.style.color = "var(--accent)";
-                }
-                
-                log(`[SYS] Wallet auto-synced: ${userWallet.slice(0,8)}...`);
-                
-                // Re-verify their identity status
-                const contract = new ethers.Contract(CONFIG.contract, CONFIG.abi, signer);
-                checkRegistrationStatus(userWallet, contract);
-                startBalanceSystems(userWallet);
-            }
-        } catch (e) {
-            console.error("Auto-connect check failed:", e);
+if (!window.ethereum) return;
+    const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+    
+    if (accounts.length > 0) {
+        userWallet = accounts[0];
+        // 1. Update the Nav Button
+        const navBtn = document.getElementById('walletBtn');
+        if (navBtn) {
+            navBtn.innerText = `${userWallet.slice(0,6)}...${userWallet.slice(-4)}`;
+            navBtn.classList.add('connected'); // Optional: add a green glow class
         }
+
+        // 2. Refresh the contract instance
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        const contract = new ethers.Contract(CONFIG.contract, CONFIG.abi, signer);
+        
+        // 3. Sync Identity State
+        checkRegistrationStatus(userWallet, contract);
+        log(`[SYS] Wallet Restored: ${userWallet.slice(0,8)}...`);
     }
 }
         
@@ -1347,6 +1336,7 @@ function triggerBlink(element, className) {
     </script>
 </body>
 </html>
+
 
 
 

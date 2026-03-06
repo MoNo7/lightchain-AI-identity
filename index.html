@@ -448,39 +448,52 @@ async function connect() {
 
 async function checkRegistrationStatus(addr, contract) {
     try {
-        // Fetch values from the blockchain
-        const isVerified = await contract.verified(addr);
-        const ownerAddr = await contract.owner();
-        const nick = await contract.nicknames(addr);
+        // 1. Fetch values from the blockchain
+        // Using Promise.all makes this faster and more reliable
+        const [isVerified, ownerAddr, nick] = await Promise.all([
+            contract.verified(addr),
+            contract.owner(),
+            contract.nicknames(addr)
+        ]);
 
         console.log("[SYS] Contract Owner:", ownerAddr);
         console.log("[SYS] User Verified:", isVerified);
 
-        // 1. UNLOCK OWNER/ADMIN SECTION
+        // 2. UNLOCK OWNER/ADMIN SECTION (Independent Check)
         if (addr.toLowerCase() === ownerAddr.toLowerCase()) {
-            // We target both possible IDs to be safe
-            document.getElementById('adminItems').style.display = 'block';
-            const adminPanel = document.getElementById('adminSection') || document.getElementById('adminItems');
+            const adminPanel = document.getElementById('adminItems') || document.getElementById('adminSection');
             if (adminPanel) {
                 adminPanel.style.display = 'block';
                 adminPanel.style.opacity = '1';
+                // Also unlock the sidebar item specifically if it has a locked class
+                adminPanel.classList.remove('locked-feature'); 
                 console.log("[ADMIN] Registry Unlocked");
             }
         }
 
-        // 2. UNLOCK VERIFIED FEATURES
+        // 3. UNLOCK VERIFIED FEATURES
         if (isVerified) {
-            // Hide the registration boxes
-            if (document.getElementById('authStep')) document.getElementById('authStep').style.display = 'none';
-            if (document.getElementById('mintSection')) document.getElementById('mintSection').style.display = 'none';
+            // Hide registration/minting UI
+            const authStep = document.getElementById('authStep');
+            const mintSection = document.getElementById('mintSection');
+            if (authStep) authStep.style.display = 'none';
+            if (mintSection) mintSection.style.display = 'none';
 
-            // Unlock the Sidebar Nav Items
+            // Unlock Sidebar Nav Items
             unlockFeature('artNavItem', 'fas fa-palette');
             unlockFeature('galleryNavItem', 'fas fa-images');
             
-            // Show the Passport
+            // Show the Passport UI
             renderPassport(addr, nick, contract);
+        } else {
+            // If not verified, ensure the registration step is visible/unlocked for input
+            const authStep = document.getElementById('authStep');
+            if (authStep) {
+                authStep.classList.remove('step-locked');
+                authStep.style.opacity = "1";
+            }
         }
+
     } catch (e) {
         console.error("Status Check Failed:", e);
     }
@@ -517,14 +530,21 @@ zkView.innerHTML = `
 
 
 async function registerLocal() {
-    const nick = document.getElementById('regNick').value.trim();
-    const did = document.getElementById('regDid').value.trim();
-    if (!nick || !userWallet) return log("Error: Name and Wallet required.");
+    // 1. Get elements safely
+    const nickEl = document.getElementById('regNick');
+    const didEl = document.getElementById('regDid');
+    
+    const nick = nickEl ? nickEl.value.trim() : "";
+    // Fallback: If DID is empty, use a standard format with the wallet
+    const did = (didEl && didEl.value.trim()) ? didEl.value.trim() : `did:lcai:${userWallet}`;
 
-    // SAVE TO BROWSER STORAGE
-    const profile = { nick, did, wallet: userWallet };
-    localStorage.setItem('lcai_profile', JSON.stringify(profile));
+    // 2. Strict Validation
+    if (!nick || !userWallet) {
+        log("Error: Name and Wallet required.");
+        return;
+    }
 
+    // 3. Consolidated Data Structure
     const userData = {
         nickname: nick,
         did: did,
@@ -533,21 +553,22 @@ async function registerLocal() {
         timestamp: Date.now()
     };
     
-    // Save to local storage so the site remembers you
-    localStorage.setItem('lcai_user', JSON.stringify({
-        nickname: nick,
-        did: did,
-        wallet: userWallet,
-        timestamp: Date.now()
-    }));
+    // Save to both keys to be safe (since your code references both)
+    localStorage.setItem('lcai_user', JSON.stringify(userData));
+    localStorage.setItem('lcai_profile', JSON.stringify(userData));
     
     isRegistered = true;
-    log(`[Local] Welcome ${nick}! Profile saved for session.`);
+    log(`[Local] Welcome ${nick}! Profile saved.`);
     
-    // UI Transitions
-    unlockFeature('artNavItem', 'fas fa-palette');
-    unlockFeature('galleryNavItem', 'fas fa-images');
+    // 4. UI Transitions - Execute in order
     
+    // Hide the Registration Step
+    const authStep = document.getElementById('authStep');
+    if (authStep) {
+        authStep.style.display = 'none';
+    }
+
+    // Unlock Minting Section
     const mintSection = document.getElementById('mintSection');
     if (mintSection) {
         mintSection.classList.remove('step-locked');
@@ -555,18 +576,16 @@ async function registerLocal() {
         mintSection.style.pointerEvents = "auto";
     }
 
+    // Unlock Sidebar Navs
+    unlockFeature('artNavItem', 'fas fa-palette');
+    unlockFeature('galleryNavItem', 'fas fa-images');
+
+    // Unlock social/minting provider buttons
     document.querySelectorAll('.locked-provider').forEach(btn => {
         btn.classList.remove('locked-provider');
         btn.style.opacity = "1";
         btn.style.cursor = "pointer";
     });
-  
-    // Save and Unlock
-    //localStorage.setItem('lcai_user', JSON.stringify({nickname: nick, wallet: userWallet}));
-    document.getElementById('authStep').style.display = 'none';
-
-    unlockFeature('artNavItem', 'fas fa-palette');
-    unlockFeature('galleryNavItem', 'fas fa-images');
 }
 
         async function refreshModelDashboard() {
@@ -1070,3 +1089,4 @@ window.onload = async () => {
     </script>
 </body>
 </html>
+

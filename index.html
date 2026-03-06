@@ -453,8 +453,6 @@ try {
         // Update UI
         document.getElementById('walletBtn').innerText = userWallet.slice(0,6) + "...";
         
-        // Trigger status check
-        await checkRegistrationStatus(userAddress, contract);
       // Unlock the registration panel
         const authStep = document.getElementById('authStep');
         if (authStep) {
@@ -1075,21 +1073,4 @@ async function mintWithSocial() {
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

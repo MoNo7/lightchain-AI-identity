@@ -880,7 +880,7 @@ async function registerLocal() {
 
             log(`Querying Registry: ${input}`);
             try {
-                const provider = new ethers.BrowserProvider(window.ethereum);
+               // const provider = new ethers.BrowserProvider(window.ethereum);
                 // Updated ABI to match your actual contract mappings
                 const contract = new ethers.Contract(CONFIG.contract, [
                     "function nicknames(address) view returns (string)",
@@ -1351,6 +1351,7 @@ function triggerBlink(element, className) {
     </script>
 </body>
 </html>
+
 
 
 

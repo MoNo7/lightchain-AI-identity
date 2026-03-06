@@ -292,7 +292,14 @@ LCAI_TOKEN : "0x9ca8530ca349c966fe9ef903df17a75b8a778927",
 ETH_TOKEN : "0x0000000000000000000000000000000000000000",
 USDC_TOKEN : "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",  
 WETH_TOKEN : "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
-abi: ["function mintWithSocial(string n, string d, bytes32 h, string i) public payable"]
+abi: [
+        "function mintWithSocial(string _n, string _d, bytes32 _h, string _img) public payable",
+        "function nicknames(address) view returns (string)",
+        "function verified(address) view returns (bool)",
+        "function imageData(address) view returns (string)",
+        "function owner() view returns (address)",
+        "function tokenURI(uint256) view returns (string)"
+    ]
 };
 
 
@@ -1068,6 +1075,7 @@ async function mintWithImage() {
     </script>
 </body>
 </html>
+
 
 
 

@@ -446,31 +446,42 @@ try {
 
         
 
-   async function checkRegistrationStatus(addr, contract) {
+async function checkRegistrationStatus(addr, contract) {
     try {
-        const [isVerified, nickname, ownerAddr] = await Promise.all([
-            contract.verified(addr),
-            contract.nicknames(addr),
-            contract.owner()
-        ]);
+        // Fetch values from the blockchain
+        const isVerified = await contract.verified(addr);
+        const ownerAddr = await contract.owner();
+        const nick = await contract.nicknames(addr);
 
-        if (isVerified) {
-            // Unlock Features
-            document.getElementById('artNavItem').classList.remove('locked-feature');
-            document.getElementById('galleryNavItem').classList.remove('locked-feature');
-            
-            // Hide Registration UI
-            if (document.getElementById('authStep')) document.getElementById('authStep').style.display = 'none';
-            
-            // Show Passport UI (Call a standalone function)
-            renderPassport(addr, nickname, contract);
+        console.log("[SYS] Contract Owner:", ownerAddr);
+        console.log("[SYS] User Verified:", isVerified);
+
+        // 1. UNLOCK OWNER/ADMIN SECTION
+        if (addr.toLowerCase() === ownerAddr.toLowerCase()) {
+            // We target both possible IDs to be safe
+            const adminPanel = document.getElementById('adminSection') || document.getElementById('adminItems');
+            if (adminPanel) {
+                adminPanel.style.display = 'block';
+                adminPanel.style.opacity = '1';
+                console.log("[ADMIN] Registry Unlocked");
+            }
         }
 
-        if (addr.toLowerCase() === ownerAddr.toLowerCase()) {
-            document.getElementById('adminSection').style.display = 'block';
+        // 2. UNLOCK VERIFIED FEATURES
+        if (isVerified) {
+            // Hide the registration boxes
+            if (document.getElementById('authStep')) document.getElementById('authStep').style.display = 'none';
+            if (document.getElementById('mintSection')) document.getElementById('mintSection').style.display = 'none';
+
+            // Unlock the Sidebar Nav Items
+            unlockFeature('artNavItem', 'fas fa-palette');
+            unlockFeature('galleryNavItem', 'fas fa-images');
+            
+            // Show the Passport
+            renderPassport(addr, nick, contract);
         }
     } catch (e) {
-        console.warn("Status check failed - check your contract address.");
+        console.error("Status Check Failed:", e);
     }
 }
 
@@ -1018,6 +1029,7 @@ async function mintWithSocial() {
     </script>
 </body>
 </html>
+
 
 
 

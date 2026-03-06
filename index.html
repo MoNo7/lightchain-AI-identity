@@ -345,33 +345,41 @@ function checkGitHubCallback() {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
     
-    // 1. ALWAYS check for a saved profile first to restore the UI
+    // Check for saved profile to restore "MiMo"
     const savedProfile = localStorage.getItem('lcai_profile');
     if (savedProfile) {
         const profile = JSON.parse(savedProfile);
         document.getElementById('regNick').value = profile.nick;
         document.getElementById('regDid').value = profile.did;
-        
-        // This unlocks the buttons so they aren't blank/locked
-        registerLocal(); 
-        
-        // Force the view to stay on zk Identity instead of jumping to Dashboard
-        showView('zkView'); 
+        registerLocal(); // This handles the first level of unlocking
     }
 
     if (code) {
-        log("[Zk-Auth] GitHub Handshake successful!");
+        log("[Zk-Auth] GitHub Handshake detected. Unlocking Minting...");
+        
+        // MANUALLY UNLOCK THE MINT SECTION
+        const mintSection = document.getElementById('mintSection');
+        if (mintSection) {
+            mintSection.classList.remove('step-locked');
+            mintSection.style.opacity = "1";
+            mintSection.style.pointerEvents = "auto";
+        }
+
         const socialHash = ethers.keccak256(ethers.toUtf8Bytes(code));
         window.lastSocialHash = socialHash;
         
         const ghBtn = document.getElementById('btn-github');
-        if(ghBtn) ghBtn.style.border = "2px solid var(--green)";
+        if(ghBtn) {
+            ghBtn.style.border = "2px solid var(--green)";
+            ghBtn.innerHTML = '<i class="fab fa-github"></i> GitHub Linked';
+        }
         
         log(`[Zk-Auth] Social Hash Linked: ${socialHash.slice(0,16)}...`);
-        // Clean the URL so a refresh doesn't trigger this again
         window.history.replaceState({}, document.title, window.location.pathname);
     }
 }
+
+        
         // --- CORE FUNCTIONS ---
       async function fetchPrices() {
         try {
@@ -1022,6 +1030,7 @@ async function mintWithImage() {
     </script>
 </body>
 </html>
+
 
 
 

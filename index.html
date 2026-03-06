@@ -293,7 +293,7 @@ ETH_TOKEN : "0x0000000000000000000000000000000000000000",
 USDC_TOKEN : "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",  
 WETH_TOKEN : "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
 abi: [
-        "function mintWithSocial(string _n, string _d, bytes32 _h) public payable",
+        "function mintWithSocial(string , string , bytes32 ) public payable",
         "function nicknames(address) view returns (string)",
         "function verified(address) view returns (bool)",
         "function imageData(address) view returns (string)",
@@ -348,7 +348,27 @@ window.onload = async () => {
             }
         }
 
-
+async function updateUI(addr) {
+    try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        
+        // 1. Get the native LCAI balance (in Wei)
+        const balanceWei = await provider.getBalance(addr);
+        
+        // 2. Format to human-readable (18 decimals)
+        const balanceFormatted = ethers.formatEther(balanceWei);
+        
+        // 3. Update the specific Pill ID from your HTML
+        const balancePill = document.getElementById('balancePill');
+        if (balancePill) {
+            // We parse to float and back to string to show only 2 decimal places
+            balancePill.innerText = parseFloat(balanceFormatted).toFixed(2) + " LCAI";
+            console.log("Balance Sync Success:", balanceFormatted);
+        }
+    } catch (e) {
+        console.error("Balance Update Error:", e);
+    }
+}
         
 async function startOAuth(provider) {
     if (provider.toLowerCase() === 'github') {
@@ -433,7 +453,7 @@ function checkGitHubCallback() {
         }
         }
 
-
+        
 async function connect() {
 try {
         if (!window.ethereum) return alert("MetaMask not found!");
@@ -443,6 +463,7 @@ try {
         const userAddress = accounts[0];
 
         userWallet = accounts[0];
+        updateUI(userWallet);
         document.getElementById('walletBtn').innerText = userWallet.slice(0,6) + "...";
         const signer = await provider.getSigner();
         const contract = new ethers.Contract(CONFIG.contract, CONFIG.abi, signer);
@@ -1119,6 +1140,7 @@ async function mintWithSocial() {
     </script>
 </body>
 </html>
+
 
 
 

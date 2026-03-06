@@ -331,7 +331,7 @@ window.onload = async () => {
         // Push the code back to your main dashboard
         window.opener.processGitHubLink(code);
         // Immediately kill the popup window
-        window.close();
+        setTimeout(() => { window.close(); }, 100);
         return; // Prevent the popup from running anything else
     }
 
@@ -1297,6 +1297,7 @@ function triggerBlink(element, className) {
     </script>
 </body>
 </html>
+
 
 
 

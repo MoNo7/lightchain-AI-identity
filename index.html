@@ -442,14 +442,19 @@ try {
         const accounts = await provider.send("eth_requestAccounts", []);
         const userAddress = accounts[0];
 
-        window.userWallet = accounts[0];
-
+        userWallet = accounts[0];
+        document.getElementById('walletBtn').innerText = userWallet.slice(0,6) + "...";
         const signer = await provider.getSigner();
         const contract = new ethers.Contract(CONFIG.contract, CONFIG.abi, signer);
 
-        // Update UI
-        document.getElementById('walletBtn').innerText = userWallet.slice(0,6) + "...";
 
+    const isVerified = await contract.verified(userWallet);
+        if (isVerified) {
+            document.querySelectorAll('.locked-feature').forEach(el => {
+                el.classList.remove('locked-feature');
+                el.style.opacity = "1";
+            });
+        }
         // Trigger status check
         await checkRegistrationStatus(userAddress, contract);
       // Unlock the registration panel
@@ -1086,4 +1091,5 @@ async function mintWithSocial() {
     </script>
 </body>
 </html>
+
 

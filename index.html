@@ -940,10 +940,7 @@ async function registerLocal() {
                     });
                     const status = isVerified ? "VERIFIED" : "PENDING";
                     const adminTag = adminStatus ? " <span style='color:var(--accent)'>[ADMIN]</span>" : "";
-                    res.innerHTML = `
-                    <span style="color:var(--green)">${status}:</span> ${name} (${did})${adminTag}(${providerName})
-                    <br><span style="color:var(--text-dim); font-size:0.75rem;">Member Since: ${formattedDate}</span>
-                    `;
+                    res.innerHTML = `<span style="color:var(--green)">${status}:</span> ${name} (${did})${adminTag}(${providerName})<span style="color:var(--text-dim); font-size:0.75rem;">Member Since: ${formattedDate}</span>`;
                     log(`Match Found: ${name} is ${status}`);
                 } else {
                     res.innerHTML = `<span style="color:var(--red)">NOT FOUND</span>`;
@@ -1393,6 +1390,7 @@ function triggerBlink(element, className) {
     </script>
 </body>
 </html>
+
 
 
 

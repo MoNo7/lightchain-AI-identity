@@ -321,40 +321,14 @@ abi: [
 };
 
 window.onload = async () => {
-// ==========================================
-    // 1. POPUP TERMINATOR: Runs ONLY in the popup
-    // ==========================================
+// 1. Handle OAuth Popups first to prevent loops
     const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get('code');
-
-    if (code) {
-        // Drop the code in local storage for the parent window to find
-        localStorage.setItem('oauth_code_transfer', code);
-        
-        // Force close the popup immediately
-        window.close(); 
-        
-        // Fallback in case the browser blocks window.close()
-        document.body.innerHTML = "<h3 style='color:var(--green); text-align:center; padding:50px;'>Auth successful! Closing window...</h3>";
-        return; // CRITICAL: Stops the popup from running any dashboard logic
+    if (urlParams.get('code') && window.opener) {
+        window.opener.postMessage({ type: 'GITHUB_AUTH', code: urlParams.get('code') }, "*");
+        window.close();
+        return; 
     }
 
-    // ==========================================
-    // 2. MAIN WINDOW LOGIC: Runs ONLY in the parent
-    // ==========================================
-    
-    // Listen for the popup dropping the code into storage
-    window.addEventListener('storage', (event) => {
-        if (event.key === 'oauth_code_transfer' && event.newValue) {
-            log("[Zk-Auth] Secure handshake received from popup.");
-            
-            // Run the UI update on the MAIN window
-            processGitHubLink(event.newValue);
-            
-            // Clean up the storage so it's ready for next time
-            localStorage.removeItem('oauth_code_transfer'); 
-        }
-    });
 
     // Restore previous sessions 
     const savedUser = localStorage.getItem('lcai_user');
@@ -425,6 +399,7 @@ async function autoConnectWallet() {
                 // Re-verify their identity status
                 const contract = new ethers.Contract(CONFIG.contract, CONFIG.abi, signer);
                 checkRegistrationStatus(userWallet, contract);
+                startBalanceSystems(userWallet);
             }
         } catch (e) {
             console.error("Auto-connect check failed:", e);
@@ -1349,3 +1324,4 @@ function triggerBlink(element, className) {
     </script>
 </body>
 </html>
+

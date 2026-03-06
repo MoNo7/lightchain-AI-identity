@@ -1054,14 +1054,15 @@ window.onload = async () => {
         
         
         // Init
-        setInterval(fetchPrices, 5000);
+        setInterval(updateTickers, 5000);
         setInterval(refreshModelDashboard, 3000);
-        fetchPrices();
+        updateTickers();
         refreshModelDashboard();
         checkGitHubCallback();
     </script>
 </body>
 </html>
+
 
 
 

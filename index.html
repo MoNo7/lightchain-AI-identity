@@ -541,13 +541,20 @@ async function checkRegistrationStatus(addr, contract) {
         const nick = await contract.nicknames(addr);
 
         if (isVerified && nick) {
-            log(`[IAM] Identity Found: ${nick}. Transitioning to Passport...`);
-
-            // 1. SURGICAL UI WIPE: Remove the registration/mint boxes
             const authStep = document.getElementById('authStep');
             const mintSection = document.getElementById('mintSection');
             if (authStep) authStep.style.display = 'none';
             if (mintSection) mintSection.style.display = 'none';
+
+            
+            log(`[IAM] Identity Found: ${nick}. Transitioning to Passport...`);
+
+            // 1. Force hide registration boxes
+            ['authStep', 'mintSection'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = 'none';
+            });
+
 
             // 2. VIEW SWITCH: Ensure zkView is the active main container
             showView('zkView');
@@ -557,6 +564,13 @@ async function checkRegistrationStatus(addr, contract) {
                     renderPassport(addr, nick, contract);
                 }, 100);
             }
+
+            // 4. Reveal Admin menu if owner
+            if (addr.toLowerCase() === CONFIG.owner.toLowerCase()) {
+                const adminMenu = document.getElementById('adminItems');
+                if (adminMenu) adminMenu.style.setProperty('display', 'block', 'important');
+            }
+        
             // 4. SIDEBAR SYNC: Update the label to "MiMo"
             const identityLabel = document.querySelector('.nav-item[onclick*="zkView"]');
             if (identityLabel) {
@@ -1146,24 +1160,19 @@ async function mintWithSocial() {
         }
 
 function showView(id) {
-    // 1. Hide all views
+    // Hide all views
     document.querySelectorAll('main > div').forEach(v => v.style.display = 'none');
     
-    // 2. Show target view
+    // Show target view
     const target = document.getElementById(id);
     if (target) target.style.display = 'block';
 
-    // 3. Update Sidebar Active State Safely
+    // Update Sidebar state safely
     document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
     
-    // Only try to highlight the sidebar if this was a manual click
-    if (window.event && window.event.currentTarget && window.event.currentTarget.classList) {
-        window.event.currentTarget.classList.add('active');
-    } else {
-        // Find the sidebar item that matches this view and highlight it
-        const navItem = document.querySelector(`.nav-item[onclick*="${id}"]`);
-        if (navItem) navItem.classList.add('active');
-    }
+    // Highlight sidebar item even if called via script
+    const navItem = document.querySelector(`.nav-item[onclick*="${id}"]`);
+    if (navItem) navItem.classList.add('active');
 }
 
         function log(m) {
@@ -1245,6 +1254,7 @@ function triggerBlink(element, className) {
     </script>
 </body>
 </html>
+
 
 
 

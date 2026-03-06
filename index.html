@@ -526,7 +526,9 @@ async function connect() {
 if (isVerifiedOnChain) {
             const nick = await contract.nicknames(address);
             const sbtImg = await contract.imageData(address);
-            
+
+            unlockFeature('artNavItem', 'fas fa-palette');
+            unlockFeature('galleryNavItem', 'fas fa-images');
             // 1. Hide the Registration & Minting boxes
             document.getElementById('authStep').style.display = 'none';
             document.getElementById('mintSection').style.display = 'none';
@@ -535,10 +537,12 @@ if (isVerifiedOnChain) {
             document.getElementById('zkView').querySelector('.social-grid')
             document.getElementById('authStep').parentElement.style.display = 'none';
             document.querySelector('.social-grid').parentElement.parentElement.style.display = 'none';
-
-    showPassportUI();
+// Render the Passport QR if we are in the zkView
+            renderPassportUI(userAddress, nickname);
           // 2. Show the Metadata + Clickable QR Code
+function renderPassportUI(address, nickName) {
     const zkContainer = document.getElementById('zkView');
+    if (!zkContainer) return;
     zkContainer.innerHTML = `
         <div style="text-align: center; padding: 40px; background: var(--panel); border-radius: 15px; border: 1px solid var(--green);">
             <h2 style="color: var(--green);"><i class="fas fa-check-circle"></i> Identity Verified</h2>
@@ -560,7 +564,7 @@ if (isVerifiedOnChain) {
         width: 128,
         height: 128
     });
-
+}
 
             // Unlock the rest of the Portal
             unlockFeature('artNavItem', 'fas fa-palette');
@@ -1118,6 +1122,7 @@ async function mintWithSocial() {
     </script>
 </body>
 </html>
+
 
 
 

@@ -511,60 +511,34 @@ try {
 
 async function checkRegistrationStatus(addr, contract) {
     try {
-        // Fetch values from the blockchain
         const isVerified = await contract.verified(addr);
-        const ownerAddr = await contract.owner();
         const nick = await contract.nicknames(addr);
 
-        console.log("[SYS] Contract Owner:", ownerAddr);
-        console.log("[SYS] User Verified:", isVerified);
-
-        // 1. UNLOCK OWNER/ADMIN SECTION
-        if (addr.toLowerCase() === ownerAddr.toLowerCase()) {
-            // We target both possible IDs to be safe
-            const adminPanel = document.getElementById('adminItems');
-            if (adminPanel) {
-                adminPanel.style.display = 'block';
-                adminPanel.style.opacity = '1';
-                console.log("[ADMIN] Registry Unlocked");
-            }
-        }
-
-        // 2. UNLOCK VERIFIED FEATURES
-        if (isVerified) {
-            console.log("PoI Identity Verified for:", nickname);
+        if (isVerified && nick) {
+            console.log("[IAM] Verified Identity Found:", nick);
             
-            // 1. Force hide the registration container
-            const registrationBox = document.getElementById('authStep');
-            if (registrationBox) registrationBox.style.display = 'none';
+            // Populate nickname inputs so the user sees their current name
+            const nickInput = document.getElementById('nickName');
+            const regInput = document.getElementById('regNick');
+            if (nickInput) nickInput.value = nick;
+            if (regInput) regInput.value = nick;
 
-            // 2. Reveal the Passport/Identity container
-            const passportUI = document.getElementById('passportSection') || document.getElementById('zkView');
-            if (passportUI) {
-                passportUI.style.display = 'block';
-                passportUI.classList.add('fade-in');
+            // Hide the registration prompt
+            const authStep = document.getElementById('authStep');
+            if (authStep) authStep.style.display = 'none';
+
+            // Update the Sidebar or Identity View
+            // Since you don't have a 'userGreeting' ID, we update the zk Identity label
+            const identityLabel = document.querySelector('.nav-item[onclick*="zkView"]');
+            if (identityLabel) {
+                identityLabel.innerHTML = `<i class="fas fa-fingerprint"></i> ${nick}`;
             }
 
-            // 3. Unlock the sidebar items
-            document.querySelectorAll('.locked-feature').forEach(item => {
-                item.classList.remove('locked-feature');
-                item.style.pointerEvents = 'auto';
-                item.style.opacity = '1';
-            });
-
-            // 4. Update the Greeting
-            const greet = document.getElementById('userGreeting');
-            if (greet) greet.innerText = `Agent: ${nickname}`;
+            // Unlock restricted features
+            unlockArtStudio(); 
         }
-            // Unlock the Sidebar Nav Items
-            unlockFeature('artNavItem', 'fas fa-palette');
-            unlockFeature('galleryNavItem', 'fas fa-images');
-
-            // Show the Passport
-            renderPassport(addr, nick, contract);
-        
     } catch (e) {
-        console.error("Status Check Failed:", e);
+        console.error("Nickname sync failed:", e);
     }
 }
 
@@ -1039,7 +1013,11 @@ async function mintWithSocial() {
         ], signer);
 
         const idHash = window.lastSocialHash || ethers.keccak256(ethers.toUtf8Bytes(nick + did + userWallet));
-
+        const isAlreadyVerified = await contract.verified(userWallet);
+        if (isAlreadyVerified) {
+            log("[SYS] Identity already verified on-chain. Updating local view...");
+            return checkRegistrationStatus(userWallet, contract);
+        }
         log(`[SYS] Minting SBT with Banner Identity...`);
         const tx = await contract.mintWithSocial(nick, did, idHash, {
             value: ethers.parseEther("0.01") 
@@ -1211,6 +1189,7 @@ function triggerBlink(element, className) {
     </script>
 </body>
 </html>
+
 
 
 

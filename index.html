@@ -479,7 +479,9 @@ async function connect() {
 
         
 
-        async function checkRegistrationStatus(address) {
+        async function checkRegistrationStatus(address, contract) {
+    const isVerified = await contract.verified(address);
+    const contractOwner = await contract.owner();        
     const artItem = document.getElementById('artNavItem');
     const galleryItem = document.getElementById('galleryNavItem');
     const adminPanel = document.getElementById('adminItems');
@@ -558,6 +560,13 @@ if (isVerifiedOnChain) {
             const auctionNav = document.getElementById('marketNavItem');
             if(auctionNav) auctionNav.classList.remove('locked-feature');
             log("[SYS] Verified Role: Full Marketplace access granted.");
+            // Unlock Studio and Gallery
+        unlockFeature('artNavItem', 'fas fa-palette');
+        unlockFeature('galleryNavItem', 'fas fa-images');
+        
+        // Hide Minting Box, Show Registry management
+        document.getElementById('mintSection').style.display = 'none';
+        document.getElementById('registrySection').style.display = 'block';
         } else {
             if (auctionBtn) auctionBtn.style.display = 'none';
         }
@@ -568,6 +577,11 @@ if (isVerifiedOnChain) {
         } else {
             adminPanel.style.display = 'none';
         }
+        // Check if current user is the Contract Owner (Admin)
+    if (address.toLowerCase() === contractOwner.toLowerCase()) {
+        document.getElementById('adminSection').style.display = 'block';
+        console.log("Admin Access Granted");
+    }
         loadGallery()
         
     } catch (e) {
@@ -1093,6 +1107,7 @@ async function mintWithSocial() {
     </script>
 </body>
 </html>
+
 
 
 

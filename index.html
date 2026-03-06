@@ -295,7 +295,6 @@ const LCAI_PAIR = "0x0d047a370611437a1b8e6c2a95ea36f69fdda3be";
 const ETH_TOKEN = "0x0000000000000000000000000000000000000000";
 //owner: "0x6378A6993C7C77E4A28f8f263e778401309fD9E4",    
 const CONFIG = {
-contract: "0xf6b5DeAb48934622c8a32D9374830E2401E9a12F",
 address: "0xf6b5DeAb48934622c8a32D9374830E2401E9a12F",
 owner: "0x4D36B31d4BFB957A5D816B0f420a9e755EFc6a2c",    
 LCAI_PAIR : "0x0d047a370611437a1b8e6c2a95ea36f69fdda3be",
@@ -304,14 +303,20 @@ LCAI_TOKEN : "0x9ca8530ca349c966fe9ef903df17a75b8a778927",
 ETH_TOKEN : "0x0000000000000000000000000000000000000000",
 USDC_TOKEN : "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",  
 WETH_TOKEN : "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+contract: "0xf6b5DeAb48934622c8a32D9374830E2401E9a12F", // ZK KYC
+identity: "0x9A07d6a0eF4a8037318a0731E41bd4061f27B172",
+artStudio: "0x666aBe9641727273A1C5Acf0538161887C01dF32",
+RPC: "https://light-testnet-rpc.lightchain.ai",
 abi: [
-        "function mintWithSocial(string , string , bytes32 ) public payable",
+        "function imageData(address) view returns (string)",
+        "function mintWithSocial(string, string, bytes32) payable",
         "function nicknames(address) view returns (string)",
         "function verified(address) view returns (bool)",
-        "function imageData(address) view returns (string)",
-        "function owner() view returns (address)",
         "function base64Image() view returns (string)",
-        "function tokenURI(uint256) view returns (string)"
+        "function removeSBT(address _u) public",
+        "function withdraw() public",
+        "function owner() view returns (address)"
+
     ]
 };
 
@@ -548,8 +553,10 @@ async function checkRegistrationStatus(addr, contract) {
             showView('zkView');
 
             // 3. PASSPORT RENDER: Inject the actual Identity Card
-            renderPassport(addr, nick, contract);
-
+            setTimeout(() => {
+                    renderPassport(addr, nick, contract);
+                }, 100);
+            }
             // 4. SIDEBAR SYNC: Update the label to "MiMo"
             const identityLabel = document.querySelector('.nav-item[onclick*="zkView"]');
             if (identityLabel) {
@@ -1138,12 +1145,26 @@ async function mintWithSocial() {
             }
         }
 
-        function showView(id) {
-            document.querySelectorAll('main > div').forEach(v => v.style.display = 'none');
-            document.getElementById(id).style.display = 'block';
-            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-            event.currentTarget.classList.add('active');
-        }
+function showView(id) {
+    // 1. Hide all views
+    document.querySelectorAll('main > div').forEach(v => v.style.display = 'none');
+    
+    // 2. Show target view
+    const target = document.getElementById(id);
+    if (target) target.style.display = 'block';
+
+    // 3. Update Sidebar Active State Safely
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    
+    // Only try to highlight the sidebar if this was a manual click
+    if (window.event && window.event.currentTarget && window.event.currentTarget.classList) {
+        window.event.currentTarget.classList.add('active');
+    } else {
+        // Find the sidebar item that matches this view and highlight it
+        const navItem = document.querySelector(`.nav-item[onclick*="${id}"]`);
+        if (navItem) navItem.classList.add('active');
+    }
+}
 
         function log(m) {
             const c = document.getElementById('console');
@@ -1224,6 +1245,7 @@ function triggerBlink(element, className) {
     </script>
 </body>
 </html>
+
 
 
 

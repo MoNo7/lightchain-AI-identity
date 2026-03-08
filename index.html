@@ -1189,12 +1189,13 @@ async function generateAIVMArt() {
 
         // 1. Initialize the Art Contract
         const artContract = new ethers.Contract(CONFIG.artStudio, [
-            "function generateArt(string calldata prompt) public payable"
+             "function mintArtNFT(string memory _tokenURI, string memory _model, string memory _hint) public payable returns (uint256)"
         ], signer);
         
         // 2. Capture the transaction (Crucial: tx must be defined here!)
-        const tx = await artContract.generateArt(finalPrompt, { 
-            value: ethers.parseEther("0.25") 
+        const tx = await artContract.mintArtNFT(encryptedData, model, hint, {
+            value: ethers.parseEther("0.25"),
+            gasLimit: 10000000
         });
         // 2. Send the actual Art Request to the Art Studio Contract
 //        const artContract = new ethers.Contract(CONFIG.artStudio, [
@@ -1239,8 +1240,8 @@ async function generateAIVMArt() {
             mainCtx.fillText("LCAI-MiMo © 2026", 750, 985);
             
             // Bottom Left: The Model Name
-            const modelName = document.getElementById('aivmModelSelect').value;
-            ctx.fillText(`AIVM AUTH: ${modelName}`, 40, 950);
+   //         const modelName = document.getElementById('aivmModelSelect').value;
+       //     ctx.fillText(`AIVM AUTH: ${modelName}`, 40, 950);
             
             // Bottom Right: Your Brand Signature
             ctx.font = "italic 25px Arial";
@@ -1669,6 +1670,7 @@ function triggerBlink(element, className) {
     </script>
 </body>
 </html>
+
 
 
 

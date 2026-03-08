@@ -888,25 +888,22 @@ async function registerLocal() {
             const grid = document.getElementById('auctionGrid');
             const empty = document.getElementById('auctionEmpty');
 
-            if (activeAuctions.length > 0) empty.style.display = 'none';
-
-            grid.innerHTML = activeAuctions.map(a => `
-                <div class="card" style="margin:0; padding:15px; border-color:var(--border);">
-                    <img src="${a.image}" style="width:100%; border-radius:8px; margin-bottom:10px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span style="font-weight:bold; color:var(--accent);">${a.name}</span>
-                        <span style="font-size:0.7rem; color:var(--text-dim);">By: ${a.seller.slice(0,6)}</span>
+        grid.innerHTML = activeAuctions.map(a => {
+                const isExpired = now > a.endTime;
+                const statusText = isExpired ? "EXPIRED - NO BIDS" : "ACTIVE AUCTION";
+                const btnText = isExpired ? "RECLAIM NFT" : "PLACE BID";
+                const btnColor = isExpired ? "var(--text-dim)" : "var(--accent)";
+        
+                return `
+                    <div class="card" style="opacity: ${isExpired ? '0.6' : '1'}">
+                        <img src="${a.image}" style="width:100%;">
+                        <div style="color:var(--accent)">${statusText}</div>
+                        <button class="btn-zk" onclick="${isExpired ? `reclaimNFT(${a.id})` : "log('Bid coming soon')"}">
+                            ${btnText}
+                        </button>
                     </div>
-                    <div style="margin:10px 0; font-family:monospace;">
-                        <div style="font-size:0.7rem; color:var(--text-dim);">CURRENT BID</div>
-                        <div style="color:var(--green); font-size:1.2rem;">${a.price} LCAI</div>
-                    </div>
-                    <button class="btn-zk" onclick="log('Bid functionality coming in v2 Update')">PLACE BID</button>
-                    <div style="text-align:center; font-size:0.6rem; color:var(--red); margin-top:8px;">
-                        <i class="fas fa-clock"></i> ENDS IN 23h 59m
-                    </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
 
@@ -1575,5 +1572,6 @@ function triggerBlink(element, className) {
     </script>
 </body>
 </html>
+
 
 

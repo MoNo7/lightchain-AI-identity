@@ -5,6 +5,7 @@
     <title>Lightchain AI | IAM Admin Portal</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root { --bg: #030406; --sidebar: #0a0c10; --accent: #00f2ff; --text: #c9d1d9; --text-dim: #484f58; --border: #1b1f24; --panel: #0d1117; --green: #39d353; --red: #ff4444; }
@@ -312,6 +313,7 @@ WETH_TOKEN : "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
 contract: "0x87188af8d112AAaF52Fe203568de0d3F36714987", // ZK KYC
 identity: "0x9A07d6a0eF4a8037318a0731E41bd4061f27B172",
 artStudio: "0xD633C12bBE47bc5405A1dAca73b6Db1BA7Da0217",
+auctionHouse: "0xYOUR_NEW_AUCTION_HOUSE_ADDRESS",    
 RPC: "https://light-testnet-rpc.lightchain.ai",
 abi: [
         "function isAdmin(address) view returns (bool)",
@@ -350,6 +352,43 @@ abi: [
         throw new Error("OAuth Redirect Detected: Closing Popup.");
     }
 })();
+
+ let userEncryptionKey = null;
+
+// Ask MetaMask for a signature to create a unique password
+async function getEncryptionKey() {
+    if (userEncryptionKey) return userEncryptionKey; // Use cached key if already signed
+    try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        log("[PRIVACY] Please sign the message to unlock your encryption key...");
+        
+        // This signature is unique to the user's wallet
+        const signature = await signer.signMessage("Unlock Lightchain AIVM Private Gallery");
+        
+        // Hash it so we have a clean 256-bit AES key
+        userEncryptionKey = CryptoJS.SHA256(signature).toString();
+        return userEncryptionKey;
+    } catch (e) {
+        log("Encryption signature rejected.");
+        return null;
+    }
+}
+
+// Scramble the image
+async function encryptArt(base64Data) {
+    const key = await getEncryptionKey();
+    if (!key) throw new Error("Key required to encrypt");
+    return CryptoJS.AES.encrypt(base64Data, key).toString();
+}
+
+// Unscramble the image
+async function decryptArt(encryptedString) {
+    const key = await getEncryptionKey();
+    if (!key) throw new Error("Key required to decrypt");
+    const bytes = CryptoJS.AES.decrypt(encryptedString, key);
+    return bytes.toString(CryptoJS.enc.Utf8);
+}       
         
 window.onload = async () => {
 const urlParams = new URLSearchParams(window.location.search);
@@ -1189,7 +1228,20 @@ async function generateAIVMArt() {
             mainCanvas.width = 1024;
             mainCanvas.height = 1024;
             mainCtx.drawImage(img, 0, 0, 1024, 1024);
+
+            // --- ADD THE WATERMARK ---
+            ctx.font = "bold 30px 'Courier New'";
+            ctx.fillStyle = "rgba(0, 242, 255, 0.6)"; // Lightchain Cyan with transparency
             
+            // Bottom Left: The Model Name
+            const modelName = document.getElementById('aivmModelSelect').value;
+            ctx.fillText(`AIVM AUTH: ${modelName}`, 40, 950);
+            
+            // Bottom Right: Your Brand Signature
+            ctx.font = "italic 25px Arial";
+            ctx.fillText("LCAI-MiMo © 2026", 750, 985);
+
+                
             document.getElementById('aivmOutputImage').src = mainCanvas.toDataURL('image/png');
             document.getElementById('aivmOutputImage').style.display = 'block';
         
@@ -1280,6 +1332,9 @@ async function uploadToIPFS(base64Data) {
 async function saveArtToGallery() {
     if (!currentArtData) return log("Error: No art to save.");
     try {
+        // 1. ENCRYPT BEFORE MINTING
+        const encryptedData = await encryptArt(currentArtData);
+        
         const provider = new ethers.BrowserProvider(window.ethereum);
         const signer = await provider.getSigner();
         const artContract = new ethers.Contract(CONFIG.artStudio, [
@@ -1418,14 +1473,26 @@ async function mintWithSocial() {
                 for (let i = 0; i < balance; i++) {
                     const tokenId = await contract.tokenOfOwnerByIndex(userWallet, i);
                     const uri = await contract.tokenURI(tokenId);
+                    
+                    let uri = await contract.tokenURI(i);
+                    let displaySrc = "";
 
-                    // Inside your loadGallery() loop in index.html
                     let displayUri = uri;
-                    // If the URI is broken or "undefined", show a placeholder instead of a blank space
-                    if (!uri || uri.includes("undefined") || uri.length < 10) {
-                        displayUri = "https://via.placeholder.com/400/1a1a1a/00f2ff?text=Broken+Inference+Data";
-                    } else if (uri.startsWith("ipfs://")) {
-                        displayUri = uri.replace("ipfs://", "https://ipfs.io/ipfs/");
+
+                    if (uri.startsWith("U2Fsd")) {
+                        try {
+                            displaySrc = await decryptArt(uri);
+                        } catch (e) {
+                            displaySrc = "https://via.placeholder.com/256?text=Encrypted+Art"; // Show placeholder if decryption fails/cancelled
+                        }
+                    } else {
+                        displaySrc = uri;
+                        // If the URI is broken or "undefined", show a placeholder instead of a blank space
+                        if (!uri || uri.includes("undefined") || uri.length < 10) {
+                            displayUri = "https://via.placeholder.com/400/1a1a1a/00f2ff?text=Broken+Inference+Data";
+                        } else if (uri.startsWith("ipfs://")) {
+                            displayUri = uri.replace("ipfs://", "https://ipfs.io/ipfs/");
+                        }
                     }
                     
                     container.innerHTML += `
@@ -1450,28 +1517,44 @@ async function mintWithSocial() {
         }
         
 async function listInAuction(tokenId) {
-    log(`[MARKET] Listing Token #${tokenId} in local Auction House...`);
+    const price = prompt("Starting bid (LCAI):", "0.5");
+    const duration = prompt("Duration (minutes):", "1440"); // Default 24 hours
+    
+    if (!price || !duration) return log("Listing cancelled.");
+
     try {
         const provider = new ethers.BrowserProvider(window.ethereum);
-        const contract = new ethers.Contract(CONFIG.artStudio, ["function tokenURI(uint256) view returns (string)"], provider);
+        const signer = await provider.getSigner();
         
-        // 1. Get the image data for the marketplace display
-        const uri = await contract.tokenURI(tokenId);
-        const nftName = prompt("Enter a name for this listing:", `AIVM Art #${tokenId}`);
-        const price = prompt("Starting bid (LCAI):", "0.5");
+        // 1. Approve the Auction House to Escrow your NFT
+        const artContract = new ethers.Contract(CONFIG.artStudio, [
+            "function approve(address to, uint256 tokenId)"
+        ], signer);
+        
+        log("[MARKET] Approving NFT for Escrow...");
+        let tx = await artContract.approve(CONFIG.auctionHouse, tokenId);
+        await tx.wait();
 
-        if (nftName && price) {
-            // 2. Add to your activeAuctions array (Local Marketplace)
-            postToAuction(nftName, price, uri);
-            
-            // 3. Switch to the Auction House view
-            showView('marketView'); 
-            log("[SUCCESS] Art listed in the community auction!");
-        }
+        // 2. Create the On-Chain Auction
+        const auctionContract = new ethers.Contract(CONFIG.auctionHouse, [
+            "function createAuction(address _nftContract, uint256 _tokenId, uint256 _startingPrice, uint256 _durationMinutes)"
+        ], signer);
+        
+        log("[MARKET] Creating Smart Contract Auction...");
+        tx = await auctionContract.createAuction(
+            CONFIG.artStudio, 
+            tokenId, 
+            ethers.parseEther(price), 
+            parseInt(duration)
+        );
+        await tx.wait();
+        
+        log("[SUCCESS] Auction is officially live on the blockchain!");
+        // Optional: Call a function to refresh your UI's Auction House view
     } catch (e) {
         log(`[SELL ERROR] ${e.message}`);
     }
-}  
+}
         
 function showView(id) {
     // 1. Hide all views
@@ -1579,6 +1662,7 @@ function triggerBlink(element, className) {
     </script>
 </body>
 </html>
+
 
 
 

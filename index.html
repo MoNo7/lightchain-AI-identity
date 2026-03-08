@@ -1232,7 +1232,7 @@ async function generateAIVMArt() {
             tempCtx.drawImage(img, 0, 0, 256, 256);
             
             // This variable is now small enough to pass through the RPC
-            currentArtData = tempCanvas.toDataURL('image/jpeg', 0.5); 
+            currentArtData = tempCanvas.toDataURL('image/jpeg', 0.1); 
 
             const cidElement = document.getElementById('renderCID');
             if (currentArtData) {
@@ -1642,6 +1642,7 @@ function triggerBlink(element, className) {
     </script>
 </body>
 </html>
+
 
 
 

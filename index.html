@@ -158,17 +158,17 @@
                 <button onclick="clearRender()" class="pill" style="cursor: pointer; background: transparent; border: 1px solid var(--border); color: var(--text-dim);">CLEAR</button>
             </div>
 
-            <div style="margin-top: 15px; display: grid; grid-template-columns: 1fr 200px; gap: 10px;">
-                <input type="text" id="artPrompt" placeholder="Describe your vision (e.g., A futuristic city on Mars)..." style="margin: 0;">
-<select id="artStyle" style="background: #000; border: 1px solid var(--border); color: #fff; padding: 12px; border-radius: 4px; font-family: inherit;">
-    <option value="">No Style (Raw)</option>
-    <option value=", cinematic lighting, 8k resolution, highly detailed, sharp focus, masterpiece, shot on 35mm lens, depth of field, golden hour">🎬 Cinematic Masterpiece</option>
-    <option value=", digital illustration, vibrant colors, clean lines, ArtStation trending, hyper-detailed, synthwave color palette">🎨 Digital Art</option>
-    <option value=", classical oil painting, thick brushstrokes, textured canvas, dramatic chiaroscuro lighting, museum quality, Rembrandt style">🖼️ Fine Art (Oil)</option>
-    <option value=", photorealistic, unreal engine 5 render, ray tracing, ultra-realistic textures, macro photography, bokeh">📸 Hyper-Realism</option>
-    <option value=", minimalist, architectural sketch, clean geometric lines, professional concept art, neutral tones">📐 Architectural / Minimal</option>
-</select>
-            </div>
+                <div style="margin-top: 15px; display: grid; grid-template-columns: 1fr 200px; gap: 10px;">
+                    <input type="text" id="artPrompt" placeholder="Describe your vision (e.g., A futuristic city on Mars)..." style="margin: 0;">
+                    <select id="artStyle" style="background: #000; border: 1px solid var(--border); color: #fff; padding: 12px; border-radius: 4px; font-family: inherit;">
+                        <option value="">No Style (Raw)</option>
+                        <option value=", cinematic lighting, 8k resolution, highly detailed, sharp focus, masterpiece, shot on 35mm lens, depth of field, golden hour">🎬 Cinematic Masterpiece</option>
+                        <option value=", digital illustration, vibrant colors, clean lines, ArtStation trending, hyper-detailed, synthwave color palette">🎨 Digital Art</option>
+                        <option value=", classical oil painting, thick brushstrokes, textured canvas, dramatic chiaroscuro lighting, museum quality, Rembrandt style">🖼️ Fine Art (Oil)</option>
+                        <option value=", photorealistic, unreal engine 5 render, ray tracing, ultra-realistic textures, macro photography, bokeh">📸 Hyper-Realism</option>
+                        <option value=", minimalist, architectural sketch, clean geometric lines, professional concept art, neutral tones">📐 Architectural / Minimal</option>
+                    </select>
+                </div>
             <button class="btn-zk" style="width: 100%; margin-top: 10px;" onclick="generateAIVMArt()">GENERATE ART</button>
 
             <div id="renderPlaceholder" style="width: 100%; min-height: 350px; background: #000; border: 1px dashed var(--border); border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-top: 15px; overflow: hidden; position: relative;">
@@ -181,6 +181,12 @@
                 <img id="aivmOutputImage" style="max-width: 100%; max-height: 350px; display: none;" src="">
                 <p id="renderStatusText" style="color: var(--text-dim); font-size: 0.8rem;">Awaiting your prompt...</p>
             </div>
+            <button class="btn-zk" id="saveArtBtn" onclick="saveArtToGallery()" style="display:none; background:var(--green);">
+                <i class="fas fa-save"></i> SAVE TO GALLERY (MINT)
+            </button>
+            <button class="btn-zk" id="deleteArtBtn" onclick="deleteCurrentArt()" style="display:none; background:var(--red); color:white;">
+                <i class="fas fa-trash"></i> DELETE PREVIEW
+            </button>
             <div style="margin-top: 10px; font-size: 0.7rem; color: var(--text-dim); font-family: monospace; display: flex; justify-content: space-between;">
                 <span>CID: <span id="renderCID" style="color: var(--accent);">Pending...</span></span>
                 <span id="costEstimate" style="color: var(--green);">Est. Cost: 0.005 LCAI</span>
@@ -1172,7 +1178,17 @@ async function generateAIVMArt() {
             canvas.width = 1024; canvas.height = 1024;
             ctx.drawImage(img, 0, 0, 1024, 1024);
 
-            renderAIVMResult(canvas.toDataURL('image/png'), selectedModel);
+            const dataUrl = canvas.toDataURL('image/png');
+            currentArtData = dataUrl; // Store globally for the "Save" button
+
+            //renderAIVMResult(canvas.toDataURL('image/png'), selectedModel);
+            renderAIVMResult(dataUrl, selectedModel);
+
+            // REVEAL THE ACTION BUTTONS
+            document.getElementById('saveArtBtn').style.display = 'block';
+            document.getElementById('deleteArtBtn').style.display = 'block';
+
+            
             isGenerating = false; 
             log(`[AIVM] Success: Render complete. PoI Verified on-chain.`);
         };
@@ -1189,6 +1205,50 @@ async function generateAIVMArt() {
         isGenerating = false;
         log(`[Fatal Error] ${e.message}`);
         loader.style.display = 'none';
+    }
+}
+
+let currentArtData = null; // Stores the Base64 of the generated image
+
+function deleteCurrentArt() {
+    if (!confirm("Discard this render? This will not remove the PoI anchor from the chain.")) return;
+    
+    // UI Cleanup
+    document.getElementById('aivmOutputImage').src = "";
+    document.getElementById('aivmOutputImage').style.display = "none";
+    document.getElementById('renderStatusText').style.display = "block";
+    document.getElementById('renderStatusText').innerText = "Preview Deleted.";
+    document.getElementById('saveArtBtn').style.display = "none";
+    document.getElementById('deleteArtBtn').style.display = "none";
+    currentArtData = null;
+    log("[STUDIO] Preview discarded.");
+}
+
+async function saveArtToGallery() {
+    if (!currentArtData) return log("Error: No art to save.");
+    
+    log("[STUDIO] Initiating NFT Mint for Auction House...");
+    try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        
+        // We call the ArtStudio contract (Transferable NFT), NOT the Identity contract (SBT)
+        const artContract = new ethers.Contract(CONFIG.artStudio, [
+            "function mintArtNFT(string memory tokenURI) public payable returns (uint256)"
+        ], signer);
+
+        const tx = await artContract.mintArtNFT(currentArtData, {
+            value: ethers.parseEther("0.005") // Optional fee for the AI model providers
+        });
+
+        log(`[MINT] NFT Transaction sent: ${tx.hash.slice(0,18)}...`);
+        await tx.wait();
+        log("[SUCCESS] Art saved to Gallery and ready for Auction!");
+        
+        // Refresh gallery
+        loadGallery(); 
+    } catch (e) {
+        log(`[MINT ERROR] ${e.message}`);
     }
 }
 
@@ -1409,6 +1469,7 @@ function triggerBlink(element, className) {
     </script>
 </body>
 </html>
+
 
 
 

@@ -1458,27 +1458,25 @@ async function mintWithSocial() {
                     
                     let displaySrc = "";
 
-                    let displayUri = uri;
-
                     if (uri.startsWith("U2Fsd")) {
                         try {
                             displaySrc = await decryptArt(uri);
+                                log(`[GALLERY] Token #${tokenId} decrypted successfully.`);
                         } catch (e) {
-                            displaySrc = "https://via.placeholder.com/256?text=Encrypted+Art"; // Show placeholder if decryption fails/cancelled
+                                displaySrc = "https://via.placeholder.com/400/1a1a1a/ff4444?text=Unlock+Required";
                         }
                     } else {
-                        displaySrc = uri;
-                        // If the URI is broken or "undefined", show a placeholder instead of a blank space
-                        if (!uri || uri.includes("undefined") || uri.length < 10) {
-                            displayUri = "https://via.placeholder.com/400/1a1a1a/00f2ff?text=Broken+Inference+Data";
-                        } else if (uri.startsWith("ipfs://")) {
-                            displayUri = uri.replace("ipfs://", "https://ipfs.io/ipfs/");
-                        }
+                        displaySrc = uri.startsWith("ipfs://") 
+                            ? uri.replace("ipfs://", "https://ipfs.io/ipfs/") 
+                            : uri;
                     }
+
+                    // 3. Render with a safety check for broken data
+            const finalImg = (displaySrc && displaySrc.length > 20) ? displaySrc : "https://via.placeholder.com/400/1a1a1a/00f2ff?text=Data+Pending";
                     
                     container.innerHTML += `
                     <div class="gallery-card" style="background:var(--sidebar); padding:15px; border-radius:12px; border:1px solid var(--border); transition:0.3s;">
-                        <img src="${displayUri}" style="width:100%; border-radius:8px; margin-bottom:12px;" onerror="this.src='https://via.placeholder.com/400?text=Image+Load+Error'">
+                        <img src="${finalImg}" style="width:100%; border-radius:8px; margin-bottom:12px;" onerror="this.src='https://via.placeholder.com/400?text=Image+Load+Error'">
                         <div class="card-meta" style="display:flex; flex-direction:column; gap:8px;">
                             <span style="color:var(--accent); font-size:0.8rem; font-weight:bold;">ART TOKEN #${tokenId}</span>
                             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;">
@@ -1494,6 +1492,7 @@ async function mintWithSocial() {
                 }
             } catch (e) {
                 console.log("Gallery sync pending...");
+                console.error(e);
             }
         }
         
@@ -1643,6 +1642,7 @@ function triggerBlink(element, className) {
     </script>
 </body>
 </html>
+
 
 
 

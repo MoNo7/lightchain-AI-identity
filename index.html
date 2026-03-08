@@ -1310,7 +1310,8 @@ async function uploadToIPFS(base64Data) {
 
 async function saveArtToGallery() {
     const model = document.getElementById('modelSelector').value;
-    const hint = document.getElementById('artPrompt').value.slice(0, 32); // First 32 chars of prompt
+    const promptText = document.getElementById('artPrompt').value;
+    const hint = promptText.slice(0, 32);
     
     if (!currentArtData) return log("Error: No art to save.");
     try {
@@ -1642,6 +1643,7 @@ function triggerBlink(element, className) {
     </script>
 </body>
 </html>
+
 
 
 

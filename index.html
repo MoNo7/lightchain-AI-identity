@@ -1477,17 +1477,13 @@ async function mintWithSocial() {
             const finalImg = (displaySrc && displaySrc.length > 20) ? displaySrc : "https://via.placeholder.com/400/1a1a1a/00f2ff?text=Data+Pending";
                     
                     container.innerHTML += `
-                    <div class="gallery-card" style="background:var(--sidebar); padding:15px; border-radius:12px; border:1px solid var(--border); transition:0.3s;">
-                        <img src="${finalImg}" style="width:100%; border-radius:8px; margin-bottom:12px;" onerror="this.src='https://via.placeholder.com/400?text=Image+Load+Error'">
-                        <div class="card-meta" style="display:flex; flex-direction:column; gap:8px;">
-                            <span style="color:var(--accent); font-size:0.8rem; font-weight:bold;">ART TOKEN #${tokenId}</span>
-                            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;">
-                                <button onclick="listInAuction(${tokenId})" class="btn-zk-sm" style="background:var(--green); color:white;">
-                                    <i class="fas fa-gavel"></i> SELL
-                                </button>
-                                <button onclick="deleteArtNFT(${tokenId})" class="btn-zk-sm" style="background:var(--red); color:white;">
-                                    <i class="fas fa-trash"></i> DELETE
-                                </button>
+                    <div class="gallery-card" style="background:var(--sidebar); padding:15px; border-radius:12px; border:1px solid var(--border);">
+                        <img src="${finalImg}" style="width:100%; border-radius:8px; cursor:pointer;" onclick="showNftDetails(${tokenId})">
+                        <div style="margin-top:10px;">
+                            <span style="color:var(--accent); font-size:0.75rem; font-family:monospace;">TOKEN #${tokenId}</span>
+                            <div style="display:flex; gap:5px; margin-top:8px;">
+                                <button onclick="showNftDetails(${tokenId})" class="pill" style="background:var(--panel); color:var(--accent); border:1px solid var(--accent); flex:1;">INFO</button>
+                                <button onclick="listInAuction(${tokenId})" class="pill" style="background:var(--green); border:none; color:black; flex:1;">SELL</button>
                             </div>
                         </div>
                     </div>`;
@@ -1585,6 +1581,38 @@ function showView(id) {
                 syncBalance(addr);
             }, 10000);
         }
+
+        async function showNftDetails(tokenId) {
+            try {
+                const provider = new ethers.BrowserProvider(window.ethereum);
+                const contract = new ethers.Contract(CONFIG.artStudio, [
+                    "function publicSpecs(uint256) view returns (string, string, uint256)",
+                    "function tokenURI(uint256) view returns (string)"
+                ], provider);
+        
+                log(`[INFO] Fetching Metadata for Token #${tokenId}...`);
+                const specs = await contract.publicSpecs(tokenId);
+                const rawUri = await contract.tokenURI(tokenId);
+                
+                // Show the info in a standard browser alert or custom modal
+                // For now, we'll use a stylized alert:
+                const infoMessage = `
+        --- AIVM AUTHENTICITY KEY ---
+        Token ID: ${tokenId}
+        Model Used: ${specs[0]}
+        Prompt Hint: "${specs[1]}"
+        Minted On: ${new Date(Number(specs[2]) * 1000).toLocaleString()}
+        
+        --- PRIVACY METADATA ---
+        Storage: ${rawUri.startsWith('U2Fsd') ? 'Encrypted (AES-256)' : 'Public'}
+        Decryption Key: ${userEncryptionKey ? userWallet.slice(0,10) + '...Active' : 'Locked'}
+                `;
+                
+                alert(infoMessage);
+            } catch (e) {
+                log(`[INFO ERROR] Could not retrieve metadata: ${e.message}`);
+            }
+        }
         
         /**
          * The standalone silent refetcher
@@ -1644,6 +1672,7 @@ function triggerBlink(element, className) {
     </script>
 </body>
 </html>
+
 
 
 

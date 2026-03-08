@@ -1471,16 +1471,31 @@ async function mintWithSocial() {
         }
 
         async function deleteArtNFT(tokenId) {
-        if (!confirm("Delete this NFT from your gallery?")) return;
+            if (!confirm(`Are you sure you want to BURN Token #${tokenId}? This action is irreversible and the art will be lost forever.`)) return;
+        
             try {
                 const provider = new ethers.BrowserProvider(window.ethereum);
                 const signer = await provider.getSigner();
-                const contract = new ethers.Contract(CONFIG.artStudio, ["function transferFrom(address, address, uint256)"], signer);
-                // Burn by sending to 0x0
-                const tx = await contract.transferFrom(userWallet, "0x0000000000000000000000000000000000000000", tokenId);
+                const contract = new ethers.Contract(CONFIG.artStudio, [
+                    "function safeTransferFrom(address from, address to, uint256 tokenId)"
+                ], signer);
+        
+                log(`[BURN] Initiating destruction of Token #${tokenId}...`);
+                
+                // Sending to the zero address effectively "burns" the NFT
+                const tx = await contract.safeTransferFrom(
+                    userWallet, 
+                    "0x0000000000000000000000000000000000000000", 
+                    tokenId
+                );
+        
                 await tx.wait();
-                loadGallery();
-            } catch (e) { log("Error: " + e.message); }
+                log(`[SUCCESS] Token #${tokenId} has been burned.`);
+                loadGallery(); // Refresh the view
+            } catch (e) {
+                log(`[BURN ERROR] ${e.message}`);
+                console.error(e);
+            }
         }
 
         async function loadGallery() {
@@ -1522,16 +1537,17 @@ async function mintWithSocial() {
             const finalImg = (displaySrc && displaySrc.length > 20) ? displaySrc : "https://via.placeholder.com/400/1a1a1a/00f2ff?text=Data+Pending";
                     
                     container.innerHTML += `
-                    <div class="gallery-card" style="background:var(--sidebar); padding:15px; border-radius:12px; border:1px solid var(--border);">
-                        <img src="${finalImg}" style="width:100%; border-radius:8px; cursor:pointer;" onclick="showNftDetails(${tokenId})">
-                        <div style="margin-top:10px;">
-                            <span style="color:var(--accent); font-size:0.75rem; font-family:monospace;">TOKEN #${tokenId}</span>
-                            <div style="display:flex; gap:5px; margin-top:8px;">
-                                <button onclick="showNftDetails(${tokenId})" class="pill" style="background:var(--panel); color:var(--accent); border:1px solid var(--accent); flex:1;">INFO</button>
-                                <button onclick="listInAuction(${tokenId})" class="pill" style="background:var(--green); border:none; color:black; flex:1;">SELL</button>
+                        <div class="gallery-card" style="background:var(--sidebar); padding:15px; border-radius:12px; border:1px solid var(--border);">
+                            <img src="${finalImg}" style="width:100%; border-radius:8px;">
+                            <div style="margin-top:10px; display:flex; justify-content:space-between; align-items:center;">
+                                <span style="color:var(--accent); font-size:0.75rem;">TOKEN #${tokenId}</span>
+                                <div style="display:flex; gap:5px;">
+                                    <button onclick="showNftDetails(${tokenId})" class="pill" style="background:var(--panel); border:1px solid var(--accent); color:var(--accent); padding:2px 8px;">INFO</button>
+                                    <button onclick="deleteArtNFT(${tokenId})" class="pill" style="background:var(--red); border:none; color:white; padding:2px 8px;">BURN</button>
+                                </div>
                             </div>
-                        </div>
-                    </div>`;
+                            <button onclick="listInAuction(${tokenId})" class="btn-zk" style="margin-top:10px; background:var(--green); color:black;">LIST FOR SALE</button>
+                        </div>`;
                 }
             } catch (e) {
                 console.log("Gallery sync pending...");
@@ -1717,6 +1733,7 @@ function triggerBlink(element, className) {
     </script>
 </body>
 </html>
+
 
 
 

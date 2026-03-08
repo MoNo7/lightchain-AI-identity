@@ -1268,28 +1268,23 @@ async function uploadToIPFS(base64Data) {
 
 async function saveArtToGallery() {
     if (!currentArtData) return log("Error: No art to save.");
-    
     try {
-        // 1. UPLOAD TO IPFS FIRST
-        const ipfsUri = await uploadToIPFS(currentArtData);
-
-        // 2. MINT WITH THE SHORT URI
         const provider = new ethers.BrowserProvider(window.ethereum);
         const signer = await provider.getSigner();
         const artContract = new ethers.Contract(CONFIG.artStudio, [
             "function mintArtNFT(string memory tokenURI) public payable returns (uint256)"
         ], signer);
 
-        log("[MINT] Sending CID to Lightchain...");
-        const tx = await artContract.mintArtNFT(ipfsUri, {
+        log("[MINT] Sending Art Data to Lightchain...");
+        // BYPASS IPFS: Send currentArtData directly
+        const tx = await artContract.mintArtNFT(currentArtData, {
             value: ethers.parseEther("0.25"),
-            gasLimit: 1000000
+            gasLimit: 1500000 // Higher gas for direct data
         });
 
         await tx.wait();
-        log("[SUCCESS] Art minted and saved to Gallery!");
+        log("[SUCCESS] Art minted directly to chain!");
         loadGallery(); 
-        
     } catch (e) {
         log(`[MINT ERROR] ${e.message}`);
     }
@@ -1379,30 +1374,24 @@ async function mintWithSocial() {
             });
         }
 
-        async function deleteArtNFT(tokenId) {
-            if (!confirm(`Are you sure you want to permanently delete Art #${tokenId}? This cannot be undone.`)) return;
-            
-            log(`[STUDIO] Requesting burn for Token #${tokenId}...`);
-            try {
-                const provider = new ethers.BrowserProvider(window.ethereum);
-                const signer = await provider.getSigner();
-                
-                // We call the burn function (if your contract has it) or transfer to a null address
-                const artContract = new ethers.Contract(CONFIG.artStudio, [
-                    "function transferFrom(address from, address to, uint256 tokenId) public"
-                ], signer);
-        
-                // Sending to 0x000...000 "deletes" it from your gallery
-                const tx = await artContract.transferFrom(userWallet, "0x0000000000000000000000000000000000000000", tokenId);
-                
-                log(`[DELETE] Transaction sent: ${tx.hash.slice(0,18)}...`);
-                await tx.wait();
-                log("[SUCCESS] Art permanently removed.");
-                loadGallery(); // Refresh view
-            } catch (e) {
-                log(`[DELETE ERROR] ${e.message}`);
-            }
-        }
+async function deleteArtNFT(tokenId) {
+    if (!confirm(`Delete Token #${tokenId}?`)) return;
+    try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        const artContract = new ethers.Contract(CONFIG.artStudio, [
+            "function safeTransferFrom(address from, address to, uint256 tokenId) public"
+        ], signer);
+
+        // Standard "Burn" address
+        const tx = await artContract.safeTransferFrom(userWallet, "0x0000000000000000000000000000000000000000", tokenId);
+        await tx.wait();
+        log("[SUCCESS] Token burned.");
+        loadGallery();
+    } catch (e) {
+        log(`[DELETE ERROR] Check if you are the owner of ID #${tokenId}`);
+    }
+}
 
         async function loadGallery() {
         const container = document.getElementById('galleryGrid');
@@ -1582,6 +1571,7 @@ function triggerBlink(element, className) {
     </script>
 </body>
 </html>
+
 
 
 

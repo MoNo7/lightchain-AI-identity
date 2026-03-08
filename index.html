@@ -710,7 +710,7 @@ async function checkRegistrationStatus(addr, contract) {
 async function renderPassport(addr, nick, contract) {
 
     try {
-        log("[IAM] Downloading ZK SBT Metadata...");
+  ///      log("[IAM] Downloading ZK SBT Metadata...");
         
         //1. Fetch the image from the contract
     let img = await contract.base64Image();
@@ -1575,4 +1575,5 @@ function triggerBlink(element, className) {
     </script>
 </body>
 </html>
+
 

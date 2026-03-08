@@ -1154,9 +1154,9 @@ async function generateAIVMArt() {
             "function generateArt(string calldata prompt) public payable" // Correct name
         ], signer);
 
-        const tx = await artContract.requestInferenceV2(promptId, finalPrompt, {
-            value: ethers.parseEther("0.25")
-        });
+ //       const tx = await artContract.requestInferenceV2(promptId, finalPrompt, {
+  //          value: ethers.parseEther("0.25")
+//        });
 
         
         // Optional: Small fee if required by your specific testnet deployment
@@ -1477,6 +1477,7 @@ function triggerBlink(element, className) {
     </script>
 </body>
 </html>
+
 
 
 

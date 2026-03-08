@@ -1401,6 +1401,8 @@ async function mintWithSocial() {
                     let displayUri = uri;
                     if (uri.startsWith("ipfs://")) {
                         displayUri = uri.replace("ipfs://", "https://ipfs.io/ipfs/");
+                    }else if (uri.startsWith("ipfs://")) {
+                        displayUri = uri.replace("ipfs://", "https://ipfs.io/ipfs/");
                     }
                     
                     container.innerHTML += `
@@ -1523,6 +1525,7 @@ function triggerBlink(element, className) {
     </script>
 </body>
 </html>
+
 
 
 

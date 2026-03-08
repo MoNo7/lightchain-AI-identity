@@ -1443,32 +1443,30 @@ async function mintWithSocial() {
                 console.log("Gallery sync pending...");
             }
         }
+        
 async function listInAuction(tokenId) {
-    // This unlocks the 'Sell' flow
-    log(`[MARKET] Approving Token #${tokenId} for Auction House...`);
-    
-    log(`[AUCTION] Preparing Token #${tokenId} for market...`);
+    log(`[MARKET] Listing Token #${tokenId} in local Auction House...`);
     try {
         const provider = new ethers.BrowserProvider(window.ethereum);
-        const signer = await provider.getSigner();
+        const contract = new ethers.Contract(CONFIG.artStudio, ["function tokenURI(uint256) view returns (string)"], provider);
         
-        const artContract = new ethers.Contract(CONFIG.artStudio, [
-            "function approve(address to, uint256 tokenId) public"
-        ], signer);
+        // 1. Get the image data for the marketplace display
+        const uri = await contract.tokenURI(tokenId);
+        const nftName = prompt("Enter a name for this listing:", `AIVM Art #${tokenId}`);
+        const price = prompt("Starting bid (LCAI):", "0.5");
 
-        // 1. APPROVE the Auction House (Update address if needed)
-        const auctionHouse = "0xYourAuctionHouseAddressGoesHere"; 
-        log("[AUCTION] Step 1: Approving Auction House...");
-        const tx = await artContract.approve(auctionHouse, tokenId);
-        await tx.wait();
-
-        log("[SUCCESS] Token approved! You can now set your price in the Auction House tab.");
-        // Redirect to Auction House UI
-        showSection('auction-house'); 
+        if (nftName && price) {
+            // 2. Add to your activeAuctions array (Local Marketplace)
+            postToAuction(nftName, price, uri);
+            
+            // 3. Switch to the Auction House view
+            showView('marketView'); 
+            log("[SUCCESS] Art listed in the community auction!");
+        }
     } catch (e) {
         log(`[SELL ERROR] ${e.message}`);
     }
-}
+}  
         
 function showView(id) {
     // 1. Hide all views
@@ -1576,17 +1574,3 @@ function triggerBlink(element, className) {
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-

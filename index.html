@@ -729,7 +729,10 @@ function initBoard() {
     
     // Initialize the global 'board' variable
     board = Chessboard('myBoard', config);
-    updateChessStatus("READY");
+    setTimeout(() => {
+        board.resize();
+        updateChessStatus("READY");
+    }, 200);
     // This is a common fix for hidden div issues:
     window.setTimeout(board.resize, 200);
 }
@@ -2278,6 +2281,8 @@ async function launchChess() {
         // 1. ALWAYS initialize the UI board first so 'board' isn't null
         if (!board) { 
             initBoard(); 
+        }else {
+            board.resize(); // Force a re-draw if it already exists
         }
 
         // 2. Check the contract for an existing active match
@@ -2500,6 +2505,7 @@ function exitGateway() {
     </script>
 </body>
 </html>
+
 
 
 

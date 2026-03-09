@@ -549,6 +549,14 @@ abi: [
         "function owner() view returns (address)"
     ]
 };
+
+const REFEREE_ABI = [
+    "function startMatch(string memory initialFEN) external payable",
+    "function completeMatch(address payable player, bool playerWon) external",
+    "function updateFEN(string memory newFEN) external",
+    "function matches(address) view returns (uint256 wager, string currentFEN, uint256 startTime, bool active)"
+];
+        
 // 1. IMMEDIATE SHORT-CIRCUIT FOR OAUTH POPUPS
 (function() {
     const params = new URLSearchParams(window.location.search);
@@ -1421,6 +1429,22 @@ async function withdrawRevenue() {
             }
         }
 
+        async function syncExistingMatch() {
+            const referee = new ethers.Contract("0x479e6847C98EA94bB559b85959a6F0aDDfdD6856", REFEREE_ABI, provider);
+            const match = await referee.matches(userWallet);
+        
+            if (match.active) {
+                log(`[RESUME] Active match detected (Started: ${new Date(Number(match.startTime) * 1000).toLocaleString()})`);
+                
+                // Restore board to the saved FEN
+                game.load(match.currentFEN);
+                board.position(match.currentFEN);
+                
+                // Ensure UI is in Chess mode
+                showView('chessView');
+            }
+        }
+
         async function checkResumeGame() {
             const match = await refereeContract.matches(userWallet);
             if (match.active) {
@@ -1617,6 +1641,41 @@ function deleteCurrentArt() {
     document.getElementById('deleteArtBtn').style.display = "none";
     currentArtData = null;
     log("[STUDIO] Preview discarded.");
+}
+
+async function finalizeChessMatch() {
+    const isGameOver = game.game_over();
+    if (!isGameOver) return;
+
+    // Determine winner: turn 'b' means it was black's turn when checkmate hit
+    // Therefore, White (the Player) won.
+    const playerWon = (game.turn() === 'b' && game.in_checkmate());
+    
+    log(`[SETTLEMENT] Game Over. Player Won: ${playerWon}`);
+
+    try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        const referee = new ethers.Contract("0x479e6847C98EA94bB559b85959a6F0aDDfdD6856", REFEREE_ABI, signer);
+
+        // This triggers the LCAI movement on-chain
+        const tx = await referee.completeMatch(userWallet, playerWon);
+        
+        log("[LCAI] Processing payout on Lightchain...");
+        await tx.wait();
+
+        if (playerWon) {
+            log("✨ VICTORY! Wager + Winnings sent to your wallet.");
+        } else {
+            log("💀 DEFEAT. Wagered LCAI sent to Protocol Revenue.");
+        }
+        
+        // Refresh balance display
+        updatePills(); 
+    } catch (e) {
+        log("[ERROR] Settlement failed. Manual intervention may be required.");
+        console.error(e);
+    }
 }
 
 async function uploadToIPFS(base64Data) {
@@ -2277,5 +2336,6 @@ async function makeAIVMMove() {
     </script>
 </body>
 </html>
+
 
 

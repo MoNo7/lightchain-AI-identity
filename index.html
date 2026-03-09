@@ -2211,8 +2211,18 @@ async function launchChess() {
     try {
         const provider = new ethers.BrowserProvider(window.ethereum);
         const signer = await provider.getSigner();
-        const referee = new ethers.Contract("0x479e6847C98EA94bB559b85959a6F0aDDfdD6856", REFEREE_ABI, signer);
+        const referee = new ethers.Contract(CONFIG.refereeAddress, REFEREE_ABI, provider);
 
+        const match = await referee.matches(userWallet);
+
+        if (match.active) {
+            log("[RESUME] Existing match detected. Skipping escrow...");
+            game.load(match.currentFEN);
+            board.position(match.currentFEN);
+            showView('chessView');
+            return; // Exit here so we don't trigger the "Match already in progress" error
+        }
+        
         // Call the 'startMatch' function from your .sol code
         const tx = await referee.startMatch("start", { value: ethers.parseEther(wager) });
         await tx.wait();
@@ -2357,6 +2367,7 @@ async function makeAIVMMove() {
     </script>
 </body>
 </html>
+
 
 
 

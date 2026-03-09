@@ -530,7 +530,8 @@ WETH_TOKEN : "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
 contract: "0x87188af8d112AAaF52Fe203568de0d3F36714987", // ZK KYC
 identity: "0x9A07d6a0eF4a8037318a0731E41bd4061f27B172",
 artStudio: "0xe80d9542Ef60B680a621970d209d04DB24767614",
-auctionHouse: "0x85C91ce310599Bf7BBc59726C2391911c46a6cCD",    
+auctionHouse: "0x85C91ce310599Bf7BBc59726C2391911c46a6cCD",
+refereeAddress: "0x479e6847C98EA94bB559b85959a6F0aDDfdD6856",
 RPC: "https://light-testnet-rpc.lightchain.ai",
 abi: [
         "function isAdmin(address) view returns (bool)",
@@ -1389,6 +1390,71 @@ async function withdrawRevenue() {
     }
 }
 
+        async function startChessWithWager() {
+            const wagerAmount = document.getElementById('chessWagerInput').value;
+            const wagerWei = ethers.parseEther(wagerAmount);
+            
+            log(`[LCAI] Locking ${wagerAmount} LCAI in Referee Escrow...`);
+            
+            try {
+                const provider = new ethers.BrowserProvider(window.ethereum);
+                const signer = await provider.getSigner();
+                const referee = new ethers.Contract(CONFIG.refereeAddress, REFEREE_ABI, signer);
+        
+                // This sends the LCAI to the contract
+                const tx = await referee.startMatch("start", { value: wagerWei });
+                await tx.wait();
+                
+                log("✅ Wager Locked. Board Active.");
+                initChessGame(); // Start the local UI
+            } catch (e) {
+                log("[ERROR] Transaction failed. Wager not locked.");
+            }
+        }
+
+        async function checkExistingMatch() {
+            const match = await refereeContract.matches(userWallet);
+            if (match.active) {
+                log(`[RECONNECT] Found active match from ${new Date(match.startTime * 1000).toLocaleDateString()}`);
+                loadBoard(match.currentFEN); // Resumes the chess board state
+                setWagerUI(match.wager);
+            }
+        }
+
+        async function checkResumeGame() {
+            const match = await refereeContract.matches(userWallet);
+            if (match.active) {
+                const date = new Date(Number(match.startTime) * 1000).toLocaleString();
+                log(`[RESUME] Active match found from ${date}. Restoring board...`);
+                
+                // Restore FEN and UI
+                game.load(match.currentFEN);
+                board.position(match.currentFEN);
+                showView('chessView');
+            }
+        }
+
+        async function settleMatch(isPlayerWinner) {
+            log("[LCAI] Match Finished. Initiating on-chain settlement...");
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            const signer = await provider.getSigner();
+            
+            // Connect to your new Referee Contract
+            const referee = new ethers.Contract(CONFIG.refereeAddress, REFEREE_ABI, signer);
+        
+            try {
+                // This function tells the contract who won. 
+                // In a production environment, the AIVM Oracle would sign this.
+                const tx = await referee.completeMatch(userWallet, isPlayerWinner);
+                await tx.wait();
+                
+                log(isPlayerWinner ? "✨ Payout Received!" : "💀 Wager sent to Protocol Treasury.");
+                updateUI(userWallet); // Refresh balance pill
+            } catch (e) {
+                log("[ERROR] Settlement failed. Manual claim required.");
+            }
+        }
+
         async function downloadRegistryCSV() {
             const addrs = document.getElementById('batchAddrs').value.split(',').map(a=>a.trim()).filter(a=>ethers.isAddress(a));
             if(addrs.length === 0) return log("Registry empty.");
@@ -2199,3 +2265,4 @@ async function makeAIVMMove() {
     </script>
 </body>
 </html>
+

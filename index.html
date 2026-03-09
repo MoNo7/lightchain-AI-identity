@@ -639,16 +639,33 @@ window.onload = async () => {
             }
         }
 
-        function handleGalleryClick() {
-            const item = document.getElementById('galleryNavItem');
-            if (item.classList.contains('locked-feature')) {
-                log("Access Denied: Please Register your Identity to view the AIVM Gallery.");
-                showView('zkView'); 
-            } else {
-                showView('galleryView');
-                loadGallery();
-            }
+async function handleGalleryClick() {
+    const item = document.getElementById('galleryNavItem');
+    
+    // 1. Check if the feature is even unlocked via SBT
+    if (item.classList.contains('locked-feature')) {
+        log("Access Denied: Please Register your Identity to view the AIVM Gallery.");
+        showView('zkView');
+        return;
+    }
+
+    // 2. Switch to the view first so the user sees the "Loading" state
+    showView('galleryView');
+
+    // 3. ONLY NOW ask for the signature if we don't have the key
+    if (!userEncryptionKey) {
+        log("[PRIVACY] Gallery locked. Awaiting signature to decrypt art...");
+        const key = await getEncryptionKey(); // This triggers the MetaMask popup
+        if (!key) {
+            log("[ERROR] Signature rejected. Gallery remains encrypted.");
+            return;
         }
+    }
+
+    // 4. Finally, load the data
+    loadGallery();
+}
+        
 async function autoConnectWallet() {
 if (!window.ethereum) return;
     const accounts = await window.ethereum.request({ method: 'eth_accounts' });
@@ -1722,7 +1739,7 @@ async function mintWithSocial() {
             }
         }
 
-        async function loadGallery() {
+async function loadGallery() {
         const container = document.getElementById('galleryGrid');
     if (!container || !userWallet) return;
 
@@ -1773,7 +1790,7 @@ async function mintWithSocial() {
                     console.log("Gallery sync pending...");
                
                 }
-            }
+}
         
 async function listInAuction(tokenId) {
     const price = prompt("Starting bid (LCAI):", "0.5");
@@ -2115,6 +2132,7 @@ function launchChess() {
     </script>
 </body>
 </html>
+
 
 
 

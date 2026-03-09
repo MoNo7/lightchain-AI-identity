@@ -1358,35 +1358,36 @@ async function generateAIVMArt() {
         img.crossOrigin = "anonymous"; 
 
             img.onload = () => {
-                const mainCanvas = document.getElementById('generatedCanvas');
-                const mainCtx = mainCanvas.getContext('2d');
-                mainCanvas.width = 1024;
-                mainCanvas.height = 1024;
-                
-                // 1. Draw the raw AI art first
-                mainCtx.drawImage(img, 0, 0, 1024, 1024);
-            
-              // 2. CAPTURE FOR NFT (High-ish Res, No Watermark)
-    // We use 512x512 at 0.6 quality - this avoids "White Tiles" and RPC errors
+               const mainCanvas = document.getElementById('generatedCanvas');
+    const mainCtx = mainCanvas.getContext('2d');
+    mainCanvas.width = 1024; mainCanvas.height = 1024;
+
+    // 1. Draw the AI art
+    mainCtx.drawImage(img, 0, 0, 1024, 1024);
+
+    // 2. Draw the Watermarks FIRST
+    mainCtx.font = "bold 30px 'Courier New'";
+    mainCtx.fillStyle = "rgba(0, 242, 255, 0.6)";
+    mainCtx.fillText(`AIVM AUTH: MiMo`, 40, 950);
+    mainCtx.font = "italic 25px Arial";
+    mainCtx.fillText("LCAI-MiMo © 2026", 750, 985);
+
+    // 3. CAPTURE DATA ONLY AFTER DRAWING IS DONE
+    // We use a slight delay or a direct capture to ensure no "Black Tiles"
     const tempCanvas = document.createElement('canvas');
     const tempCtx = tempCanvas.getContext('2d');
     tempCanvas.width = 512; tempCanvas.height = 512;
-    tempCtx.drawImage(img, 0, 0, 512, 512);
-    currentArtData = tempCanvas.toDataURL('image/jpeg', 0.6); 
-
-    // 3. DRAW WATERMARK (UI Preview Only)
-    mainCtx.font = "bold 30px 'Courier New'";
-    mainCtx.fillStyle = "rgba(0, 242, 255, 0.6)";
-    mainCtx.fillText(`AIVM AUTH: ${selectedModel}`, 40, 950);
-    mainCtx.font = "italic 25px Arial";
-    mainCtx.fillText("LCAI-MiMo © 2026", 750, 985);
+    tempCtx.drawImage(mainCanvas, 0, 0, 512, 512);
+    
+    // Quality 0.5 is the "Sweet Spot" for Lightchain Testnet gas limits
+    currentArtData = tempCanvas.toDataURL('image/jpeg', 0.5); 
 
     // 4. Update UI
     document.getElementById('aivmOutputImage').src = mainCanvas.toDataURL('image/png');
     document.getElementById('renderLoader').style.display = 'none';
     document.getElementById('saveArtBtn').style.display = 'block';
-    log("[AIVM] Render Success. PoI Anchored.");
-        };
+    log("[AIVM] Render Success. Ready to Mint.");
+};
                 
         img.onerror = () => {
             isGenerating = false;
@@ -1919,6 +1920,7 @@ async function listInAuction(tokenId) {
     </script>
 </body>
 </html>
+
 
 
 

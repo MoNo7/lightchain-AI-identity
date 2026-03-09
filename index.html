@@ -1363,40 +1363,39 @@ async function generateAIVMArt() {
         img.crossOrigin = "anonymous"; 
 
         img.onload = () => {
-            const mainCanvas = document.getElementById('generatedCanvas');
-                const mainCtx = mainCanvas.getContext('2d');
-                mainCanvas.width = 1024; mainCanvas.height = 1024;
-            
-                // 1. Draw the AI art
-                mainCtx.drawImage(img, 0, 0, 1024, 1024);
-            
-                // 2. Apply Watermarks
-                mainCtx.font = "bold 30px 'Courier New'";
-                mainCtx.fillStyle = "rgba(0, 242, 255, 0.6)";
-                mainCtx.fillText(`AIVM AUTH: MiMo`, 40, 950);
-                mainCtx.font = "italic 25px Arial";
-                mainCtx.fillText("LCAI-MiMo © 2026", 750, 985);
-            
-                // 3. THE FIX: Update the UI source FIRST
-                const finalData = mainCanvas.toDataURL('image/png');
-                document.getElementById('aivmOutputImage').src = finalData;
-            
-                // 4. CAPTURE FOR NFT (Wait for the next frame to avoid black tiles)
-                requestAnimationFrame(() => {
-                    const tempCanvas = document.createElement('canvas');
-                    const tempCtx = tempCanvas.getContext('2d');
-                    tempCanvas.width = 512; 
-                    tempCanvas.height = 512;
-                    tempCtx.drawImage(mainCanvas, 0, 0, 512, 512);
-                    
-                    // Quality 0.6 provides better clarity than 0.5 for the same gas cost
-                    currentArtData = tempCanvas.toDataURL('image/jpeg', 0.6); 
-                    
-                    document.getElementById('renderLoader').style.display = 'none';
-                    document.getElementById('saveArtBtn').style.display = 'block';
-                    log("[AIVM] Render Success. Pixels Locked.");
-                });
-            };
+           const mainCanvas = document.getElementById('generatedCanvas');
+            const mainCtx = mainCanvas.getContext('2d');
+            mainCanvas.width = 1024; 
+            mainCanvas.height = 1024;
+        
+            // 1. THE ESSENTIAL FIX: Paint the background white so JPEG isn't black
+            mainCtx.fillStyle = "#FFFFFF";
+            mainCtx.fillRect(0, 0, 1024, 1024);
+        
+            // 2. Draw your AI art and watermarks
+            mainCtx.drawImage(img, 0, 0, 1024, 1024);
+            mainCtx.font = "bold 30px 'Courier New'";
+            mainCtx.fillStyle = "rgba(0, 242, 255, 0.6)";
+            mainCtx.fillText(`AIVM AUTH: MiMo`, 40, 950);
+        
+            // 3. SECURE CAPTURE (JPEG @ 0.6 Quality)
+            setTimeout(() => {
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCanvas.width = 512; tempCanvas.height = 512;
+                
+                // Fill temp canvas white too
+                tempCtx.fillStyle = "#FFFFFF";
+                tempCtx.fillRect(0, 0, 512, 512);
+                tempCtx.drawImage(mainCanvas, 0, 0, 512, 512);
+                
+                // This line stays JPEG for the best gas-to-quality ratio
+                currentArtData = tempCanvas.toDataURL('image/jpeg', 0.6); 
+                
+                document.getElementById('saveArtBtn').style.display = 'block';
+                log("[AIVM] Render Success. Optimized for Lightchain Gas.");
+            }, 100);
+        };
                 
         img.onerror = () => {
             isGenerating = false;
@@ -1930,6 +1929,7 @@ async function listInAuction(tokenId) {
     </script>
 </body>
 </html>
+
 
 
 

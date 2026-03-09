@@ -391,9 +391,8 @@ async function decryptArt(encryptedString) {
 }       
         
 window.onload = async () => {
-const urlParams = new URLSearchParams(window.location.search);
+    const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
-
     // 1. POPUP MODE: If this is the popup, talk to the main window and DIE
     if (code && window.opener) {
         // Send the code to the parent window
@@ -402,22 +401,25 @@ const urlParams = new URLSearchParams(window.location.search);
         window.close();
         return; 
     }
-
     window.addEventListener('message', (event) => {
-    if (event.data && event.data.type === 'GITHUB_OAUTH') {
-        console.log("Received code from popup:", event.data.code);
-        processGitHubLink(event.data.code);
-    }
-});
-
+        if (event.data && event.data.type === 'GITHUB_OAUTH') {
+            console.log("Received code from popup:", event.data.code);
+            processGitHubLink(event.data.code);
+        }
+    });
     // 2. MAIN WINDOW MODE: Restore wallet sync
     await autoConnectWallet();
-
     setInterval(fetchPrices, 3000);
     setInterval(refreshModelDashboard, 3000);
     fetchPrices();
     refreshModelDashboard();
-
+    setInterval(() => {
+        if (document.getElementById('marketView').style.display === 'block') {
+            renderAuctions();
+            console.log("[SYS] Auto-refresh: Marketplace synced with explorer.");
+        }
+    }, 30000); // 30 second pulse
+    
 };
 
     
@@ -1769,6 +1771,7 @@ function showView(id) {
     </script>
 </body>
 </html>
+
 
 
 

@@ -1363,37 +1363,30 @@ async function generateAIVMArt() {
         img.crossOrigin = "anonymous"; 
 
         img.onload = () => {
-           const mainCanvas = document.getElementById('generatedCanvas');
+            const mainCanvas = document.getElementById('generatedCanvas');
             const mainCtx = mainCanvas.getContext('2d');
             mainCanvas.width = 1024; 
             mainCanvas.height = 1024;
-        
-            // 1. THE ESSENTIAL FIX: Paint the background white so JPEG isn't black
             mainCtx.fillStyle = "#FFFFFF";
             mainCtx.fillRect(0, 0, 1024, 1024);
         
-            // 2. Draw your AI art and watermarks
             mainCtx.drawImage(img, 0, 0, 1024, 1024);
+        
             mainCtx.font = "bold 30px 'Courier New'";
             mainCtx.fillStyle = "rgba(0, 242, 255, 0.6)";
             mainCtx.fillText(`AIVM AUTH: MiMo`, 40, 950);
+            mainCtx.font = "italic 25px Arial";
+            mainCtx.fillText("LCAI-MiMo © 2026", 750, 985);
         
-            // 3. SECURE CAPTURE (JPEG @ 0.6 Quality)
+            const outputImg = document.getElementById('aivmOutputImage');
+            outputImg.src = mainCanvas.toDataURL('image/png'); // UI uses PNG for preview
+            outputImg.style.display = 'block';
+            document.getElementById('renderLoader').style.display = 'none';
+        
             setTimeout(() => {
-                const tempCanvas = document.createElement('canvas');
-                const tempCtx = tempCanvas.getContext('2d');
-                tempCanvas.width = 512; tempCanvas.height = 512;
-                
-                // Fill temp canvas white too
-                tempCtx.fillStyle = "#FFFFFF";
-                tempCtx.fillRect(0, 0, 512, 512);
-                tempCtx.drawImage(mainCanvas, 0, 0, 512, 512);
-                
-                // This line stays JPEG for the best gas-to-quality ratio
-                currentArtData = tempCanvas.toDataURL('image/jpeg', 0.6); 
-                
+                currentArtData = mainCanvas.toDataURL('image/jpeg', 0.5);        
                 document.getElementById('saveArtBtn').style.display = 'block';
-                log("[AIVM] Render Success. Optimized for Lightchain Gas.");
+                log("[AIVM] Render Success. JPEG optimized for Lightchain.");
             }, 100);
         };
                 
@@ -1929,6 +1922,7 @@ async function listInAuction(tokenId) {
     </script>
 </body>
 </html>
+
 
 
 

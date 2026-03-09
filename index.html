@@ -932,7 +932,7 @@ async function registerLocal() {
             try {
                 const provider = new ethers.BrowserProvider(window.ethereum);
                 // Explicitly define the struct-return ABI to ensure we catch the 'active' bool
-                const auctionContract = new ethers.Contract(CONFIG.auctionHouse, [
+                const auctionHouse = new ethers.Contract(CONFIG.auctionHouse, [
                     "function auctions(address, uint256) view returns (address nftContract, uint256 startingPrice, uint256 highestBid, address highestBidder, uint256 endTime, bool active)"
                 ], provider);
                 
@@ -946,26 +946,23 @@ async function registerLocal() {
                 let html = "";
         
                 for (let i = 0; i < total; i++) {
-                    const auction = await auctionContract.auctions(CONFIG.artStudio, i);
-                    
-                    // Log for debugging: if this shows 'false' for all, they aren't active on-chain
-                    console.log(`Token ${i} Active Status:`, auction.active);
-        
-                    if (auction.active) {
-                        found++;
-                        const uri = await artContract.tokenURI(i);
-                        const currentPrice = ethers.formatEther(auction.highestBid > 0 ? auction.highestBid : auction.startingPrice);
+                   const data = await auctionHouse.auctions(CONFIG.artStudio, i);
+            
+                    if (data.active) { // Only show items that are currently in escrow
+                        count++;
+                        const uri = await artStudio.tokenURI(i);
+                        const currentPrice = ethers.formatEther(data.highestBid > 0 ? data.highestBid : data.startingPrice);
                         
-                        // Decrypt logic
+                        // Decrypt if encrypted
                         let img = uri.startsWith("U2Fsd") ? await decryptArt(uri) : uri;
                         if (!img.startsWith("data:image")) img = "data:image/jpeg;base64," + img;
         
                         html += `
-                            <div class="card" style="border:1px solid var(--accent);">
+                            <div class="card" style="border:1px solid var(--accent); margin-bottom:15px;">
                                 <img src="${img}" style="width:100%; border-radius:8px;">
                                 <div style="margin-top:10px; display:flex; justify-content:space-between; align-items:center;">
                                     <div>
-                                        <div style="color:var(--accent); font-weight:bold;">${currentPrice} LCAI</div>
+                                        <span style="color:var(--accent); font-weight:bold;">${currentPrice} LCAI</span>
                                         <div style="font-size:0.6rem; color:var(--text-dim);">TOKEN #${i}</div>
                                     </div>
                                     <button class="pill" onclick="placeBid(${i}, '${currentPrice}')" style="background:var(--accent); color:#000;">BID</button>
@@ -973,9 +970,9 @@ async function registerLocal() {
                             </div>`;
                     }
                 }
-                grid.innerHTML = found > 0 ? html : '<div id="auctionEmpty">No active auctions on-chain.</div>';
+                grid.innerHTML = count > 0 ? html : '<div id="auctionEmpty" style="grid-column:1/-1; text-align:center; padding:40px;">No active on-chain auctions.</div>';
             } catch (e) {
-                console.error("Auction Sync Error:", e);
+                console.error("Marketplace Sync Error:", e);
             }
         }
 
@@ -1790,6 +1787,7 @@ function showView(id) {
     </script>
 </body>
 </html>
+
 
 
 

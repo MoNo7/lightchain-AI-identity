@@ -1269,56 +1269,50 @@ async function generateAIVMArt() {
         img.crossOrigin = "anonymous"; 
 
             img.onload = () => {
-                   // 1. Render High-Res for UI
-           const mainCanvas = document.getElementById('generatedCanvas');
-            const mainCtx = mainCanvas.getContext('2d'); // We define mainCtx here
-            mainCanvas.width = 1024;
-            mainCanvas.height = 1024;
-            mainCtx.drawImage(img, 0, 0, 1024, 1024);
-        
-            // FIX: Use mainCtx (not ctx) for the watermark
-            mainCtx.font = "bold 30px 'Courier New'";
-            mainCtx.fillStyle = "rgba(0, 242, 255, 0.6)";
-            
-            const modelName = document.getElementById('modelSelector').value;
-            mainCtx.fillText(`AIVM AUTH: ${modelName}`, 40, 950);
-            mainCtx.font = "italic 25px Arial";
-            mainCtx.fillText("LCAI-MiMo © 2026", 750, 985);
-            
-            // Bottom Left: The Model Name
-   //         const modelName = document.getElementById('aivmModelSelect').value;
-       //     ctx.fillText(`AIVM AUTH: ${modelName}`, 40, 950);
-            
-            // Bottom Right: Your Brand Signature
-            mainCtx.font = "italic 25px Arial";
-            mainCtx.fillText("LCAI-MiMo © 2026", 750, 985);
+const mainCanvas = document.getElementById('generatedCanvas');
+    const mainCtx = mainCanvas.getContext('2d');
+    mainCanvas.width = 1024;
+    mainCanvas.height = 1024;
+    
+    // 1. Draw the raw AI art first
+    mainCtx.drawImage(img, 0, 0, 1024, 1024);
 
-                
-            document.getElementById('aivmOutputImage').src = mainCanvas.toDataURL('image/png');
-            document.getElementById('aivmOutputImage').style.display = 'block';
-        
-            // 2. Render Low-Res for Blockchain (The Fix for RPC Errors)
-            const tempCanvas = document.createElement('canvas');
-            const tempCtx = tempCanvas.getContext('2d');
-            tempCanvas.width = 256;
-            tempCanvas.height = 256;
-            tempCtx.drawImage(img, 0, 0, 256, 256);
-            
-            // This variable is now small enough to pass through the RPC
-            currentArtData = tempCanvas.toDataURL('image/jpeg', 0.1); 
+    // 2. CRITICAL: Capture CLEAN DATA for the NFT now (No Watermark)
+    // This is what gets encrypted and sent to the blockchain
+    currentArtData = mainCanvas.toDataURL('image/jpeg', 0.9);
+                // FIX: Use mainCtx (not ctx) for the watermark
 
-            const cidElement = document.getElementById('renderCID');
-            if (currentArtData) {
-                // Since we are bypassing IPFS and minting direct, we show the data type
-                cidElement.innerText = "On-Chain (Base64)"; 
-                cidElement.style.color = "var(--green)";
-            }
-        
-            isGenerating = false;
-            document.getElementById('renderLoader').style.display = 'none';
-            document.getElementById('saveArtBtn').style.display = 'block';
-            log("[AIVM] Render Stabilized. High-res preview active.");
+                const modelName = document.getElementById('modelSelector').value;
+                mainCtx.font = "bold 30px 'Courier New'";
+                mainCtx.fillStyle = "rgba(0, 242, 255, 0.6)";
+                mainCtx.fillText(`AIVM AUTH: ${modelName}`, 40, 950);
+
+                document.getElementById('aivmOutputImage').src = mainCanvas.toDataURL('image/png');
+                document.getElementById('aivmOutputImage').style.display = 'block';
+                mainCtx.font = "italic 25px Arial";
+                mainCtx.fillText("LCAI-MiMo © 2026", 750, 985);
+            
+                // 2. Render Low-Res for Blockchain (The Fix for RPC Errors)
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCanvas.width = 256;
+                tempCanvas.height = 256;
+                tempCtx.drawImage(img, 0, 0, 256, 256);
                 
+                // This variable is now small enough to pass through the RPC
+                currentArtData = tempCanvas.toDataURL('image/jpeg', 0.1); 
+    
+                const cidElement = document.getElementById('renderCID');
+                if (currentArtData) {
+                    // Since we are bypassing IPFS and minting direct, we show the data type
+                    cidElement.innerText = "On-Chain (Base64)"; 
+                    cidElement.style.color = "var(--green)";
+                }
+            
+                isGenerating = false;
+                document.getElementById('renderLoader').style.display = 'none';
+                document.getElementById('saveArtBtn').style.display = 'block';
+                log("[AIVM] Render Stabilized. High-res preview active.");
         };
                 
         img.onerror = () => {
@@ -1636,20 +1630,23 @@ async function listInAuction(tokenId) {
     }
 }
         
-function showView(id) {
-    // 1. Hide all views
-    document.querySelectorAll('main > div').forEach(v => v.style.display = 'none');
-    
-    // 2. Show target view
-    const target = document.getElementById(id);
+function showView(viewId) {
+    // Hide all sections
+    document.querySelectorAll('.view-section').forEach(v => v.style.display = 'none');
+    const target = document.getElementById(viewId);
     if (target) target.style.display = 'block';
 
-    // 3. Update Sidebar Active State Safely
-    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-    
-    // Find the sidebar item that matches this view and highlight it
-    const navItem = document.querySelector(`.nav-item[onclick*="${id}"]`);
-    if (navItem) navItem.classList.add('active');
+    // Remove active class from ALL sidebar items
+    document.querySelectorAll('.nav-item').forEach(nav => {
+        nav.classList.remove('active');
+        // If the nav item's onclick contains the viewId, highlight it
+        if (nav.getAttribute('onclick') && nav.getAttribute('onclick').includes(viewId)) {
+            nav.classList.add('active');
+        }
+    });
+
+    if (viewId === 'marketView') renderAuctions();
+    if (viewId === 'galleryView') loadGallery();
 }
 
         function log(m) {
@@ -1793,36 +1790,3 @@ function showView(id) {
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

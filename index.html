@@ -941,30 +941,21 @@ async function registerLocal() {
         
             for (let i = 0; i < totalNFTs; i++) {
                 const data = await auctionContract.auctions(CONFIG.artStudio, i);
-                const isActive = data[5]; // The 'active' boolean in your struct
-        
-                if (isActive) {
+                if (data[5]) { // If 'active' is true
                     const uri = await artContract.tokenURI(i);
-                    const price = ethers.formatEther(data[1]);
-                    const endTime = Number(data[4]) * 1000;
-                    const timeLeft = Math.max(0, Math.floor((endTime - Date.now()) / 60000));
+                    const displayImg = uri.startsWith("U2Fsd") ? await decryptArt(uri) : uri;
                     
-                    // Decrypt if necessary
-                    let displayImg = uri.startsWith("U2Fsd") ? await decryptArt(uri) : uri;
-                    if (!displayImg.startsWith("data:image")) displayImg = "data:image/jpeg;base64," + displayImg;
-        
                     grid.innerHTML += `
                         <div class="card">
                             <img src="${displayImg}" style="width:100%; border-radius:8px;">
                             <div style="margin-top:10px;">
-                                <span style="color:var(--accent)">${price} LCAI</span>
-                                <p style="font-size:0.7rem; color:var(--text-dim)">Ends in: ${timeLeft} mins</p>
-                                <button class="btn-zk" onclick="placeBid(${i}, '${price}')">PLACE BID</button>
+                                <span style="color:var(--accent)">${ethers.formatEther(data[1])} LCAI</span>
+                                <button class="btn-zk" onclick="placeBid(${i})">BID</button>
                             </div>
                         </div>`;
                 }
             }
-            if (grid.innerHTML === "") grid.innerHTML = "<p>No active auctions found on-chain.</p>";
+    
         }
 
         async function placeBid(tokenId, currentPrice) {
@@ -1743,6 +1734,7 @@ function triggerBlink(element, className) {
     </script>
 </body>
 </html>
+
 
 
 

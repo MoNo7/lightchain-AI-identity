@@ -1357,10 +1357,11 @@ img.src = aiImageUrl;
     };
 
     img.onerror = () => {
-    log("[AIVM ERROR] Engine cooling down. Retrying in 15 seconds...");
+    log("[AIVM ERROR] Engine cooling down. ");
         setTimeout(() => {
+            log("[AIVM] Cooldown cleared. Retrying...");
             generateAIVMArt(); 
-        }, 15000);
+         }, 65000);
     };
 }
         
@@ -1881,6 +1882,7 @@ async function listInAuction(tokenId) {
     </script>
 </body>
 </html>
+
 
 
 

@@ -1360,53 +1360,38 @@ async function generateAIVMArt() {
         const aiImageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&seed=${seed}&nologo=true`;
 
         const img = new Image();
-        img.crossOrigin = "anonymous"; 
+        img.crossOrigin = "anonymous"; // This unlocks the "Tainted" canvas
+        img.src = imageUrl;
 
         img.onload = () => {
-            const mainCanvas = document.getElementById('generatedCanvas');
+        const mainCanvas = document.getElementById('generatedCanvas');
             const mainCtx = mainCanvas.getContext('2d');
-            mainCanvas.width = 1024; 
-            mainCanvas.height = 1024;
-            mainCtx.fillStyle = "#FFFFFF";
-            mainCtx.fillRect(0, 0, 1024, 1024);
-        
+            
+            // 2. Clear the canvas entirely before drawing
+            mainCtx.clearRect(0, 0, 1024, 1024);
             mainCtx.drawImage(img, 0, 0, 1024, 1024);
         
-            mainCtx.font = "bold 30px 'Courier New'";
-            mainCtx.fillStyle = "rgba(0, 242, 255, 0.6)";
-            mainCtx.fillText(`AIVM AUTH: MiMo`, 40, 950);
-            mainCtx.font = "italic 25px Arial";
-            mainCtx.fillText("LCAI-MiMo © 2026", 750, 985);
+            // 3. WAIT FOR GPU SYNC
+            setTimeout(() => {
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+                
+                // DOWNSIZE for Gas Efficiency (This fits the 30M-45M Gas Limit)
+                tempCanvas.width = 512; 
+                tempCanvas.height = 512;
+                tempCtx.drawImage(mainCanvas, 0, 0, 512, 512);
         
-            const outputImg = document.getElementById('aivmOutputImage');
-            outputImg.src = mainCanvas.toDataURL('image/png'); // UI uses PNG for preview
-            outputImg.style.display = 'block';
-            document.getElementById('renderLoader').style.display = 'none';
-
-            requestAnimationFrame(() => {
-                // We wait an extra 1000ms here because Token #6 and #7 both failed at 300ms
-                setTimeout(() => {
-                    const tempCanvas = document.createElement('canvas');
-                    const tempCtx = tempCanvas.getContext('2d');
-                    tempCanvas.width = 512; tempCanvas.height = 512;
-                    
-                    tempCtx.fillStyle = "#FFFFFF";
-                    tempCtx.fillRect(0, 0, 512, 512);
-                    tempCtx.drawImage(mainCanvas, 0, 0, 512, 512);
-
-                    const testData = tempCtx.getImageData(100, 100, 1, 1).data;
-                    if (testData[0] === 255 && testData[1] === 255 && testData[2] === 255) {
-                        log("[AIVM ERROR] Canvas still white. Retrying sync...");
-                        return; 
-                    }
-                   
-                    // 4. Update the global data variable
-                    currentArtData = tempCanvas.toDataURL('image/jpeg', 0.4); 
-                    
-                    document.getElementById('saveArtBtn').style.display = 'block';
-                    log("[AIVM] Pixels Verified. Capture for Token #8 is Ready.");
-                }, 1500);
-            });
+                // 4. THE VALIDATION CHECK
+                const pixelData = tempCtx.getImageData(256, 256, 1, 1).data;
+                if (pixelData[0] === 255 && pixelData[1] === 255 && pixelData[2] === 255) {
+                    log("[AIVM ERROR] Capture failed (White Tile detected). Retrying...");
+                    return; // Stops the mint button from appearing if it's blank
+                }
+        
+                currentArtData = tempCanvas.toDataURL('image/jpeg', 0.5); 
+                document.getElementById('saveArtBtn').style.display = 'block';
+                log("[AIVM] JPEG Conversion Verified. Ready for Chain.");
+            }, 1000);
         };
                 
         img.onerror = () => {
@@ -1943,6 +1928,7 @@ async function listInAuction(tokenId) {
     </script>
 </body>
 </html>
+
 
 
 

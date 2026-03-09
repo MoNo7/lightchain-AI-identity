@@ -2263,43 +2263,51 @@ async function listInAuction(tokenId) {
         let wagerAmount = 0;
 
 async function launchChess() {
+    if (!userWallet) return log("Connect wallet to play.");
+    
     const provider = new ethers.BrowserProvider(window.ethereum);
     const referee = new ethers.Contract(CONFIG.refereeAddress, REFEREE_ABI, provider);
-    
-    try {
-        // 1. Check if the user already has a match in progress
-        const match = await referee.matches(userWallet);
 
-        if (!board) { initBoard(); }
-        
-        if (match.active) {
-            log("[RESUME] Found active match. Restoring board state...");
-            // Load the FEN saved on-chain instead of starting a new match
-            game.load(match.currentFEN);
-            board.position(match.currentFEN);
-            showView('chessView');
-            return; // EXIT HERE to prevent the "Match already in progress" error
+    try {
+        // 1. ALWAYS initialize the UI board first so 'board' isn't null
+        if (!board) { 
+            initBoard(); 
         }
 
-        // 2. Only if no active match exists, ask for wager and start new match
-        const wager = prompt("Enter LCAI wager for this match:", "1.0");
+        // 2. Check the contract for an existing active match
+        const match = await referee.matches(userWallet);
+
+        if (match.active) {
+            log("[RESUME] Found active match. Syncing board...");
+            game.load(match.currentFEN);
+            board.position(match.currentFEN); // This won't crash now
+            showView('chessView');
+            return; 
+        }
+
+        // 3. No match? Start new one
+        const wager = prompt("Enter LCAI wager:", "1.0");
         if (!wager || isNaN(wager)) return;
 
         const signer = await provider.getSigner();
         const refereeWithSigner = new ethers.Contract(CONFIG.refereeAddress, REFEREE_ABI, signer);
 
-        log(`[LCAI] Initializing Escrow for ${wager} LCAI...`);
+        log(`[LCAI] Locking ${wager} LCAI in Escrow...`);
         const tx = await refereeWithSigner.startMatch("start", { value: ethers.parseEther(wager) });
         await tx.wait();
         
         log("✅ Escrow Confirmed. AIVM Match Active.");
+        
+        // Reset local game state for a fresh start
+        game.reset();
+        board.start();
+        
         showView('chessView');
-        initBoard(); 
     } catch (e) {
-        // This is where line 663 currently catches the "Match already in progress" error
         log(`[ESCROW ERROR] ${e.message}`);
     }
 }
+        
     async function checkGameOver() {
     if (game.in_checkmate() || game.in_draw()) {
         const playerWon = (game.turn() === 'b'); // If it's black's turn and checkmate, white (player) won
@@ -2484,6 +2492,7 @@ function exitGateway() {
     </script>
 </body>
 </html>
+
 
 
 

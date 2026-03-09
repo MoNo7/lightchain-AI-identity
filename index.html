@@ -1322,7 +1322,6 @@ async function generateAIVMArt() {
     img.src = aiImageUrl;
 
     img.onload = () => {
-    img.onload = () => {
     // 1. IMMEDIATELY WIPE THE UI (Kills the "Awaiting" text)
     const inferenceBox = document.querySelector('.inference-window');
     if (inferenceBox) {
@@ -1354,11 +1353,11 @@ async function generateAIVMArt() {
         document.getElementById('saveArtBtn').style.display = 'block';
         log("[AIVM] Art Verified & Locked for Token #15.");
     }, 2000); 
-};
 
     img.onerror = () => {
         log("[AIVM ERROR] Failed to fetch image. Check your internet connection.");
         document.getElementById('renderLoader').style.display = 'none';
+    };
     };
 }
         
@@ -1878,6 +1877,7 @@ async function listInAuction(tokenId) {
     </script>
 </body>
 </html>
+
 
 
 

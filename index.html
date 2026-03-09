@@ -1410,45 +1410,38 @@ async function uploadToIPFS(base64Data) {
 }
 
 async function saveArtToGallery() {
-    // If currentArtData is null or too short, it's a blank canvas
-    if (!currentArtData || currentArtData.length < 5000) {
-        log("[ERROR] Art data is empty or corrupted. Please click Generate Art again.");
+    // 1. Check if we actually have image data
+    if (!currentArtData || currentArtData.length < 1000) {
+        log("[ERROR] No image data found. Please generate art first.");
         return;
     }
- try {
-        log("[MINT] Encrypting Payload...");
-        const encryptedData = await encryptArt(currentArtData);
 
+    try {
+        log("[MINT] Preparing unencrypted payload...");
+        
         const provider = new ethers.BrowserProvider(window.ethereum);
         const signer = await provider.getSigner();
         
-        // Ensure this matches your exact contract ABI
+        // We bypass the encryptArt(currentArtData) step here
+        const rawData = currentArtData; 
+
         const artContract = new ethers.Contract(CONFIG.artStudio, [
             "function mintArtNFT(string memory tokenURI) public payable returns (uint256)"
         ], signer);
 
-        // 2. BLOCKCHAIN EXECUTION
-        log("[MINT] Requesting Signature...");
+        log("[MINT] Sending to Lightchain...");
         const tx = await artContract.mintArtNFT(
-            encryptedData,
-            {
-                value: ethers.parseEther("1.0"),
-                gasLimit: 45000000 // Required for base64 string payloads
+            rawData, 
+            { 
+                value: ethers.parseEther("1.0"), 
+                gasLimit: 40000000 // High gas limit for unencrypted data
             }
         );
 
-        log("[MINT] Transaction submitted. Waiting for confirmation...");
         await tx.wait();
-
-        log("[SUCCESS] NFT Minted! Check Gallery.");
+        log("[SUCCESS] Unencrypted NFT Minted! Check your wallet.");
+        if(typeof loadGallery === 'function') loadGallery();
         
-        // 3. CLEANUP
-        currentArtData = ""; // Reset for the next one
-        document.getElementById('saveArtBtn').style.display = 'none';
-        
-        // Assuming you have a loadGallery function
-        if(typeof loadGallery === 'function') loadGallery(); 
-
     } catch (e) {
         log(`[MINT ERROR] ${e.message}`);
     }
@@ -1880,6 +1873,7 @@ async function listInAuction(tokenId) {
     </script>
 </body>
 </html>
+
 
 
 

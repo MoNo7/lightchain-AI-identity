@@ -2122,39 +2122,51 @@ async function listInAuction(tokenId) {
         let game = new Chess();
         let wagerAmount = 0;
 
-function launchChess() {
-    const wager = prompt("Enter your LCAI wager for this AIVM match:", "1.0");
-    if (wager === null || isNaN(wager) || parseFloat(wager) <= 0) return;
+async function launchChess() {
+    const wager = prompt("Enter LCAI wager:", "1.0");
+    if (!wager || isNaN(wager)) return;
 
-    wagerAmount = parseFloat(wager);
-    document.getElementById('activeWagerDisplay').innerText = wagerAmount.toFixed(2) + " LCAI";
+    log(`[LCAI] Initializing Escrow for ${wager} LCAI...`);
     
-    // 1. Show the view FIRST
-    showView('chessView');
-    
-    // 2. Use a tiny timeout to let the browser render the container width
-    setTimeout(() => {
-        game = new Chess();
-        const config = {
-            draggable: true,
-            position: 'start',
-            onDragStart: onDragStart,
-            onDrop: onDrop,
-            onSnapEnd: onSnapEnd,
-            pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png'
-        };
+    try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        const referee = new ethers.Contract("0x479e6847C98EA94bB559b85959a6F0aDDfdD6856", REFEREE_ABI, signer);
+
+        // Call the 'startMatch' function from your .sol code
+        const tx = await referee.startMatch("start", { value: ethers.parseEther(wager) });
+        await tx.wait();
         
-        // 3. Initialize board only AFTER the div is visible
-        board = Chessboard('myBoard', config);
+        log("✅ Escrow Confirmed. AIVM Match Active.");
         
-        // 4. Force a resize calculation
-        board.resize();
-        
-        updateChessStatus("YOUR MOVE (WHITE)");
-        log(`[ARCADE] Match Initialized. Board Rendered.`);
-    }, 100);
+        // Existing UI logic to show the board
+        showView('chessView');
+        initBoard(); 
+    } catch (e) {
+        log(`[ESCROW ERROR] ${e.message}`);
+    }
 }
-    
+    async function checkGameOver() {
+    if (game.in_checkmate() || game.in_draw()) {
+        const playerWon = (game.turn() === 'b'); // If it's black's turn and checkmate, white (player) won
+        const resultLabel = playerWon ? "MiMo Wins!" : "AIVM Wins!";
+        
+        log(`[ARCADE] Game Over: ${resultLabel}. Settling Wager...`);
+        
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        const referee = new ethers.Contract("0x479e6847C98EA94bB559b85959a6F0aDDfdD6856", REFEREE_ABI, signer);
+
+        try {
+            // resolve the match on-chain
+            const tx = await referee.completeMatch(userWallet, playerWon);
+            await tx.wait();
+            log("[SUCCESS] Blockchain Settlement Complete.");
+        } catch (e) {
+            log("[ERROR] Settlement failed. Check Owner permissions.");
+        }
+    }
+}
     function onDragStart (source, piece, position, orientation) {
         // Do not pick up pieces if the game is over
         if (game.game_over()) return false;
@@ -2265,4 +2277,5 @@ async function makeAIVMMove() {
     </script>
 </body>
 </html>
+
 

@@ -1299,103 +1299,52 @@ async function withdrawRevenue() {
 let isGenerating = false;
 
 async function generateAIVMArt() {
-    const btn = event.target; // Assuming called from the button
-    btn.disabled = true;
-    setTimeout(() => { btn.disabled = false; }, 10000); // 10s Cooldown
-    if (isGenerating) return log("System busy: Awaiting protocol PoI...");
+ // 1. Get inputs first
+    const promptInput = document.getElementById('artPrompt').value;
+    const model = document.getElementById('modelSelector').value;
+    
+    if(!promptInput) return log("Error: Prompt required.");
+    
+    // 2. DEFINE THE VARIABLES IMMEDIATELY
+    const encodedPrompt = encodeURIComponent(promptInput);
+    const seed = Math.floor(Math.random() * 1000000);
+    
+    // 3. UI State
+    document.getElementById('renderLoader').style.display = 'block';
+    document.getElementById('saveArtBtn').style.display = 'none';
+    
+    // 4. Construct URL using the defined variables
+    const aiImageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&seed=${seed}&nologo=true`;
+    
+    log(`[AIVM] Calling Engine with Seed: ${seed}`);
 
-    const basePrompt = document.getElementById('artPrompt').value.trim();
-    const styleSuffix = document.getElementById('artStyle').value;
-    const selectedModel = document.getElementById('modelSelector').value;
+    const img = new Image();
+    img.crossOrigin = "anonymous"; 
+    img.src = aiImageUrl;
 
-    if (!basePrompt) return log("Error: Please enter a prompt first.");
-    if (!userWallet) return log("Error: Connect wallet to anchor PoI.");
-
-    isGenerating = true; 
-    const finalPrompt = (basePrompt + styleSuffix).replace(/\s+/g, ' ');
-
-    // UI Feedback
-    document.getElementById('renderStatusText').style.display = 'none';
-    document.getElementById('aivmOutputImage').style.display = 'none';
-    const loader = document.getElementById('renderLoader');
-    loader.style.display = 'block';
-    loader.querySelector('div').innerText = `Anchoring PoI to Testnet...`;
-
-    try {
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const signer = await provider.getSigner();
-
-        // --- STEP 1: PROTOCOL ANCHOR (PoI) ---
-        // We anchor the prompt hash to the LCAI AIVM V2 Registry
-        const promptId = ethers.keccak256(ethers.toUtf8Bytes(finalPrompt + Date.now()));
-        log(`[PROTOCOL] Sending PoI Anchor: ${promptId.slice(0,18)}...`);
-
-        // This ensures the task is recorded on-chain before the render proceeds
-        // Using the contract ABI for PoI anchoring
-       // const contract = new ethers.Contract(CONFIG.contract, [
-      //      "function requestInferenceV2(bytes32 promptId, string calldata prompt) public payable",
- //           "function verified(address) view returns (bool)"
-//        ], signer);
-
-        // Correct Fix:
-        // 1. Check verification on Identity Contract
-        const identityContract = new ethers.Contract(CONFIG.contract, [
-            "function requestInferenceV2(bytes32 promptId, string calldata prompt) public payable",
-            "function verified(address) view returns (bool)"
-        ], provider);
-        // check if user is verified first to avoid silent revert
-        const isUserVerified = await identityContract.verified(userWallet);
-
-
-//        const isUserVerified = await contract.verified(userWallet);
-        if (!isUserVerified) {
-            isGenerating = false;
-            return log("Error: You must be a Verified Identity to anchor PoI.");
-        }
-
-
-        // --- STEP 2: STABILIZED RENDER ---
-        const seed = Math.floor(Math.random() * 1000000);
-        const aiImageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&seed=${seed}&nologo=true`;
+    img.onload = () => {
+        const canvas = document.getElementById('generatedCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 1024; canvas.height = 1024;
         
-        const img = new Image();
-        img.setAttribute('crossOrigin', 'anonymous'); // CRITICAL: This must be an attribute
-        img.src = aiImageUrl;
+        ctx.clearRect(0, 0, 1024, 1024);
+        ctx.drawImage(img, 0, 0, 1024, 1024);
 
-        img.onload = () => {
-            const canvas = document.getElementById('generatedCanvas');
-            const ctx = canvas.getContext('2d');
+        // Wait 1.5s to ensure GPU pixels are ready before allowing save
+        setTimeout(() => {
+            document.getElementById('renderLoader').style.display = 'none';
             
-            // 2. Draw to canvas
-            ctx.drawImage(img, 0, 0, 1024, 1024);
-        
-            // 3. THE "SPIN" KILLER: Hide loader and show the 'Save' button only after 2 seconds
-            setTimeout(() => {
-                document.getElementById('renderLoader').style.display = 'none';
-                
-                // Final check: Capture 512px for the NFT (better gas compliance)
-                const tempCanvas = document.createElement('canvas');
-                tempCanvas.width = 512; tempCanvas.height = 512;
-                tempCanvas.getContext('2d').drawImage(canvas, 0, 0, 512, 512);
-                
-                currentArtData = tempCanvas.toDataURL('image/jpeg', 0.6);
-                document.getElementById('saveArtBtn').style.display = 'block';
-                log("[AIVM] Sync Complete. Token #12 Ready.");
-            }, 2000);
-        };
-                
-        img.onerror = () => {
-            isGenerating = false;
-            loader.style.display = 'none';
-            document.getElementById('renderStatusText').style.display = 'block';
-            document.getElementById('renderStatusText').innerText = "AI Gateway Busy (Error 429). Please wait 30s.";
-            // CRITICAL: Hide the save button so you don't mint a blank white box
-            document.getElementById('saveArtBtn').style.display = 'none';            
-            log(`[AIVM Error] Connection Reset. PoI remains anchored.`);
-        };
-
-      //  img.src = aiImageUrl;
-    } catch (e) {
+            // Capture 512px for the NFT (Safe for 45M Gas Limit)
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = 512; tempCanvas.height = 512;
+            tempCanvas.getContext('2d').drawImage(canvas, 0, 0, 512, 512);
+            
+            currentArtData = tempCanvas.toDataURL('image/jpeg', 0.5);
+            document.getElementById('saveArtBtn').style.display = 'block';
+            log("[AIVM] Success: Image Buffer Ready.");
+        }, 1500);
+    };
+} catch (e) {
         isGenerating = false;
         log(`[Fatal Error] ${e.message}`);
         loader.style.display = 'none';
@@ -1918,6 +1867,7 @@ async function listInAuction(tokenId) {
     </script>
 </body>
 </html>
+
 
 
 

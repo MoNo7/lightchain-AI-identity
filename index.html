@@ -1611,6 +1611,7 @@ async function mintWithSocial() {
 
             // CRITICAL: Clear the container first to prevent double-rendering
             container.innerHTML = '<div style="grid-column:1/-1; text-align:center;">Syncing with Lightchain AIVM...</div>';
+            window.userGallery = [];
             
                 try {
                     const provider = new ethers.BrowserProvider(window.ethereum);
@@ -1634,23 +1635,23 @@ async function mintWithSocial() {
                         
         //                let displaySrc = "";
     //**
-   //                     if (uri.startsWith("U2Fsd")) {
-     //                       try {
-   ///                             let decrypted = await decryptArt(uri);
+                       if (uri.startsWith("U2Fsd")) {
+                            try {
+                              let decrypted = await decryptArt(uri);
                                 // Force the header if it's missing from the encrypted payload
-  //                              displaySrc = decrypted.startsWith("data:image") ? decrypted : "data:image/jpeg;base64," + decrypted;
-   //                         } catch (e) {
-     //                           displaySrc = "https://via.placeholder.com/400?text=Decryption+Failed";
-    //                        }
-   //                     } else {
-   //                         displaySrc = uri.startsWith("ipfs://") 
-     //                           ? uri.replace("ipfs://", "https://ipfs.io/ipfs/") 
-    //                            : uri;
-    //                    }
+                                displaySrc = decrypted.startsWith("data:image") ? decrypted : "data:image/jpeg;base64," + decrypted;
+                           } catch (e) {
+                              displaySrc = "https://via.placeholder.com/400?text=Decryption+Failed";
+                            }
+                        } else {
+                            displaySrc = uri.startsWith("ipfs://") 
+                                ? uri.replace("ipfs://", "https://ipfs.io/ipfs/") 
+                                : uri;
+                        }
     
-                        // 3. Render with a safety check for broken data
-          //              const finalImg = (displaySrc && displaySrc.length > 20) ? displaySrc : "https://via.placeholder.com/400/1a1a1a/00f2ff?text=Data+Pending";
-      // Decrypt art logic here...
+                         3. Render with a safety check for broken data
+          /             const finalImg = (displaySrc && displaySrc.length > 20) ? displaySrc : "https://via.placeholder.com/400/1a1a1a/00f2ff?text=Data+Pending";
+       Decrypt art logic here...
                 if(!window.userGallery) window.userGallery = [];
                     window.userGallery[i] = { id: tokenId, uri: uri };
                     // STEP 2: RENDER CARD WITH CENTERED TEXT & UI WATERMARK
@@ -1903,6 +1904,7 @@ async function listInAuction(tokenId) {
     </script>
 </body>
 </html>
+
 
 
 

@@ -74,6 +74,12 @@
             position: relative;
             display: inline-block;
             width: 100%;
+            z-index: 1;
+        }
+
+        .gallery-controls {
+            position: relative;
+            z-index: 10; /* Ensures buttons are on top */
         }
         
         .ui-watermark {
@@ -1351,56 +1357,34 @@ async function generateAIVMArt() {
         img.crossOrigin = "anonymous"; 
 
             img.onload = () => {
-const mainCanvas = document.getElementById('generatedCanvas');
-    const mainCtx = mainCanvas.getContext('2d');
-    mainCanvas.width = 1024;
-    mainCanvas.height = 1024;
-    
-    // 1. Draw the raw AI art first
-    mainCtx.drawImage(img, 0, 0, 1024, 1024);
-
-    // 2. CRITICAL: Capture CLEAN DATA for the NFT now (No Watermark)
-    // This is what gets encrypted and sent to the blockchain
-    currentArtData = mainCanvas.toDataURL('image/jpeg', 0.9);
-                // FIX: Use mainCtx (not ctx) for the watermark
-
-                const modelName = document.getElementById('modelSelector').value;
-                mainCtx.font = "bold 30px 'Courier New'";
-                mainCtx.fillStyle = "rgba(0, 242, 255, 0.6)";
-                mainCtx.fillText(`AIVM AUTH: ${modelName}`, 40, 950);
-
-                mainCtx.font = "italic 25px Arial";
-                mainCtx.fillText("LCAI-MiMo © 2026", 750, 985);
-
-                // 4. Update Preview with BOTH lines visible
-                const previewImg = document.getElementById('aivmOutputImage');
-                previewImg.src = mainCanvas.toDataURL('image/png');
-                previewImg.style.display = 'block';
-
-                document.getElementById('aivmOutputImage').src = mainCanvas.toDataURL('image/png');
-                document.getElementById('aivmOutputImage').style.display = 'block';
-            
-                // 2. Render Low-Res for Blockchain (The Fix for RPC Errors)
-                const tempCanvas = document.createElement('canvas');
-                const tempCtx = tempCanvas.getContext('2d');
-                tempCanvas.width = 256;
-                tempCanvas.height = 256;
-                tempCtx.drawImage(img, 0, 0, 256, 256);
+                const mainCanvas = document.getElementById('generatedCanvas');
+                const mainCtx = mainCanvas.getContext('2d');
+                mainCanvas.width = 1024;
+                mainCanvas.height = 1024;
                 
-                // This variable is now small enough to pass through the RPC
-                currentArtData = tempCanvas.toDataURL('image/jpeg', 0.1); 
-    
-                const cidElement = document.getElementById('renderCID');
-                if (currentArtData) {
-                    // Since we are bypassing IPFS and minting direct, we show the data type
-                    cidElement.innerText = "On-Chain (Base64)"; 
-                    cidElement.style.color = "var(--green)";
-                }
+                // 1. Draw the raw AI art first
+                mainCtx.drawImage(img, 0, 0, 1024, 1024);
             
-                isGenerating = false;
-                document.getElementById('renderLoader').style.display = 'none';
-                document.getElementById('saveArtBtn').style.display = 'block';
-                log("[AIVM] Render Stabilized. High-res preview active.");
+              // 2. CAPTURE FOR NFT (High-ish Res, No Watermark)
+    // We use 512x512 at 0.6 quality - this avoids "White Tiles" and RPC errors
+    const tempCanvas = document.createElement('canvas');
+    const tempCtx = tempCanvas.getContext('2d');
+    tempCanvas.width = 512; tempCanvas.height = 512;
+    tempCtx.drawImage(img, 0, 0, 512, 512);
+    currentArtData = tempCanvas.toDataURL('image/jpeg', 0.6); 
+
+    // 3. DRAW WATERMARK (UI Preview Only)
+    mainCtx.font = "bold 30px 'Courier New'";
+    mainCtx.fillStyle = "rgba(0, 242, 255, 0.6)";
+    mainCtx.fillText(`AIVM AUTH: ${selectedModel}`, 40, 950);
+    mainCtx.font = "italic 25px Arial";
+    mainCtx.fillText("LCAI-MiMo © 2026", 750, 985);
+
+    // 4. Update UI
+    document.getElementById('aivmOutputImage').src = mainCanvas.toDataURL('image/png');
+    document.getElementById('renderLoader').style.display = 'none';
+    document.getElementById('saveArtBtn').style.display = 'block';
+    log("[AIVM] Render Success. PoI Anchored.");
         };
                 
         img.onerror = () => {
@@ -1469,7 +1453,7 @@ async function uploadToIPFS(base64Data) {
 
 async function saveArtToGallery() {
     // If currentArtData is null or too short, it's a blank canvas
-    if (!currentArtData || currentArtData.length < 2000) {
+    if (!currentArtData || currentArtData.length < 1000) {
         return log("Error: No image data found. Did the AI fail to render?");
     }
     
@@ -1919,6 +1903,7 @@ async function listInAuction(tokenId) {
     </script>
 </body>
 </html>
+
 
 
 

@@ -2297,6 +2297,17 @@ async function launchChess() {
             
             document.getElementById('activeWagerDisplay').innerText = 
                 ethers.formatEther(match.wager) + " LCAI";
+
+            // 4. CRITICAL: Clear "Standby" and set the correct turn
+            const turn = game.turn() === 'w' ? "YOUR MOVE" : "AIVM THINKING...";
+            updateChessStatus(turn);
+
+            // 5. If it's the AIVM's turn, trigger the move immediately
+            if (game.turn() === 'b') {
+                window.setTimeout(makeAIVMMove, 500);
+            }
+            
+            showView('chessView');            
             return;
         }
 
@@ -2507,6 +2518,7 @@ function exitGateway() {
     </script>
 </body>
 </html>
+
 
 
 

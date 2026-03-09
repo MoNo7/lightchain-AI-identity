@@ -1243,8 +1243,8 @@ async function withdrawRevenue() {
             const loader = document.getElementById('renderLoader');
             view.style.display = 'block';
             loader.style.display = 'block';
-            placeholder.style.display = 'none';
-            img.style.display = 'none';
+if (placeholder) placeholder.style.display = 'none'; 
+    img.style.display = 'none';
             //document.getElementById('modelNameDisplay').innerText = model;
 
             if(data.startsWith('data:image')) { img.src = data; document.getElementById('renderCID').innerText = "Base64 Stream"; }
@@ -1877,6 +1877,7 @@ async function listInAuction(tokenId) {
     </script>
 </body>
 </html>
+
 
 
 

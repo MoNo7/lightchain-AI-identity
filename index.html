@@ -546,36 +546,41 @@
                 </div>
             </div>
 
-        <div id="tcgBinderView" class="view-section" style="display:none; padding: 20px;">
-            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 30px;">
-                
-                <div id="binderContainer">
-                    <h3 style="color:var(--accent); border-bottom: 1px solid var(--border); padding-bottom: 10px;">
-                        <i class="fas fa-book-open"></i> COLLECTION BINDER
-                    </h3>
-                    <div id="binderGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; margin-top: 20px;">
-                        </div>
+<div id="tcgBinderView" class="view-section" style="display:none; padding: 20px; background: #000;">
+    <div style="display: grid; grid-template-columns: 1.8fr 1fr; gap: 40px; min-height: 80vh;">
+        
+        <div id="binderContainer" style="border-right: 1px solid var(--border); padding-right: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="color:var(--accent); margin:0;"><i class="fas fa-book-open"></i> WARRIOR BINDER</h3>
+                <div id="starterPackArea"></div> </div>
+            <div id="binderGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 15px; margin-top: 25px;">
                 </div>
-        
-                <div style="display: flex; flex-direction: column; gap: 20px;">
-                    <div class="card" style="background: #111; border: 1px solid var(--green);">
-                        <h4>DAILY REWARDS</h4>
-                        <button class="btn-zk" onclick="claimDailyWarrior()">COLLECT DAILY PACK</button>
-                    </div>
-                    
-                    <div class="card" style="background: #111; border: 1px solid var(--accent);">
-                        <h4>WARRIOR STORE</h4>
-                        <button class="btn-zk" onclick="buyWarriorPack()">BUY UPGRADE PACK</button>
-                    </div>
-        
-                    <div class="card" style="background: #111; border: 1px solid var(--red);">
-                        <h4>THE FORGE</h4>
-                        <button class="btn-zk" onclick="showForge()">COMBINE CARDS</button>
-                    </div>
-                </div>
-        
-            </div>
         </div>
+
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+            
+            <div class="card" style="background: #0a0c10; border: 1px solid var(--green); position: relative;">
+                <div style="font-size: 0.6rem; color: var(--green); margin-bottom: 5px;">24H COOLDOWN</div>
+                <h4 style="margin:5px 0;"><i class="fas fa-calendar-day"></i> DAILY REWARDS</h4>
+                <p style="font-size: 0.7rem; color: var(--text-dim);">Claim 1 randomized Warrior card every 24 hours.</p>
+                <button class="btn-zk" style="background:var(--green); color:black;" onclick="claimDailyWarrior()">COLLECT DAILY PACK</button>
+            </div>
+            
+            <div class="card" style="background: #0a0c10; border: 1px solid var(--accent);">
+                <h4 style="margin:5px 0;"><i class="fas fa-shopping-cart"></i> UPGRADE STORE</h4>
+                <p style="font-size: 0.7rem; color: var(--text-dim);">Buy premium Booster Packs for high-stat rolls.</p>
+                <button class="btn-zk" onclick="showView('marketView')">OPEN STORE</button>
+            </div>
+
+            <div class="card" style="background: #0a0c10; border: 1px solid var(--red);">
+                <h4 style="margin:5px 0;"><i class="fas fa-hammer"></i> THE FORGE</h4>
+                <p style="font-size: 0.7rem; color: var(--text-dim);">Combine duplicates to evolve rarity and stats.</p>
+                <button class="btn-zk" style="background:var(--red); color:white;" onclick="showForge()">ENTER FORGE</button>
+            </div>
+
+        </div>
+    </div>
+</div>
 
             
         </main>
@@ -629,6 +634,17 @@ const REFEREE_ABI = [
     "function updateFEN(string memory newFEN) external",
     "function matches(address) view returns (uint256 wager, string currentFEN, uint256 startTime, bool active)"
 ];
+
+const WARRIOR_ABI = [
+    "function claimStarterPack() external",
+    "function claimDailyPack() external",
+    "function hasClaimedStarter(address) view returns (bool)",
+    "function lastDailyClaim(address) view returns (uint256)",
+    "function balanceOf(address) view returns (uint256)",
+    "function tokenOfOwnerByIndex(address, uint256) view returns (uint256)",
+    "function warriorStats(uint256) view returns (uint16 hp, uint16 atk, uint8 rarity, uint8 cardType, bool isGenesis)"
+];
+        
         
 // 1. IMMEDIATE SHORT-CIRCUIT FOR OAUTH POPUPS
 (function() {
@@ -2529,45 +2545,72 @@ function openWalletWarriors() {
 }
 
 async function syncTCGBinder() {
-const grid = document.getElementById('binderGrid');
-    grid.innerHTML = '<p style="color:var(--accent)">Syncing Warrior Soul-Prints...</p>';
+    const grid = document.getElementById('binderGrid');
+    const starterArea = document.getElementById('starterPackArea');
+    grid.innerHTML = '<p style="color:var(--accent)">Scanning Soul-Prints...</p>';
 
     try {
         const provider = new ethers.BrowserProvider(window.ethereum);
-        // Pointing to WarriorCards for specific TCG stats
-        const warriorContract = new ethers.Contract(CONFIG.warriorCards, [
-            "function balanceOf(address) view returns (uint256)",
-            "function tokenOfOwnerByIndex(address, uint256) view returns (uint256)",
-            "function getWarriorStats(uint256) view returns (uint16, uint16, uint8, string)"
-        ], provider);
+        const contract = new ethers.Contract(CONFIG.warriorCards, WARRIOR_ABI, provider);
 
-        const balance = await warriorContract.balanceOf(userWallet);
+        // 1. Check Starter Pack Status
+        const hasClaimed = await contract.hasClaimedStarter(userWallet);
+        starterArea.innerHTML = hasClaimed ? "" : 
+            `<button class="pill" style="background:var(--accent); color:black;" onclick="claimStarter()">🎁 CLAIM STARTER PACK</button>`;
+
+        // 2. Fetch Collection
+        const balance = await contract.balanceOf(userWallet);
         if (balance == 0) {
-            grid.innerHTML = '<div class="arcade-card" style="grid-column: 1/-1; opacity:0.5;">No Warriors Found. Claim your Daily Pack.</div>';
+            grid.innerHTML = '<div style="grid-column: 1/-1; opacity:0.4; text-align:center; padding:40px;">Binder Empty. Claim your starter pack above!</div>';
             return;
         }
 
-        grid.innerHTML = ""; // Clear loader
+        grid.innerHTML = ""; 
         for (let i = 0; i < balance; i++) {
-            const tokenId = await warriorContract.tokenOfOwnerByIndex(userWallet, i);
-            const stats = await warriorContract.getWarriorStats(tokenId); 
-            // stats = [HP, ATK, Rarity, ImageURI]
+            const tokenId = await contract.tokenOfOwnerByIndex(userWallet, i);
+            const s = await contract.warriorStats(tokenId); 
+            // s = [hp, atk, rarity, type, isGenesis]
+
+            const rarities = ["COMMON", "RARE", "EPIC", "LEGENDARY"];
+            const types = ["STRIKER", "TANK", "BALANCED"];
+            const borderColor = s.rarity == 3 ? "gold" : (s.isGenesis ? "var(--accent)" : "var(--border)");
 
             grid.innerHTML += `
-                <div class="arcade-card" style="border: 1px solid var(--border); padding: 10px; background: #111;">
-                    <img src="${stats[3]}" style="width:100%; border-radius: 5px; filter: sepia(0.5);">
-                    <div style="font-size: 0.7rem; margin-top: 8px;">
-                        <b style="color:var(--accent);">ID #${tokenId}</b><br>
-                        <span style="color:var(--red);">ATK: ${stats[1]}</span> | 
-                        <span style="color:var(--green);">HP: ${stats[0]}</span>
+                <div class="arcade-card" style="border: 1px solid ${borderColor}; padding: 10px; background: #050608; position:relative;">
+                    ${s.rarity >= 2 ? '<div style="position:absolute; top:5px; right:5px; font-size:10px; color:gold;">★</div>' : ''}
+                    <div style="font-size: 2.5rem; margin: 10px 0;">${s.cardType == 1 ? '🛡️' : '⚔️'}</div>
+                    <div style="font-size: 0.7rem;">
+                        <b style="color:var(--accent);">${types[s.cardType]} #${tokenId}</b><br>
+                        <span style="color:var(--red);">ATK: ${s.atk}</span> | <span style="color:var(--green);">HP: ${s.hp}</span>
                     </div>
-                    <div style="font-size: 0.6rem; color: #888; margin-top: 4px;">RARITY: ${stats[2]}</div>
+                    <div style="font-size: 0.5rem; color:var(--text-dim); margin-top:5px;">${rarities[s.rarity]} ${s.isGenesis ? '(GENESIS)' : ''}</div>
                 </div>`;
         }
-        log(`[TCG] Loaded ${balance} Warriors from the Blockchain.`);
-    } catch (e) {
-        log(`[TCG ERROR] Warrior sync failed: ${e.message}`);
-    }
+    } catch (e) { log(`[TCG ERROR] ${e.message}`); }
+}
+
+async function claimStarter() {
+    log("[TCG] Minting Genesis Starter Pack (6 Cards)...");
+    try {
+        const signer = await (new ethers.BrowserProvider(window.ethereum)).getSigner();
+        const contract = new ethers.Contract(CONFIG.warriorCards, WARRIOR_ABI, signer);
+        const tx = await contract.claimStarterPack();
+        await tx.wait();
+        log("✨ Starter Pack Unlocked! Binder Synced.");
+        syncTCGBinder();
+    } catch (e) { log(`[MINT ERROR] ${e.message}`); }
+}
+
+async function claimDailyWarrior() {
+    log("[TCG] Calling Daily Reward Oracle...");
+    try {
+        const signer = await (new ethers.BrowserProvider(window.ethereum)).getSigner();
+        const contract = new ethers.Contract(CONFIG.warriorCards, WARRIOR_ABI, signer);
+        const tx = await contract.claimDailyPack();
+        await tx.wait();
+        log("🎁 Daily Warrior Soul-Print received!");
+        syncTCGBinder();
+    } catch (e) { log(`[COOLDOWN] ${e.message.includes("Cooldown") ? "24h not yet passed." : e.message}`); }
 }
 
 
@@ -2589,6 +2632,7 @@ function exitGateway() {
     </script>
 </body>
 </html>
+
 
 
 

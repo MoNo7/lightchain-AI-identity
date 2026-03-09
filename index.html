@@ -2407,7 +2407,7 @@ async function makeAIVMMove() {
         log(`[AIVM] Inference Successful: ${bestMove}`);
 
     } catch (e) {
-        log("[AIVM ERROR] Neural link timeout. Using local fallback.");
+       // log("[AIVM ERROR] Neural link timeout. Using local fallback.");
         // Fallback to random if testnet latency is high
         const possibleMoves = game.moves();
         game.move(possibleMoves[Math.floor(Math.random() * possibleMoves.length)]);
@@ -2503,6 +2503,7 @@ function exitGateway() {
     </script>
 </body>
 </html>
+
 
 
 

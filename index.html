@@ -639,6 +639,7 @@ window.onload = async () => {
     setInterval(refreshModelDashboard, 3000);
     fetchPrices();
     refreshModelDashboard();
+    if (typeof initBoard === "function") initBoard();
     checkAndResumeChess();
     setInterval(() => {
         if (document.getElementById('marketView').style.display === 'block') {
@@ -646,11 +647,12 @@ window.onload = async () => {
             console.log("[SYS] Auto-refresh: Marketplace synced with explorer.");
         }
     }, 30000); // 30 second pulse
-   
 };
 
 
-        async function checkAndResumeChess() {
+async function checkAndResumeChess() {
+    if (!userWallet) return;
+    
     const provider = new ethers.BrowserProvider(window.ethereum);
     const referee = new ethers.Contract(CONFIG.refereeAddress, REFEREE_ABI, provider);
     
@@ -660,6 +662,11 @@ window.onload = async () => {
         
         // Restore board from Blockchain FEN
         game.load(match.currentFEN);
+        // SAFETY: If board isn't ready yet, initialize it now
+        if (!board) {
+            initBoard(); 
+        }
+        
         board.position(match.currentFEN);
         
         // Display the wager from the contract
@@ -2396,6 +2403,7 @@ async function checkGameOver() {
     </script>
 </body>
 </html>
+
 
 
 

@@ -1384,7 +1384,7 @@ async function generateAIVMArt() {
             document.getElementById('renderLoader').style.display = 'none';
         
             setTimeout(() => {
-                currentArtData = mainCanvas.toDataURL('image/jpeg', 0.5);        
+                currentArtData = mainCanvas.toDataURL('image/jpeg', 0.4);        
                 document.getElementById('saveArtBtn').style.display = 'block';
                 log("[AIVM] Render Success. JPEG optimized for Lightchain.");
             }, 100);
@@ -1484,7 +1484,7 @@ async function saveArtToGallery() {
         
 const tx = await artContract.mintArtNFT(encryptedData, model, cleanMetadata, {
             value: ethers.parseEther("1.0"),
-            gasLimit: 15000000 
+            gasLimit: 9000000 
         });
 
         log(`[MINT] Transaction hash: ${tx.hash}`);
@@ -1558,7 +1558,7 @@ async function mintWithSocial() {
                     encryptedData, 
                     "MiMo-V3", 
                     cleanMetadata,
-                    { value: ethers.parseEther("1"), gasLimit: 15000000 }
+                    { value: ethers.parseEther("1"), gasLimit: 9000000 }
                 );
         
                 await tx.wait();
@@ -1922,6 +1922,7 @@ async function listInAuction(tokenId) {
     </script>
 </body>
 </html>
+
 
 
 

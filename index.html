@@ -2292,6 +2292,10 @@ async function launchChess() {
 
         if (match.active) {
             log("[RESUME] Found active match. Syncing board...");
+
+            // Priority: 1. Local Browser Save -> 2. Blockchain Start State
+            const fenToLoad = localStorage.getItem('lcai_chess_fen') || match.currentFEN;
+        
             game.load(match.currentFEN);
             board.position(match.currentFEN);
             
@@ -2382,9 +2386,12 @@ async function makeAIVMMove() {
 
         const result = await response.json();
         const bestMove = result.move; // The AIVM computed move (e.g., "d2d4")
-
         game.move(bestMove, { sloppy: true });
         board.position(game.fen());
+
+        // SAVE AI MOVE LOCALLY (FREE)
+        localStorage.setItem('lcai_chess_fen', game.fen());
+        
         updateChessStatus("YOUR MOVE");
         checkGameOver();
         log(`[AIVM] Inference Successful: ${bestMove}`);
@@ -2395,6 +2402,7 @@ async function makeAIVMMove() {
         const possibleMoves = game.moves();
         game.move(possibleMoves[Math.floor(Math.random() * possibleMoves.length)]);
         board.position(game.fen());
+        localStorage.setItem('lcai_chess_fen', game.fen());
     }
 }
     
@@ -2407,17 +2415,8 @@ async function makeAIVMMove() {
     
         if (move === null) return 'snapback';
     
-        // SYNC TO BLOCKCHAIN: Keep the referee updated on the current FEN
-        try {
-            const provider = new ethers.BrowserProvider(window.ethereum);
-            const signer = await provider.getSigner();
-            const referee = new ethers.Contract(CONFIG.refereeAddress, REFEREE_ABI, signer);
-            
-            // We don't "await" this to keep the UI snappy, but it anchors the move
-            referee.updateFEN(game.fen()); 
-        } catch (e) {
-            console.error("FEN Sync Failed:", e);
-        }
+        // 1. Save to Browser Memory (FREE / 0 LCAI)
+        localStorage.setItem('lcai_chess_fen', game.fen());
     
         updateChessStatus("AIVM THINKING...");
         window.setTimeout(makeAIVMMove, 250);
@@ -2518,6 +2517,7 @@ function exitGateway() {
     </script>
 </body>
 </html>
+
 
 
 

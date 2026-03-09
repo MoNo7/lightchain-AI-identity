@@ -366,7 +366,7 @@
     </div>
 
     <script>
-
+let currentArtData = "";
 const LCAI_TOKEN = "0x9ca8530ca349c966fe9ef903df17a75b8a778927"; // Lightchain AI
 const WETH_TOKEN = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"; // Wrapped Ethereum
 const LCAI_PAIR = "0x0d047a370611437a1b8e6c2a95ea36f69fdda3be";
@@ -1303,61 +1303,63 @@ async function generateAIVMArt() {
     const model = document.getElementById('modelSelector').value;
     
     if(!promptInput) return log("Error: Please enter a prompt.");
-    
-    // 1. Variable Definition First (Prevents the "Immediate Stop")
+
+    // 1. Safe Variable Definition
     const encodedPrompt = encodeURIComponent(promptInput);
     const seed = Math.floor(Math.random() * 1000000);
     const aiImageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&seed=${seed}&nologo=true`;
-    
-    // UI State
+
+    // 2. UI Reset & Force Clear Placeholder
     document.getElementById('renderLoader').style.display = 'block';
     document.getElementById('saveArtBtn').style.display = 'none';
-    const inferenceBox = document.querySelector('.inference-window');
+    
+    const placeholder = document.getElementById('renderStatusText');
+    if (placeholder) placeholder.style.display = 'none'; // Kills "Awaiting your prompt"
 
     log(`[AIVM] Engine Call: ${model}`);
 
+    // 3. Image Load & CORS Unlock
     const img = new Image();
-    // 2. The CORS Unlock (Prevents the "White Tile" in Wallet)
     img.crossOrigin = "anonymous"; 
     img.src = aiImageUrl;
 
     img.onload = () => {
-    // 1. IMMEDIATELY WIPE THE UI (Kills the "Awaiting" text)
-    const inferenceBox = document.querySelector('.inference-window');
-    if (inferenceBox) {
-        inferenceBox.innerHTML = ''; 
-        inferenceBox.style.display = 'none'; // Force hide it
-    }
-    document.getElementById('renderLoader').style.display = 'none';
+        const canvas = document.getElementById('generatedCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 1024; canvas.height = 1024;
 
-    // 2. DRAW TO THE VISIBLE CANVAS
-    const canvas = document.getElementById('generatedCanvas');
-    const ctx = canvas.getContext('2d');
-    canvas.width = 1024; canvas.height = 1024;
-    ctx.clearRect(0, 0, 1024, 1024);
-    ctx.drawImage(img, 0, 0, 1024, 1024);
+        // Draw to hidden canvas
+        ctx.clearRect(0, 0, 1024, 1024);
+        ctx.drawImage(img, 0, 0, 1024, 1024);
 
-    // 3. SHOW THE IMAGE TO THE USER
-    const outputImg = document.getElementById('aivmOutputImage');
-    outputImg.src = canvas.toDataURL('image/png');
-    outputImg.style.display = 'block';
+        // Update visible UI image
+        const outputImg = document.getElementById('aivmOutputImage');
+        outputImg.src = canvas.toDataURL('image/png');
+        outputImg.style.display = 'block';
+        document.getElementById('renderLoader').style.display = 'none';
 
-    // 4. WAIT FOR PIXELS TO SETTLE (2 Seconds)
-    setTimeout(() => {
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = 512; tempCanvas.height = 512;
-        tempCanvas.getContext('2d').drawImage(canvas, 0, 0, 512, 512);
-        
-        // CAPTURE FOR NFT
-        currentArtData = tempCanvas.toDataURL('image/jpeg', 0.6);
-        document.getElementById('saveArtBtn').style.display = 'block';
-        log("[AIVM] Art Verified & Locked for Token #15.");
-    }, 2000); 
+        // 4. The Sync Buffer (Wait 1.5s for GPU)
+        setTimeout(() => {
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = 512; tempCanvas.height = 512;
+            tempCanvas.getContext('2d').drawImage(canvas, 0, 0, 512, 512);
+
+            currentArtData = tempCanvas.toDataURL('image/jpeg', 0.6);
+
+            // FAILSAFE: If the capture is too small, it's a white tile. Don't let them mint.
+            if (currentArtData.length < 5000) {
+                log("[AIVM ERROR] Capture failed (White Tile). Please Generate again.");
+                return; 
+            }
+
+            document.getElementById('saveArtBtn').style.display = 'block';
+            log("[AIVM] Art Buffer Ready. Ready to Mint.");
+        }, 1500);
+    };
 
     img.onerror = () => {
-        log("[AIVM ERROR] Failed to fetch image. Check your internet connection.");
+        log("[AIVM ERROR] Failed to fetch image from engine.");
         document.getElementById('renderLoader').style.display = 'none';
-    };
     };
 }
         
@@ -1409,43 +1411,44 @@ async function uploadToIPFS(base64Data) {
 
 async function saveArtToGallery() {
     // If currentArtData is null or too short, it's a blank canvas
-    if (!currentArtData || currentArtData.length < 1000) {
-        return log("Error: No image data found. Did the AI fail to render?");
+    if (!currentArtData || currentArtData.length < 5000) {
+        log("[ERROR] Art data is empty or corrupted. Please click Generate Art again.");
+        return;
     }
-    
-    const model = document.getElementById('modelSelector').value;
-    const promptText = document.getElementById('artPrompt').value;
-//    const hint = promptText.slice(0, 32);
-   const cleanMetadata = `Model: ${model} | Prompt: ${promptText.slice(0, 55)}... | Auth: MiMo`;
-    if (!currentArtData) return log("Error: No art to save.");
-
-    // ENSURE THE HEADER IS ATTACHED BEFORE ENCRYPTION
-    const fullDataWithHeader = currentArtData.startsWith("data:image") ? 
-                               currentArtData : 
-                               "data:image/jpeg;base64," + currentArtData;
-    try {
-        // 1. ENCRYPT BEFORE MINTING
+ try {
+        log("[MINT] Encrypting Payload...");
         const encryptedData = await encryptArt(currentArtData);
-        
+
         const provider = new ethers.BrowserProvider(window.ethereum);
         const signer = await provider.getSigner();
+        
+        // Ensure this matches your exact contract ABI
         const artContract = new ethers.Contract(CONFIG.artStudio, [
-            "function mintArtNFT(string memory _tokenURI, string memory _model, string memory _hint) public payable returns (uint256)"
+            "function mintArtNFT(string memory tokenURI) public payable returns (uint256)"
         ], signer);
 
-        log("[MINT] Sending Art Data (Heavy Payload) to Lightchain...");
-        
-const tx = await artContract.mintArtNFT(encryptedData, model, cleanMetadata, {
-            value: ethers.parseEther("1.0"),
-            gasLimit: 45000000, 
-            maxFeePerGas: ethers.parseUnits("20", "gwei"),
-            maxPriorityFeePerGas: ethers.parseUnits("2", "gwei")
-        });
+        // 2. BLOCKCHAIN EXECUTION
+        log("[MINT] Requesting Signature...");
+        const tx = await artContract.mintArtNFT(
+            encryptedData,
+            {
+                value: ethers.parseEther("1.0"),
+                gasLimit: 45000000 // Required for base64 string payloads
+            }
+        );
 
-        log(`[MINT] Transaction hash: ${tx.hash}`);
+        log("[MINT] Transaction submitted. Waiting for confirmation...");
         await tx.wait();
-        log("[SUCCESS] Art minted directly to chain!");
-        loadGallery(); 
+
+        log("[SUCCESS] NFT Minted! Check Gallery.");
+        
+        // 3. CLEANUP
+        currentArtData = ""; // Reset for the next one
+        document.getElementById('saveArtBtn').style.display = 'none';
+        
+        // Assuming you have a loadGallery function
+        if(typeof loadGallery === 'function') loadGallery(); 
+
     } catch (e) {
         log(`[MINT ERROR] ${e.message}`);
     }
@@ -1877,6 +1880,7 @@ async function listInAuction(tokenId) {
     </script>
 </body>
 </html>
+
 
 
 

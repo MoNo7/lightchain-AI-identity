@@ -718,23 +718,20 @@ async function checkAndResumeChess() {
 function initBoard() {
     const boardElement = document.getElementById('myBoard');
     if (!boardElement) return console.error("Missing #myBoard div");
-    const config = {
+const config = {
         draggable: true,
         position: 'start',
         onDragStart: onDragStart,
         onDrop: onDrop,
         onSnapEnd: onSnapEnd,
-        pieceTheme: 'https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/img/chesspieces/wikipedia/{piece}.png'
+        // Reliable CDN for pieces
+        pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png'
     };
     
     // Initialize the global 'board' variable
     board = Chessboard('myBoard', config);
-    setTimeout(() => {
-        board.resize();
-        updateChessStatus("READY");
-    }, 200);
-    // This is a common fix for hidden div issues:
-    window.setTimeout(board.resize, 200);
+    setTimeout(() => { board.resize(); }, 200);
+//    window.setTimeout(board.resize, 200);
 }
     
         let userWallet;
@@ -2270,10 +2267,15 @@ async function listInAuction(tokenId) {
         let wagerAmount = 0;
 
 async function launchChess() {
-    if (!userWallet) return log("Connect wallet to play.");
+    showView('chessView');
+    if (!board) initBoard();
     
+    if (!userWallet) return log("Connect wallet to play.");
+
+    const localFen = localStorage.getItem('lcai_chess_fen');
     const provider = new ethers.BrowserProvider(window.ethereum);
     const referee = new ethers.Contract(CONFIG.refereeAddress, REFEREE_ABI, provider);
+    const match = await referee.matches(userWallet);
 
     try {
         showView('chessView');
@@ -2286,7 +2288,7 @@ async function launchChess() {
         }
 
         // 2. Check the contract for an existing active match
-        const match = await referee.matches(userWallet);
+
 
         if (match.active) {
             log("[RESUME] Found active match. Syncing board...");
@@ -2314,8 +2316,8 @@ async function launchChess() {
         // Reset local game state for a fresh start
         game.reset();
         board.start();
-        
-        showView('chessView');
+        localStorage.removeItem('lcai_chess_fen'); // Clear old local saves
+  //      showView('chessView');
     } catch (e) {
         log(`[ESCROW ERROR] ${e.message}`);
     }
@@ -2505,6 +2507,7 @@ function exitGateway() {
     </script>
 </body>
 </html>
+
 
 
 

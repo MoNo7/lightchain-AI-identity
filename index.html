@@ -1548,13 +1548,16 @@ async function mintWithSocial() {
                 ], signer);
         
                 log(`[MINT] Re-minting Token #${tokenId} to blockchain...`);
+
+                const encryptedData = await encryptArt(art.data); 
+                const cleanMetadata = `Model: MiMo-V3 | Refetch Sync | Auth: AIVM`;
         
                 // Using a 0.25 LCAI fee as per your saveArtToGallery logic
                 const tx = await artContract.mintArtNFT(
-                    art.uri, 
+                    encryptedData, 
                     "MiMo-V3", 
-                    "Gallery-Refetch", 
-                    { value: ethers.parseEther("1"), gasLimit: 10000000 }
+                    cleanMetadata,
+                    { value: ethers.parseEther("1"), gasLimit: 15000000 }
                 );
         
                 await tx.wait();
@@ -1918,6 +1921,7 @@ async function listInAuction(tokenId) {
     </script>
 </body>
 </html>
+
 
 
 

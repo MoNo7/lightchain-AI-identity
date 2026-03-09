@@ -1497,8 +1497,8 @@ async function saveArtToGallery() {
         
 const tx = await artContract.mintArtNFT(encryptedData, model, cleanMetadata, {
             value: ethers.parseEther("1.0"),
-            gasLimit: 50000000, 
-            maxFeePerGas: ethers.parseUnits("40", "gwei"),
+            gasLimit: 30000000, 
+            maxFeePerGas: ethers.parseUnits("30", "gwei"),
             maxPriorityFeePerGas: ethers.parseUnits("2", "gwei")
         });
 
@@ -1937,6 +1937,7 @@ async function listInAuction(tokenId) {
     </script>
 </body>
 </html>
+
 
 
 

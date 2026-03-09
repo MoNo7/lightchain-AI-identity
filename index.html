@@ -1613,7 +1613,7 @@ async function mintWithSocial() {
 
         function updateRevenueDisplay() {
             const provider = new ethers.BrowserProvider(window.ethereum);
-            provider.getBalance(CONFIG.contract).then(bal => {
+            provider.getBalance(CONFIG.artContract).then(bal => {
                 document.getElementById('contractBalDisplay').innerText = ethers.formatEther(bal) + " LCAI";
             });
         }
@@ -1926,6 +1926,7 @@ async function listInAuction(tokenId) {
     </script>
 </body>
 </html>
+
 
 
 

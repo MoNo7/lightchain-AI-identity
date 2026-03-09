@@ -350,19 +350,19 @@
                 </div>
             
                 <div id="gameGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;">
-                    <div class="card" style="border: 1px solid var(--border); text-align: center; padding: 30px;">
-                        <i class="fas fa-terminal" style="font-size: 2rem; color: var(--accent); margin-bottom: 15px;"></i>
-                        <h4>LCAI Logic Runner</h4>
-                        <p style="font-size: 0.75rem; color: var(--text-dim);">Coming Soon: Solve AIVM logic puzzles to earn LCAI rewards.</p>
-                        <button class="btn-zk" style="opacity: 0.5; cursor: not-allowed;">LOCKED</button>
-                    </div>
+                <div class="arcade-card">
+                    <div class="card-icon" style="color: #00ffcc;">♟️</div>
+                    <h3>LCAI Chess Engine</h3>
+                    <p>Challenge the on-chain AIVM neural network to a chess match. Wager LCAI to test your strategic limits.</p>
+                    <button class="btn-launch" onclick="launchChess()">PLAY MATCH</button>
+                </div>
                     
-                    <div class="card" style="border: 1px dashed var(--accent); text-align: center; padding: 30px; background: rgba(0,242,255,0.05);">
-                        <i class="fas fa-rocket" style="font-size: 2rem; color: var(--green); margin-bottom: 15px;"></i>
-                        <h4>Mars Rover Sim</h4>
-                        <p style="font-size: 0.75rem; color: var(--text-dim);">Use your AIVM Art prompts to skin your rover and explore the testnet crater.</p>
-                        <button class="btn-zk" style="background:var(--green); color:#000;">LAUNCH</button>
-                    </div>
+                <div class="arcade-card highlight-card">
+                    <div class="card-icon" style="color: #00ffcc;">🃏</div>
+                    <h3>Wallet Warriors TCG</h3>
+                    <p>Access your Battle Passport. Mint packs, fuse standard cards, and battle AI bosses for LCAI drops.</p>
+                    <button class="btn-launch" onclick="openWalletWarriors()">ENTER GATEWAY</button>
+                </div>
                 </div>
             </div>
 
@@ -1920,6 +1920,7 @@ async function listInAuction(tokenId) {
     </script>
 </body>
 </html>
+
 
 
 

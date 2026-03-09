@@ -639,15 +639,36 @@ window.onload = async () => {
     setInterval(refreshModelDashboard, 3000);
     fetchPrices();
     refreshModelDashboard();
+    checkAndResumeChess();
     setInterval(() => {
         if (document.getElementById('marketView').style.display === 'block') {
             renderAuctions();
             console.log("[SYS] Auto-refresh: Marketplace synced with explorer.");
         }
     }, 30000); // 30 second pulse
-    
+   
 };
 
+
+        async function checkAndResumeChess() {
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const referee = new ethers.Contract(CONFIG.refereeAddress, REFEREE_ABI, provider);
+    
+    const match = await referee.matches(userWallet);
+    if (match.active) {
+        log(`[RESUME] Active match found from ${new Date(Number(match.startTime)*1000).toLocaleDateString()}.`);
+        
+        // Restore board from Blockchain FEN
+        game.load(match.currentFEN);
+        board.position(match.currentFEN);
+        
+        // Display the wager from the contract
+        document.getElementById('activeWagerDisplay').innerText = 
+            ethers.formatEther(match.wager) + " LCAI";
+            
+        showView('chessView');
+    }
+}
     
         let userWallet;
         let isRegistered = false;
@@ -2336,6 +2357,7 @@ async function makeAIVMMove() {
     </script>
 </body>
 </html>
+
 
 
 

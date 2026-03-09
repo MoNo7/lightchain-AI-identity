@@ -1382,25 +1382,23 @@ async function generateAIVMArt() {
             outputImg.src = mainCanvas.toDataURL('image/png'); // UI uses PNG for preview
             outputImg.style.display = 'block';
             document.getElementById('renderLoader').style.display = 'none';
-        
-            setTimeout(() => {
-                // 1. Create a hidden 512x512 scaling canvas
-                const tempCanvas = document.createElement('canvas');
-                const tempCtx = tempCanvas.getContext('2d');
-                tempCanvas.width = 400; 
-                tempCanvas.height = 400;
-                
-                // 2. Draw the 1024x1024 art down to 512x512
-                tempCtx.fillStyle = "#FFFFFF";
-                tempCtx.fillRect(0, 0, 400, 400);
-                tempCtx.drawImage(mainCanvas, 0, 0, 400, 400);
-                
-                // 3. Capture the smaller string (Quality 0.5 is now safe!)
-                currentArtData = tempCanvas.toDataURL('image/jpeg', 0.3); 
-                
-                document.getElementById('saveArtBtn').style.display = 'block';
-                log("[AIVM] Render Success. Ultra-Light 400px mode");
-            }, 300);
+
+            requestAnimationFrame(() => {
+                setTimeout(() => {
+                    const tempCanvas = document.createElement('canvas');
+                    const tempCtx = tempCanvas.getContext('2d');
+                    tempCanvas.width = 400; 
+                    tempCanvas.height = 400;
+                    
+                    tempCtx.fillStyle = "#FFFFFF";
+                    tempCtx.fillRect(0, 0, 400, 400);
+                    tempCtx.drawImage(mainCanvas, 0, 0, 400, 400);
+                    
+                    currentArtData = tempCanvas.toDataURL('image/jpeg', 0.3); 
+                    document.getElementById('saveArtBtn').style.display = 'block';
+                    log("[AIVM] Pixels Locked. Ready for Token #7.");
+                }, 500); // Bumped to 500ms to be absolutely safe for high-res source files
+            });
         };
                 
         img.onerror = () => {
@@ -1937,6 +1935,7 @@ async function listInAuction(tokenId) {
     </script>
 </body>
 </html>
+
 
 
 

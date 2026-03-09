@@ -1610,22 +1610,37 @@ async function mintWithSocial() {
                         }
     
                         // 3. Render with a safety check for broken data
-                const finalImg = (displaySrc && displaySrc.length > 20) ? displaySrc : "https://via.placeholder.com/400/1a1a1a/00f2ff?text=Data+Pending";
-                        
-                    container.innerHTML += `
-                        <div class="gallery-card" style="background:var(--panel); border:1px solid var(--border); padding:15px; border-radius:12px;">
-                         <div class="art-container">
-                            <img src="${finalImg}" style="width:100%; border-radius:8px; margin-bottom:10px;">
-                            <div class="ui-watermark">
-                                <div style="display:flex; gap:5px; margin-bottom:10px;">
-                                    <button onclick="mintFromGallery(${tokenId})" class="pill" style="background:var(--green); color:black; flex:1;">MINT</button>
-                                    <button onclick="showNftDetails(${tokenId})" class="pill" style="flex:1;">INFO</button>
-                                    <button onclick="deleteArtNFT(${tokenId})" class="pill" style="background:var(--red); flex:1;">BURN</button>
+                        const finalImg = (displaySrc && displaySrc.length > 20) ? displaySrc : "https://via.placeholder.com/400/1a1a1a/00f2ff?text=Data+Pending";
+                            
+                        container.innerHTML += `
+                            <div class="gallery-card" style="background:var(--panel); border:1px solid var(--border); padding:15px; border-radius:12px;">
+                             <div class="art-container">
+                                <img src="${finalImg}" style="width:100%; border-radius:8px; margin-bottom:10px;">
+                                <div class="ui-watermark">
+                                    <div style="display:flex; gap:5px; margin-bottom:10px;">
+                                        <button onclick="mintFromGallery(${tokenId})" class="pill" style="background:var(--green); color:black; flex:1;">MINT</button>
+                                        <button onclick="showNftDetails(${tokenId})" class="pill" style="flex:1;">INFO</button>
+                                        <button onclick="deleteArtNFT(${tokenId})" class="pill" style="background:var(--red); flex:1;">BURN</button>
+                                    </div>
                                 </div>
+                              </div>
+                             <button onclick="listInAuction(${tokenId})" class="btn-zk" style="margin:0;">LIST FOR SALE</button>
+                            </div>`;
+
+                        const card = `
+                        <div class="gallery-card" style="position:relative; z-index:1;">
+                            <div class="art-container" style="position:relative;">
+                                <img src="${finalImg}" style="width:100%; border-radius:8px; display:block;">
+                                <div class="ui-watermark" style="pointer-events:none; z-index:2;">AIVM AUTHENTICATED</div>
                             </div>
-                          </div>
-                         <button onclick="listInAuction(${tokenId})" class="btn-zk" style="margin:0;">LIST FOR SALE</button>
+                            <div class="gallery-controls" style="display:flex; gap:5px; margin-top:10px; position:relative; z-index:10;">
+                                <button onclick="mintFromGallery(${i})" class="pill" style="background:var(--green); color:black; flex:1; cursor:pointer;">MINT</button>
+                                <button onclick="showArtInfo(${i})" class="pill btn-info-black" style="flex:1; cursor:pointer; background:#000; color:#fff; border:1px solid #444;">INFO</button>
+                                <button onclick="burnArt(${i})" class="pill" style="background:var(--red); flex:1; cursor:pointer;">BURN</button>
+                            </div>
+                            <button onclick="listInAuction(${i})" class="btn-zk" style="width:100%; margin-top:10px; cursor:pointer; position:relative; z-index:10;">LIST FOR SALE</button>
                         </div>`;
+                    container.insertAdjacentHTML('beforeend', card);
                     }
                 } catch (e) {
                     console.log("Gallery sync pending...");
@@ -1838,10 +1853,29 @@ async function listInAuction(tokenId) {
         
         // Call this inside your window.onload or after connect()
         startMarketplaceSync();
-        
+        function showArtInfo(index) {
+            const art = userGallery[index];
+            const infoHtml = `
+                <div id="infoModal" style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#0a0a0a; border:1px solid var(--accent); padding:25px; border-radius:12px; z-index:10000; width:350px; box-shadow:0 0 30px rgba(0,255,163,0.2);">
+                    <h3 style="color:var(--accent); margin-top:0;">NFT SPECIFICATIONS</h3>
+                    <div style="font-family:monospace; font-size:0.85rem; line-height:1.6; color:#eee;">
+                        <p><strong style="color:var(--text-dim)">TOKEN ID:</strong> #${index}</p>
+                        <p><strong style="color:var(--text-dim)">MODEL:</strong> ${art.model || 'Unknown AIVM'}</p>
+                        <p><strong style="color:var(--text-dim)">HINT:</strong> <span style="color:var(--accent)">${art.hint || 'Encrypted Prompt'}</span></p>
+                        <p><strong style="color:var(--text-dim)">STATUS:</strong> ${art.isMinted ? 'ON-CHAIN' : 'LOCAL CACHE'}</p>
+                    </div>
+                    <button onclick="document.getElementById('infoModal').remove()" class="pill" style="width:100%; margin-top:20px; background:var(--accent); color:black; border:none; cursor:pointer;">CLOSE</button>
+                </div>
+            `;
+            // Remove existing modal if any
+            const oldModal = document.getElementById('infoModal');
+            if (oldModal) oldModal.remove();
+            document.body.insertAdjacentHTML('beforeend', infoHtml);
+        }
     </script>
 </body>
 </html>
+
 
 
 

@@ -2341,7 +2341,13 @@ async function launchChess() {
     async function checkGameOver() {
         if (game.game_over()) {
                 const playerWon = (game.turn() === 'b' && game.in_checkmate());
-                const status = playerWon ? "VICTORY! Match Won." : "DEFEAT. AIVM Wins.";
+                const aivmWon = (game.turn() === 'w' && game.in_checkmate());
+            let status = "GAME OVER";
+                if (playerWon) status = "VICTORY! Match Won.";
+                if (aivmWon) status = "DEFEAT. AIVM Wins.";
+                if (game.in_draw()) status = "DRAW. Wagers Refunded.";
+            
+             //   const status = playerWon ? "VICTORY! Match Won." : "DEFEAT. AIVM Wins.";
                 
                 log(`[AIVM] ${status} Initiating On-Chain Settlement...`);
                 updateChessStatus(status);
@@ -2503,6 +2509,7 @@ function exitGateway() {
     </script>
 </body>
 </html>
+
 
 
 

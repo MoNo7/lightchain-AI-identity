@@ -1419,15 +1419,19 @@ async function saveArtToGallery() {
         log("[MINT] Optimizing payload for < 1.0 LCAI fee...");
         const provider = new ethers.BrowserProvider(window.ethereum);
         const signer = await provider.getSigner();
+        const modelName = document.getElementById('modelSelector').value;
+        const shortHint = "AIVM Render"; // Keep this short to save gas
         
         const artContract = new ethers.Contract(CONFIG.artStudio, [
-            "function mintArtNFT(string memory tokenURI) public payable returns (uint256)"
+            "function mintArtNFT(string memory _tokenURI, string memory _model, string memory _hint) public payable returns (uint256)"
         ], signer);
 
         // Calculate a safe gas limit based on current data length
         // We'll aim for 25M gas which usually costs ~0.5 - 0.7 LCAI
         const tx = await artContract.mintArtNFT(
-            currentArtData, 
+            currentArtData,
+            modelName,       // 2. The model used
+            shortHint,
             { 
                 value: ethers.parseEther("1.0"), 
                 gasLimit: 35000000, // Reduced from 45M to lower the "Estimated Fee"
@@ -1876,6 +1880,7 @@ async function listInAuction(tokenId) {
     </script>
 </body>
 </html>
+
 
 
 

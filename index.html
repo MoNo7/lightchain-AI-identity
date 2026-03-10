@@ -1132,6 +1132,7 @@ async function checkRegistrationStatus(addr, contract) {
             
             log(`[IAM] Identity Found: ${nick}. Transitioning to Passport...`);
             getEncryptionKey();
+            startMarketplaceSync();
             // 1. Force hide registration boxes
             ['authStep', 'mintSection'].forEach(id => {
                 const el = document.getElementById(id);
@@ -2112,9 +2113,11 @@ async function loadGallery() {
         }
 
         grid.innerHTML = ""; // Clear the loading text
+        window.userGallery = [];
         
         // 4. Your loop to render the items goes here...
 for (let i = 0; i < numBalance; i++) {
+    
             const tokenId = await artStudio.tokenOfOwnerByIndex(userWallet, i);
             const uri = await artStudio.tokenURI(tokenId);
 
@@ -2741,6 +2744,7 @@ function exitGateway() {
     </script>
 </body>
 </html>
+
 
 
 

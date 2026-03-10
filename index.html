@@ -566,7 +566,7 @@
                 </div>
             </div>
 
-<div id="tcgBinderView" class="card view-section" style="display:none; margin-top: 80px; padding: 25px; background: #0d1117; border: 1px solid var(--accent);">
+<div id="tcgBinderView" class="view-section" style="display:none; margin-top: 80px; padding: 25px; background: #0d1117; border: 1px solid var(--accent);">
     <div style="display: grid; grid-template-columns: 1.8fr 1fr; gap: 40px; min-height: 70vh;">
         
         <div id="binderContainer" style="border-right: 1px solid var(--border); padding-right: 20px;">
@@ -579,7 +579,6 @@
         </div>
 
         <div style="display: flex; flex-direction: column; gap: 20px;">
-            
             <div class="card" style="background: #000; border: 1px solid var(--green); margin:0; padding: 20px;">
                 <h4 style="color:var(--green); margin:0;"><i class="fas fa-calendar-day"></i> DAILY REWARDS</h4>
                 <p style="font-size: 0.7rem; color: var(--text-dim); margin: 10px 0;">Collect a random Warrior every 24h.</p>
@@ -588,7 +587,7 @@
             
             <div class="card" style="background: #000; border: 1px solid var(--accent); margin:0; padding: 20px;">
                 <h4 style="color:var(--accent); margin:0;"><i class="fas fa-shopping-cart"></i> UPGRADE STORE</h4>
-                <p style="font-size: 0.7rem; color: var(--text-dim); margin: 10px 0;">Buy premium Booster Packs with LCAI.</p>
+                <p style="font-size: 0.7rem; color: var(--text-dim); margin: 10px 0;">Buy premium Booster Packs.</p>
                 <button class="btn-zk" onclick="showView('marketView')">OPEN STORE</button>
             </div>
 
@@ -598,7 +597,6 @@
                 <button class="btn-zk" style="background:var(--red); color:white;" onclick="showForge()">ENTER FORGE</button>
             </div>
         </div>
-
     </div>
 </div>
 
@@ -2582,26 +2580,22 @@ async function showForge() {
         
 
 async function syncTCGBinder() {
-    const grid = document.getElementById('binderGrid');
+const grid = document.getElementById('binderGrid');
     if (!grid) return;
 
-    grid.innerHTML = '<div style="color:var(--neon-blue); grid-column: 1/-1; text-align:center;">SCANNING LIGHTCHAIN FOR WARRIOR SIGNATURES...</div>';
+    grid.innerHTML = '<div style="color:var(--accent); grid-column: 1/-1; text-align:center;">SCANNING LIGHTCHAIN SIGNATURES...</div>';
 
     try {
-        // Force the grid to be visible
-        grid.style.display = 'grid'; 
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const contract = new ethers.Contract(CONFIG.warriorCards, WARRIOR_ABI, provider);
 
-        // Simulated check: If no cards found, show the "Buy Pack" prompt
-        if (!userCards || userCards.length === 0) {
-            grid.innerHTML = `
-                <div style="grid-column: 1/-1; text-align:center; padding: 50px; border: 1px dashed var(--border);">
-                    <p>NO WARRIORS DETECTED IN THIS PASSPORT</p>
-                    <button class="btn-zk" onclick="buyPack()">MINT GENESIS PACK (1 LCAI)</button>
-                </div>
-            `;
+        const balance = await contract.balanceOf(userWallet);
+        if (balance == 0) {
+            grid.innerHTML = '<div style="grid-column: 1/-1; opacity:0.5; text-align:center; padding:50px;">Binder Empty. Claim your starter pack!</div>';
             return;
         }
-    
+
+        grid.innerHTML = ""; // Clear loader
     const starterArea = document.getElementById('starterPackArea');
 
     
@@ -2717,4 +2711,5 @@ function exitGateway() {
     </script>
 </body>
 </html>
+
 

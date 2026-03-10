@@ -2047,13 +2047,24 @@ async function mintWithSocial() {
             }
         }
 
-        function updateRevenueDisplay() {
-            const provider = new ethers.BrowserProvider(window.ethereum);
-            provider.getBalance(CONFIG.artStudio).then(bal => {
-                document.getElementById('contractBalDisplay').innerText = ethers.formatEther(bal) + " LCAI";
-            });
-        }
+function updateRevenueDisplay() {
+    // 1. Safety Guard: Don't run if the address is missing or invalid
+    if (!CONFIG.artStudio || !ethers.isAddress(CONFIG.artStudio)) {
+        return console.warn("Revenue sync pending: artStudio address is null.");
+    }
 
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    
+    // 2. Use the correct property name: artStudio
+    provider.getBalance(CONFIG.artStudio).then(bal => {
+        const display = document.getElementById('contractBalDisplay');
+        if (display) {
+            display.innerText = ethers.formatEther(bal) + " LCAI";
+        }
+    }).catch(err => {
+        console.error("Balance fetch failed:", err);
+    });
+}
         async function deleteArtNFT(tokenId) {
         const confirmBurn = confirm(`Burning Token #${tokenId} costs 1 LCAI fee. The art will be permanently deleted. Proceed?`);
             if (!confirmBurn) return;
@@ -2730,6 +2741,7 @@ function exitGateway() {
     </script>
 </body>
 </html>
+
 
 
 

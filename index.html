@@ -1292,17 +1292,6 @@ async function syncMarketplace() {
     } catch (err) { console.error(err); }
 }
 
-        grid.innerHTML = count > 0 ? html : '<div id="auctionEmpty" style="grid-column:1/-1; text-align:center; padding:40px; border:1px dashed var(--border);">No active on-chain auctions.</div>';
-        log(`[MARKET] Sync Complete. ${count} auctions found.`);
-        window.marketplaceSynced = true;
-
-    } catch (err) {
-        console.error("Marketplace Sync Error:", err);
-        grid.innerHTML = '<p style="color:var(--red)">Failed to sync with Auction House.</p>';
-        log("[ERROR] Marketplace communication interrupted.");
-    }
-}
-
 
 async function registerLocal() {
     const nick = document.getElementById('regNick').value.trim();
@@ -2817,6 +2806,7 @@ function exitGateway() {
     </script>
 </body>
 </html>
+
 
 
 

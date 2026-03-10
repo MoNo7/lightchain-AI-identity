@@ -1395,7 +1395,7 @@ async function renderAuctions() {
         }
         grid.innerHTML = count > 0 ? html : '<div id="auctionEmpty" style="grid-column:1/-1; text-align:center; padding:40px;">No active on-chain auctions.</div>';
     } catch (e) {
-        console.error("Marketplace Sync Error:", e);
+      //  console.error("Marketplace Sync Error:", e);
         log("Marketplace Sync Error: Check Console.");
     }
 }
@@ -2699,6 +2699,7 @@ function exitGateway() {
     </script>
 </body>
 </html>
+
 
 
 

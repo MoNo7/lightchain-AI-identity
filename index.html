@@ -2035,7 +2035,7 @@ async function mintWithSocial() {
 
         function updateRevenueDisplay() {
             const provider = new ethers.BrowserProvider(window.ethereum);
-            provider.getBalance(CONFIG.artContract).then(bal => {
+            provider.getBalance(CONFIG.artStudio).then(bal => {
                 document.getElementById('contractBalDisplay').innerText = ethers.formatEther(bal) + " LCAI";
             });
         }
@@ -2716,6 +2716,7 @@ function exitGateway() {
     </script>
 </body>
 </html>
+
 
 
 

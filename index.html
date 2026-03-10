@@ -2685,11 +2685,18 @@ function exitGateway() {
     showView('arcadeView');
     log("[TCG] Exited Gateway. Returning to AIVM Arcade.");
 }
+        function closeGateway() {
+    document.querySelector('nav').style.display = 'block';
+    document.querySelector('header').style.display = 'flex';
+    document.getElementById('gameNavigation').style.display = 'none';
+    showView('dashboardView');
+}
         
         
     </script>
 </body>
 </html>
+
 
 
 

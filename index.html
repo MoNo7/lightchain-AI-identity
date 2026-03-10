@@ -2116,10 +2116,15 @@ async function loadGallery() {
                         return;
                     }
 
-                    for (let i = 0; i < balance; i++) {
-                        const tokenId = await artContract.tokenOfOwnerByIndex(userWallet, i);
-                        const uri = await artContract.tokenURI(tokenId);
-                        let imgData = uri.startsWith("U2Fsd") ? await decryptArt(uri) : uri;
+        for (let i = 0; i < balance; i++) {
+            const tokenId = await artContract.tokenOfOwnerByIndex(userWallet, i);
+            const uri = await artContract.tokenURI(tokenId);
+        
+            // DECRYPTION ASSIGNMENT:
+            let imgData = uri.startsWith("U2Fsd") ? await decryptArt(uri) : uri;
+        
+            // Use imgData in your HTML template below
+            grid.innerHTML += `<img src="${imgData}" ...>`;
 
             // Decrypt art logic here...
                 if(!window.userGallery) window.userGallery = [];
@@ -2742,6 +2747,7 @@ function exitGateway() {
     </script>
 </body>
 </html>
+
 
 
 

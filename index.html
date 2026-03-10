@@ -788,6 +788,16 @@ window.onload = async () => {
     }, 30000); // 30 second pulse
 };
 
+        // Add this helper to your script to ensure headers are valid
+        async function getAuthHeaders() {
+            if (!userWallet) return {};
+            // AIVM requires the wallet address to check SBT status
+            return {
+                'Content-Type': 'application/json',
+                'X-LCAI-Wallet': userWallet,
+                'X-LCAI-Signature': userEncryptionKey // Your keccak256 hash
+            };
+        }
 
 async function checkAndResumeChess() {
     if (!userWallet) return;
@@ -2811,6 +2821,7 @@ function exitGateway() {
     </script>
 </body>
 </html>
+
 
 
 

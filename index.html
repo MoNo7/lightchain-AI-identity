@@ -2083,15 +2083,15 @@ async function loadGallery() {
             "function tokenURI(uint256) view returns (string)"
         ], provider);
 
-        const balance = await artContract.balanceOf(userWallet);
+        const balance = await artStudio.balanceOf(userWallet);
         if (balance == 0) {
             container.innerHTML = '<p style="grid-column:1/-1; text-align:center;">No NFTs found.</p>';
             return;
         }
 
         for (let i = 0; i < balance; i++) {
-            const tokenId = await artContract.tokenOfOwnerByIndex(userWallet, i);
-            const uri = await artContract.tokenURI(tokenId);
+            const tokenId = await artStudio.tokenOfOwnerByIndex(userWallet, i);
+            const uri = await artStudio.tokenURI(tokenId);
 
             // FIX: Define imgData before using it in the template
             let imgData = uri.startsWith("U2Fsd") ? await decryptArt(uri) : uri;
@@ -2716,6 +2716,7 @@ function exitGateway() {
     </script>
 </body>
 </html>
+
 
 
 

@@ -2068,27 +2068,31 @@ async function mintWithSocial() {
         }
 
 async function loadGallery() {
-    const grid = document.getElementById('galleryGrid');
-    grid.innerHTML = '<p style="color:var(--accent)">Decrypting Vault...</p>';
-    
-    // Initialize the global array so it doesn't crash on .push()
-    window.userGallery = [];
+        const container = document.getElementById('galleryGrid');
+    if (!container || !userWallet) return;
+
+    // Clear grid to prevent double-display and reset tracking
+    container.innerHTML = ""; 
+    window.userGallery = []; 
+
     try {
         const provider = new ethers.BrowserProvider(window.ethereum);
-        const artContract = new ethers.Contract(CONFIG.artStudio, CONFIG.abi, provider);
+        const artContract = new ethers.Contract(CONFIG.artStudio, [
+            "function balanceOf(address) view returns (uint256)",
+            "function tokenOfOwnerByIndex(address, uint256) view returns (uint256)",
+            "function tokenURI(uint256) view returns (string)"
+        ], provider);
 
-        const total = await artContract.totalSupply();
-        if (total == 0) {
-            grid.innerHTML = "<p>Gallery is empty.</p>";
+        const balance = await artContract.balanceOf(userWallet);
+        if (balance == 0) {
+            container.innerHTML = '<p style="grid-column:1/-1; text-align:center;">No NFTs found.</p>';
             return;
         }
 
-        grid.innerHTML = ""; // Clear loader
-        
         for (let i = 0; i < balance; i++) {
             const tokenId = await artContract.tokenOfOwnerByIndex(userWallet, i);
             const uri = await artContract.tokenURI(tokenId);
-            
+
             // FIX: Define imgData before using it in the template
             let imgData = uri.startsWith("U2Fsd") ? await decryptArt(uri) : uri;
             if (!imgData.startsWith("data:image")) imgData = "data:image/jpeg;base64," + imgData;
@@ -2112,9 +2116,9 @@ async function loadGallery() {
         }
                 } catch (e) {
                     console.log("Gallery sync pending...");
-               
+
                 }
-}
+            }
         
 async function listInAuction(tokenId) {
     const price = prompt("Starting bid (LCAI):", "0.5");
@@ -2711,6 +2715,7 @@ function exitGateway() {
     </script>
 </body>
 </html>
+
 
 
 

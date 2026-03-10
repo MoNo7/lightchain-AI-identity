@@ -2183,52 +2183,61 @@ function updateRevenueDisplay() {
         }
 
 async function loadGallery() {
-const grid = document.getElementById('galleryGrid');
+    const grid = document.getElementById('galleryGrid');
     if (!grid || !userWallet || !userEncryptionKey) return;
 
-           		grid.innerHTML = '<div style="grid-column:1/-1; text-align:center;">Syncing with Lightchain AIVM...</div>';
-    
-                try {
-                    const provider = new ethers.BrowserProvider(window.ethereum);
-                    const artContract = new ethers.Contract(CONFIG.artStudio, CONFIG.abi, provider);
+    grid.innerHTML = '<div style="grid-column:1/-1; text-align:center;">Syncing with Lightchain AIVM...</div>';
+
+    try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
         
-                    grid.innerHTML = ""; 
-                    let foundAny = false;
-                    window.userGallery = [];
+        // FIX 2: Use an inline ABI that explicitly includes tokenURI and ownerOf
+        const artContract = new ethers.Contract(CONFIG.artStudio, [
+            "function ownerOf(uint256 tokenId) view returns (address)",
+            "function tokenURI(uint256 tokenId) view returns (string)"
+        ], provider);
+
+        grid.innerHTML = "";
+        let foundAny = false;
+        window.userGallery = [];
+        
+        // FIX 1: Declare the html variable!
+        let html = ""; 
 
         for (let i = 0; i < 25; i++) {
             try {
                 const owner = await artContract.ownerOf(i);
-                
+
                 if (owner.toLowerCase() === userWallet.toLowerCase()) {
                     foundAny = true;
                     const uri = await artContract.tokenURI(i);
-            // DECRYPTION ASSIGNMENT:
-            let imgData = uri.startsWith("U2Fsd") ? await decryptArt(uri) : uri;
+                    
+                    // DECRYPTION ASSIGNMENT:
+                    let imgData = uri.startsWith("U2Fsd") ? await decryptArt(uri) : uri;
+                    window.userGallery.push({ id: i, uri: uri });
 
-            window.userGallery.push({ id: i, uri: uri });
-        
-           html += `
-                        <div class="gallery-card" style="display:flex; flex-direction:column; align-items:center; border:1px solid var(--border); padding:10px; border-radius:12px;">
-                            <div class="art-container" style="position:relative; width:100%;">
-                                <img src="${imgData}" style="width:100%; border-radius:8px;">
-                                <div class="ui-watermark">AIVM AUTHENTICATED</div>
-                            </div>
-                            <div style="margin-top:10px; font-size:0.7rem; color:var(--accent);">TOKEN #${i}</div>
-                            <div class="gallery-controls" style="width:100%; display:grid; grid-template-columns: 1fr 1fr; gap:5px; margin-top:10px;">
-                                <button class="pill" onclick="mintFromGallery(${i})" style="background:var(--green); color:#000;">MINT</button>
-                                <button class="pill btn-info-black" onclick="showArtInfo(${window.userGallery.length - 1})">INFO</button>
-                            </div>
-                            <button class="btn-zk" onclick="listInAuction(${i})" style="width:100%; margin-top:8px;">LIST FOR SALE</button>
-                        </div>`;
-      			  
-        } catch (e) {
-            // Token ID doesn't exist yet, just skip to the next one safely
-            continue; 
+                    html += `
+                    <div class="gallery-card" style="display:flex; flex-direction:column; align-items:center; border:1px solid var(--border); padding:10px; border-radius:12px;">
+                        <div class="art-container" style="position:relative; width:100%;">
+                            <img src="${imgData}" style="width:100%; border-radius:8px;">
+                            <div class="ui-watermark">AIVM AUTHENTICATED</div>
+                        </div>
+                        <div style="margin-top:10px; font-size:0.7rem; color:var(--accent);">TOKEN #${i}</div>
+                        <div class="gallery-controls" style="width:100%; display:grid; grid-template-columns: 1fr 1fr; gap:5px; margin-top:10px;">
+                            <button class="pill" onclick="mintFromGallery(${i})" style="background:var(--green); color:#000;">MINT</button>
+                            <button class="pill btn-info-black" onclick="showArtInfo(${window.userGallery.length - 1})">INFO</button>
+                        </div>
+                        <button class="btn-zk" onclick="listInAuction(${i})" style="width:100%; margin-top:8px;">LIST FOR SALE</button>
+                    </div>`;
+                }
+            } catch (e) {
+                // Token ID doesn't exist yet, skip to next
+                continue;
+            }
         }
-        }
-     grid.innerHTML = foundAny ? html : "<p style='color:var(--text-dim); text-align:center; width:100%;'>No Art found in your vault.</p>";               
-} catch (e) {
+
+        grid.innerHTML = foundAny ? html : "<p style='color:var(--text-dim); text-align:center; width:100%;'>No Art found in your vault.</p>";
+    } catch (e) {
         console.error(e);
         log("[ERROR] Failed to scan the Gallery vault.");
     }
@@ -2830,6 +2839,7 @@ function exitGateway() {
     </script>
 </body>
 </html>
+
 
 
 

@@ -696,6 +696,8 @@ async function getEncryptionKey() {
     // 1. Guard against duplicate requests or if we already have the key
     if (isSigning || userEncryptionKey) return userEncryptionKey;
 
+    let isVerified = false; // Initialize with a default boolean value (e.g., false or true as appropriate for your logic)
+
     if (isVerified && nick) {
     isRegistered = true;
     log(`[IAM] Identity Found: ${nick}. Transitioning to Passport...`);
@@ -2727,6 +2729,7 @@ function exitGateway() {
     </script>
 </body>
 </html>
+
 
 
 

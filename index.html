@@ -688,28 +688,39 @@ const WARRIOR_ABI = [
 
  let userEncryptionKey = null;
  let isRequestingSignature = false; // Add this at the top of your script
+let isSigning = false; // Prevents the 4001 Rejection loop
+let galleryLoaded = false;
 
 // Ask MetaMask for a signature to create a unique password
 async function getEncryptionKey() {
-    if (isRequestingSignature) return;
-    
-    if (userEncryptionKey) return userEncryptionKey; // Use cached key if already signed
+if (isSigning || userEncryptionKey) return userEncryptionKey;
+    isSigning = true;
 
-    isRequestingSignature = true; 
-    log("[PRIVACY] Opening secure vault...");
-    
     try {
+        log("[PRIVACY] Opening secure vault...");
         const provider = new ethers.providers.Web3Provider(window.ethereum);
         const signer = provider.getSigner();
         const message = "Unlock Lightchain AIVM Encryption Key";
+        
+        // This is the line that was failing due to spamming
         const signature = await signer.signMessage(message);
         
         userEncryptionKey = ethers.utils.keccak256(signature);
-        isRequestingSignature = false; // Reset on success
+        log("[PRIVACY] Vault Decrypted.");
+        
+        // Only load data AFTER successful signature
+        if (!galleryLoaded) {
+            loadGallery();
+            syncMarketplace();
+            galleryLoaded = true;
+        }
+        
+        isSigning = false;
         return userEncryptionKey;
-    } catch (e) {
-        isRequestingSignature = false; // Reset on error/reject
-        log("[ERROR] Signature rejected or timed out.");
+    } catch (err) {
+        isSigning = false;
+        log("[ERROR] Signature rejected. Gallery will remain empty.");
+        return null;
     }
 }
 
@@ -2704,6 +2715,7 @@ function exitGateway() {
     </script>
 </body>
 </html>
+
 
 
 

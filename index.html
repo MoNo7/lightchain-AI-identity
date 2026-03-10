@@ -2434,34 +2434,30 @@ async function launchChess() {
     }
     
 async function makeAIVMMove() {
-    updateChessStatus("AIVM THINKING (DeepSeek-V3)...");
-    const currentFen = game.fen();
-    
+// Determine skill level based on user's current card collection or manual setting
+    const difficultyMap = { "APPRENTICE": 1, "GRANDMASTER": 3, "DEITY": 5 };
+    const currentDifficulty = "GRANDMASTER"; // You can make this a toggle later
+
+    updateChessStatus(`AIVM THINKING (${currentDifficulty})...`);
+
     try {
-        // REAL AIVM CONNECTION: Fetching best move from the Neural Network
         const response = await fetch('https://api.lightchain.ai/v1/inference/chess', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                fen: currentFen,
-                model: "DeepSeek-V3", // Targeting your specified model
-                wallet: userWallet,    // Passing your Passport ID
-                wager: wagerAmount
+            body: JSON.stringify({
+                fen: game.fen(),
+                model: "DeepSeek-V3",
+                depth: difficultyMap[currentDifficulty], // This tells the AIVM how hard to think
+                wallet: userWallet
             })
         });
-
-        const result = await response.json();
-        const bestMove = result.move; // The AIVM computed move (e.g., "d2d4")
-        game.move(bestMove, { sloppy: true });
-        board.position(game.fen());
-
-        // SAVE AI MOVE LOCALLY (FREE)
-        localStorage.setItem('lcai_chess_fen', game.fen());
         
-        updateChessStatus("YOUR MOVE");
-        checkGameOver();
-        log(`[AIVM] Inference Successful: ${bestMove}`);
+        const result = await response.json();
+        game.move(result.move, { sloppy: true });
+        board.position(game.fen());
+        localStorage.setItem('lcai_chess_fen', game.fen());
 
+        checkGameOver();
     } catch (e) {
        // log("[AIVM ERROR] Neural link timeout. Using local fallback.");
         // Fallback to random if testnet latency is high
@@ -2521,26 +2517,30 @@ async function resignMatch() {
 
 
 function openWalletWarriors() {
-    if (!isRegistered) {
+if (!isRegistered) {
         log("[ACCESS DENIED] Mint a Battle Passport (SBT) first.");
         showView('zkView');
         return;
     }
 
-// FORCE HIDE everything else
+    // 1. Force the system UI to vanish
     document.querySelector('nav').style.setProperty('display', 'none', 'important');
     document.querySelector('header').style.setProperty('display', 'none', 'important');
     
-    // Set a distinct background so you can see the layout
-    document.querySelector('.workspace').style.background = '#0a0c10'; 
+    // 2. Set the workspace to a TCG-friendly dark theme
+    document.querySelector('.workspace').style.background = '#0d1117'; 
     document.getElementById('gameNavigation').style.display = 'flex';
 
-    // TRIGGER SHOW
-    showView('tcgBinderView');
+    // 3. SURGICAL FIX: Directly manipulate the display style
+    const binder = document.getElementById('tcgBinderView');
+    if (binder) {
+        binder.style.display = 'block';
+        binder.style.opacity = '1';
+        binder.style.visibility = 'visible';
+    }
     
-    // Load the collection
     syncTCGBinder();
-    log(`[TCG] Gateway Initialized. Rendering Binder...`);
+    log(`[TCG] Gateway Initialized. Good luck, Warrior.`);
 }
 
 async function showForge() {
@@ -2608,6 +2608,30 @@ async function syncTCGBinder() {
     } catch (e) { log(`[TCG ERROR] ${e.message}`); }
 }
 
+async function executeForge() {
+    const id1 = prompt("Enter First Warrior ID:");
+    const id2 = prompt("Enter Second Warrior ID:");
+
+    if (!id1 || !id2) return;
+
+    log(`[FORGE] Igniting the Soul-Link between #${id1} and #${id2}...`);
+    
+    try {
+        const signer = await (new ethers.BrowserProvider(window.ethereum)).getSigner();
+        const contract = new ethers.Contract(CONFIG.warriorCards, WARRIOR_ABI, signer);
+
+        // This calls the contract we brainstormed
+        const tx = await contract.forge(id1, id2);
+        await tx.wait();
+
+        log("🔥 SUCCESS: A new Elite Warrior has been forged!");
+        document.getElementById('forgeModal').remove();
+        syncTCGBinder();
+    } catch (e) {
+        log(`[FORGE ERROR] ${e.message}`);
+    }
+}
+
 async function claimStarter() {
     log("[TCG] Minting Genesis Starter Pack (6 Cards)...");
     try {
@@ -2651,32 +2675,3 @@ function exitGateway() {
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

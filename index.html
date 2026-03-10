@@ -2459,7 +2459,7 @@ async function makeAIVMMove() {
             body: JSON.stringify({
                 fen: game.fen(),
                 model: "DeepSeek-V3",
-                depth: aiDepth // 5 is significantly stronger than 3
+                depth: aiDepth, // 5 is significantly stronger than 3
                 wallet: userWallet
             })
         });
@@ -2696,6 +2696,7 @@ function exitGateway() {
     </script>
 </body>
 </html>
+
 
 
 

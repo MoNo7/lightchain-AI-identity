@@ -1836,20 +1836,62 @@ if (placeholder) placeholder.style.display = 'none';
         let isGenerating = false;
 
 async function generateAIVMArt() {
-    const prompt = document.getElementById('artPrompt').value;
-    if (!prompt) return;
+    const promptInput = document.getElementById('artPrompt');
+    const styleInput = document.getElementById('artStyle');
+    const outputImg = document.getElementById('aivmOutputImage');
+    const placeholder = document.getElementById('renderStatusText');
+    const loader = document.getElementById('renderLoader');
 
-    updateStudioStatus("AIVM PAINTING...");
+    if (!promptInput || !promptInput.value) return log("Enter a prompt first.");
+    
+    const fullPrompt = promptInput.value + (styleInput ? styleInput.value : "");
+    
+    // UI Feedback
+    if (placeholder) placeholder.style.display = "none";
+    if (loader) loader.style.display = "block";
+    if (outputImg) outputImg.style.display = "none";
+    log(`[AIVM] Inferencing: ${promptInput.value.slice(0, 30)}...`);
+
     try {
-        // Art uses a GET or a separate Image Model
-        const imageUrl = `https://pollinations.ai/p/${encodeURIComponent(prompt)}?width=512&height=512&seed=${Math.floor(Math.random()*1000)}&nologo=true`;
-        
-        // Update the Studio UI specifically
-        document.getElementById('artDisplay').src = imageUrl;
-        currentGeneratedArt = imageUrl; // Store locally for minting
-        updateStudioStatus("READY TO MINT");
+        const seed = Math.floor(Math.random() * 100000);
+        const model = document.getElementById('modelSelector').value;
+        const imageUrl = `https://pollinations.ai/p/${encodeURIComponent(fullPrompt)}?width=1024&height=1024&seed=${seed}&nologo=true`;
+
+        // Create a temporary image to handle cross-origin for the canvas
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.src = imageUrl;
+
+        img.onload = () => {
+            const canvas = document.getElementById('generatedCanvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = 1024;
+            canvas.height = 1024;
+            
+            // Draw to canvas for the "Save/Mint" capability
+            ctx.drawImage(img, 0, 0, 1024, 1024);
+            currentArtData = canvas.toDataURL('image/jpeg', 0.8);
+            
+            // Update UI
+            if (loader) loader.style.display = "none";
+            if (outputImg) {
+                outputImg.src = currentArtData;
+                outputImg.style.display = "block";
+            }
+            
+            document.getElementById('saveArtBtn').style.display = "block";
+            document.getElementById('deleteArtBtn').style.display = "block";
+            log("[SUCCESS] AIVM Render complete.");
+        };
+
+        img.onerror = () => {
+            log("[ERROR] Render engine timed out. Try a shorter prompt.");
+            if (loader) loader.style.display = "none";
+        };
+
     } catch (e) {
-        log("[STUDIO ERROR] Canvas sync failed.");
+        console.error(e);
+        log("[ERROR] AIVM Studio connection lost.");
     }
 }
 
@@ -2765,3 +2807,4 @@ async function claimDailyWarrior() {
     </script>
 </body>
 </html>
+

@@ -1140,6 +1140,9 @@ try {
 
 
 async function checkRegistrationStatus(addr, contract) {
+    window.hasInitializedSession = false;
+    unlockArcadeUI();
+    
     try {
         const isVerified = await contract.verified(addr);
         const nick = await contract.nicknames(addr);
@@ -1163,6 +1166,8 @@ async function checkRegistrationStatus(addr, contract) {
                     if (key) {
                         loadGallery();
                         syncMarketplace();
+                    }else {
+                        log("[WARNING] Studio generation disabled. No encryption key.");
                     }
                 });
             }
@@ -1266,48 +1271,38 @@ async function syncMarketplace() {
     if (!grid || !userWallet) return;
 
     try {
+        log("[MARKET] Initializing On-Chain Sync...");
         const provider = new ethers.BrowserProvider(window.ethereum);
-        const marketContract = new ethers.Contract(CONFIG.auctionHouse, [
-            "function auctions(address, uint256) view returns (address nftContract, uint256 startingPrice, uint256 highestBid, address highestBidder, uint256 endTime, bool active)"
-        ], provider);
-        const artContract = new ethers.Contract(CONFIG.artStudio, ["function tokenURI(uint256) view returns (string)"], provider);
-
+        const marketContract = new ethers.Contract(CONFIG.auctionHouse, CONFIG.abi, provider);
+        const artContract = new ethers.Contract(CONFIG.artStudio, CONFIG.abi, provider);
+        
         let html = "";
         let count = 0;
 
         // Scan the last 50 potential IDs
-        for (let i = 0; i < 50; i++) {
-            try {
-                const data = await marketContract.auctions(CONFIG.artStudio, i);
-                if (data.active) {
-                    count++;
-                    const uri = await artContract.tokenURI(i);
-                    let imgData = uri.startsWith("U2Fsd") ? await decryptArt(uri) : uri;
-                    const currentPrice = ethers.formatEther(data.highestBid > 0 ? data.highestBid : data.startingPrice);
-
-                    html += `
-                        <div class="card" style="border:1px solid var(--accent); margin-bottom:15px; background:var(--sidebar);">
-                            <div class="art-container" style="position:relative;">
-                                <img src="${imgData}" style="width:100%; border-radius:8px;">
-                                <div class="ui-watermark">AIVM MARKET VERIFIED</div>
-                            </div>
-                            <div style="margin-top:12px; display:flex; justify-content:space-between; align-items:center;">
-                                <div>
-                                    <div style="font-size:1.1rem; color:var(--green); font-weight:bold; font-family:monospace;">${currentPrice} LCAI</div>
-                                    <div style="font-size:0.6rem; color:var(--text-dim);">TOKEN ID: #${i}</div>
-                                </div>
-                                <button class="pill" onclick="placeBid(${i}, '${currentPrice}')" 
-                                        style="background:var(--accent); color:#000; border:none; padding:8px 15px; font-weight:bold; cursor:pointer;">
-                                    PLACE BID
-                                </button>
-                            </div>
-                        </div>`;
-                 }
-            } catch (e) { continue; }
+        for (let i = 0; i < 25; i++) {
+                    try {
+                        const data = await marketContract.auctions(CONFIG.artStudio, i);
+                        if (data && data.active) {
+                            count++;
+                            const uri = await artContract.tokenURI(i);
+                            let imgData = uri.startsWith("U2Fsd") ? await decryptArt(uri) : uri;
+                            const price = ethers.formatEther(data.highestBid > 0 ? data.highestBid : data.startingPrice);
+        
+                            html += `
+                                <div class="card" style="border:1px solid var(--accent); margin-bottom:15px;">
+                                    <img src="${imgData}" style="width:100%; border-radius:8px;">
+                                    <div style="margin-top:10px; display:flex; justify-content:space-between;">
+                                        <div style="color:var(--green);">${price} LCAI</div>
+                                        <button class="pill" onclick="placeBid(${i}, '${price}')">BID</button>
+                                    </div>
+                                </div>`;
+                        }
+                    } catch (e) { continue; }
+                }
+                grid.innerHTML = count > 0 ? html : '<div style="grid-column:1/-1; text-align:center;">No active on-chain auctions.</div>';
+            } catch (err) { console.error(err); }
         }
-        grid.innerHTML = count > 0 ? html : '<div style="grid-column:1/-1; text-align:center;">No active on-chain auctions.</div>';
-    } catch (err) { console.error(err); }
-}
 
 
 async function registerLocal() {
@@ -2165,15 +2160,12 @@ async function loadGallery() {
         let foundAny = false;
         window.userGallery = []; 
 
-        for (let i = 0; i < maxSearch; i++) {
-            try {
-                const owner = await artContract.ownerOf(i);
-                if (owner.toLowerCase() === userWallet.toLowerCase()) {
-                    foundAny = true;
-                    const uri = await artContract.tokenURI(i);
-                    // Decrypt using the verified key
-                    let imgData = uri.startsWith("U2Fsd") ? await decryptArt(uri) : uri;
-                    
+for (let i = 0; i < 25; i++) {
+    try {
+        const owner = await artContract.ownerOf(i);
+        if (owner.toLowerCase() === userWallet.toLowerCase()) {
+            const uri = await artContract.tokenURI(i);
+            let imgData = uri.startsWith("U2Fsd") ? await decryptArt(uri) : uri;
                     window.userGallery.push({ id: i, uri: uri, data: imgData });
                     html += `
                         <div class="gallery-card" style="border:1px solid var(--border); padding:10px; border-radius:12px; background:var(--panel);">
@@ -2186,9 +2178,9 @@ async function loadGallery() {
                         </div>`;
                 }
             } catch (e) { continue; }
-        }
+        
         grid.innerHTML = foundAny ? html : "<p style='text-align:center; width:100%;'>No Art found in your vault.</p>";
-    } catch (e) { console.error("Gallery Error:", e); }
+    { console.error("Gallery Error:", e); }
 }
 
         
@@ -2781,6 +2773,7 @@ function exitGateway() {
     </script>
 </body>
 </html>
+
 
 
 

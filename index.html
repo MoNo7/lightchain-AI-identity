@@ -1140,7 +1140,7 @@ try {
 
 
 async function checkRegistrationStatus(addr, contract) {
-    window.hasInitializedSession = false;
+    if (window.hasInitializedData) return;
     unlockArcadeUI();
     
     try {
@@ -1273,36 +1273,42 @@ async function syncMarketplace() {
     try {
         log("[MARKET] Initializing On-Chain Sync...");
         const provider = new ethers.BrowserProvider(window.ethereum);
-        const marketContract = new ethers.Contract(CONFIG.auctionHouse, CONFIG.abi, provider);
-        const artContract = new ethers.Contract(CONFIG.artStudio, CONFIG.abi, provider);
         
+        // Use a dedicated ABI for the Auction House
+        const marketContract = new ethers.Contract(CONFIG.auctionHouse, [
+            "function auctions(address, uint256) view returns (address nftContract, uint256 startingPrice, uint256 highestBid, address highestBidder, uint256 endTime, bool active)"
+        ], provider);
+        
+        const artContract = new ethers.Contract(CONFIG.artStudio, ["function tokenURI(uint256) view returns (string)"], provider);
+
         let html = "";
         let count = 0;
 
-        // Scan the last 50 potential IDs
         for (let i = 0; i < 25; i++) {
-                    try {
-                        const data = await marketContract.auctions(CONFIG.artStudio, i);
-                        if (data && data.active) {
-                            count++;
-                            const uri = await artContract.tokenURI(i);
-                            let imgData = uri.startsWith("U2Fsd") ? await decryptArt(uri) : uri;
-                            const price = ethers.formatEther(data.highestBid > 0 ? data.highestBid : data.startingPrice);
-        
-                            html += `
-                                <div class="card" style="border:1px solid var(--accent); margin-bottom:15px;">
-                                    <img src="${imgData}" style="width:100%; border-radius:8px;">
-                                    <div style="margin-top:10px; display:flex; justify-content:space-between;">
-                                        <div style="color:var(--green);">${price} LCAI</div>
-                                        <button class="pill" onclick="placeBid(${i}, '${price}')">BID</button>
-                                    </div>
-                                </div>`;
-                        }
-                    } catch (e) { continue; }
+            try {
+                const data = await marketContract.auctions(CONFIG.artStudio, i);
+                if (data && data.active) {
+                    count++;
+                    const uri = await artContract.tokenURI(i);
+                    let imgData = uri.startsWith("U2Fsd") ? await decryptArt(uri) : uri;
+                    const price = ethers.formatEther(data.highestBid > 0 ? data.highestBid : data.startingPrice);
+
+                    html += `
+                        <div class="card" style="border:1px solid var(--accent); margin-bottom:15px;">
+                            <img src="${imgData}" style="width:100%; border-radius:8px;">
+                            <div style="margin-top:10px; display:flex; justify-content:space-between; align-items:center;">
+                                <div style="color:var(--green); font-weight:bold;">${price} LCAI</div>
+                                <button class="pill" onclick="placeBid(${i}, '${price}')">BID</button>
+                            </div>
+                        </div>`;
                 }
-                grid.innerHTML = count > 0 ? html : '<div style="grid-column:1/-1; text-align:center;">No active on-chain auctions.</div>';
-            } catch (err) { console.error(err); }
+            } catch (e) { continue; }
         }
+        grid.innerHTML = count > 0 ? html : '<div style="grid-column:1/-1; text-align:center;">No active on-chain auctions.</div>';
+    } catch (err) {
+        console.warn("Marketplace Sync Error:", err);
+    }
+}
 
 
 async function registerLocal() {
@@ -2807,4 +2813,5 @@ async function claimDailyWarrior() {
     </script>
 </body>
 </html>
+
 

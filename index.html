@@ -1630,13 +1630,13 @@ async function mintWithSocial() {
             
                 try {
                     const provider = new ethers.BrowserProvider(window.ethereum);
-                    const artContract = new ethers.Contract(CONFIG.artStudio, [
+                    const contract = new ethers.Contract(CONFIG.artStudio, [
                         "function balanceOf(address owner) view returns (uint256)",
                         "function tokenOfOwnerByIndex(address owner, uint256 index) view returns (uint256)",
                         "function tokenURI(uint256 tokenId) view returns (string)"
                     ], provider);
             
-                    const balance = await artContract.balanceOf(userWallet);
+                    const balance = await contract.balanceOf(userWallet);
                     container.innerHTML = ""; 
 
                     if (balance == 0) {

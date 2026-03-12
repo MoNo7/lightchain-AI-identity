@@ -1089,10 +1089,9 @@ try {
         updateUI(userWallet);
         document.getElementById('walletBtn').innerText = userWallet.slice(0,6) + "...";
         const signer = await provider.getSigner();
-        const contract = new ethers.Contract(CONFIG.contract, CONFIG.abi, signer);
+        const contract = new ethers.Contract(CONFIG.identity, CONFIG.abi, signer);
 
-
-    const isVerified = await contract.verified(userWallet);
+        const isVerified = await contract.verified(userWallet);
         if (isVerified) {
             document.querySelectorAll('.locked-feature').forEach(el => {
                 el.classList.remove('locked-feature');
@@ -1812,7 +1811,7 @@ async function generateAIVMArt() {
             tempCanvas.height = 512;
             tempCtx.drawImage(img, 0, 0, 512, 512);
             
-            currentArtData = canvas.toDataURL('image/jpeg', 0.8);
+            currentArtData = tempCanvas.toDataURL('image/jpeg', 0.6);   
             
             // 3. Update UI
                 if (loader) loader.style.display = "none";
@@ -2748,6 +2747,7 @@ async function claimDailyWarrior() {
     </script>
 </body>
 </html>
+
 
 
 

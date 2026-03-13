@@ -752,26 +752,12 @@ async function getArcadeKey() {
 // ---------------------------------------------------------
     // 9. ARCADE ENGINE (Preserved and Insulated from Gallery)
     // ---------------------------------------------------------
-    function initArcadeEngine() {
-    if (!userWallet) return logMsg("Connect wallet to play.");
-        
-        game = new Chess();
-        document.getElementById('arcadeOverlay').style.display = "none";
-        document.getElementById('arcadeStatus').innerText = "ENGINE: ACTIVE";
-        document.getElementById('arcadeStatus').style.color = "var(--green)";
-    
-        board = Chessboard('boardInner', {
-            draggable: true,
-            position: 'start',
-            pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
-            onDrop: (source, target) => {
-                const move = game.move({ from: source, to: target, promotion: 'q' });
-                if (move === null) return 'snapback';
-                logMsg(`[ARCADE] Move: ${source}-${target}. AI Thinking...`);
-                setTimeout(makeAIVMMove, 500);
-            }
-        });
-    }
+function initArcadeEngine() {
+    if (!isRegistered) return log("Register to unlock AIVM games.");
+    // Hide overlay and show board
+    document.getElementById('arcadeOverlay').style.display = "none";
+    launchGrandmasterEngine(); 
+}
 
 
     function launchGrandmasterEngine() {
@@ -964,7 +950,10 @@ async function getArcadeKey() {
             // ==========================================
             const response = await fetch('https://chat2.lightchain.ai/api/v1/chess/move', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${userWallet}` // Using wallet as session auth
+            },
             body: JSON.stringify({ 
                 fen: currentFen, 
                 model: "Neural-Llama-3-70B",

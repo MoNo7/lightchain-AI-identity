@@ -1931,58 +1931,67 @@ async function mintWithSocial() {
         }
 
         async function loadGallery() {
-            const container = document.getElementById('galleryGrid');
-                if (!userWallet) return;
-            
-                container.innerHTML = '<div style="grid-column:1/-1; text-align:center;">Scanning ZK Vault...</div>';
-            
-                try {
-                    const provider = new ethers.BrowserProvider(window.ethereum);
-                    const artContract = new ethers.Contract(CONFIG.artStudio, CONFIG.abi, provider);
-                    let html = "";
-                    let foundCount = 0;
+    const container = document.getElementById('galleryGrid');
+    if (!userWallet) return;
 
-                    if (!userEncryptionKey) {
-                        await getEncryptionKey();
+    container.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:20px;">Deep Scanning Vault...</div>';
+
+    try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        // FORCE: Ensure we use the latest ArtStudio address from your config
+        const artContract = new ethers.Contract(CONFIG.artStudio, CONFIG.abi, provider);
+        let html = "";
+        let foundCount = 0;
+
+        // 1. Ensure Decryption Key is ready
+        if (!userEncryptionKey) {
+            log("[PRIVACY] Unlocking Gallery...");
+            await getEncryptionKey();
+        }
+
+        // 2. EXPANDED MANUAL SCAN: Scanning 0-50 to ensure we don't miss the 5 newest images
+        for (let i = 0; i < 50; i++) {
+            try {
+                // Call ownerOf with a 2-second timeout to prevent hanging
+                const owner = await artContract.ownerOf(i);
+                
+                if (owner.toLowerCase() === userWallet.toLowerCase()) {
+                    foundCount++;
+                    const uri = await artContract.tokenURI(i);
+                    
+                    // Handle Decryption for Raccoons/AIVM Art
+                    let imgData = uri.startsWith("U2Fsd") ? await decryptArt(uri) : uri;
+                    
+                    if (imgData && !imgData.startsWith("data:image") && !imgData.startsWith("http")) {
+                        imgData = "data:image/jpeg;base64," + imgData;
                     }
-            
-                    // Manual scan 0-25 (Raccoon-era configuration)
-                    for (let i = 0; i < 25; i++) {
-                        try {
-                            const owner = await artContract.ownerOf(i);
-                            if (owner.toLowerCase() === userWallet.toLowerCase()) {
-                                found = true;
-                                const uri = await artContract.tokenURI(i);
-                                let imgData = uri.startsWith("U2Fsd") ? await decryptArt(uri) : uri;
-                                
-                                // Force header for raw Base64
-                                if (imgData && !imgData.startsWith("data:image")) {
-                                    imgData = "data:image/jpeg;base64," + imgData;
-                                }
-            
-                                html += `
-                        <div class="gallery-card" style="display:flex; flex-direction:column; align-items:center;">
-                            <div class="art-container" style="position:relative; width:100%;">
-                                <img src="${imgData}" style="width:100%; border-radius:8px;">
-                                <div class="ui-watermark">AIVM AUTHENTICATED</div>
+
+                    html += `
+                        <div class="gallery-card">
+                            <div class="art-container">
+                                <img src="${imgData}" style="width:100%; border-radius:8px; aspect-ratio:1/1; object-fit:cover;">
+                                <div class="ui-watermark">TOKEN #${i}</div>
                             </div>
-                            <div class="gallery-controls" style="width:100%; display:grid; grid-template-columns: 1fr 1fr 1fr; gap:5px; margin-top:10px;">
-                                <button class="pill" onclick="mintFromGallery(${i})" style="background:var(--green); color:#000; text-align:center;">MINT</button>
-                                <button class="pill btn-info-black" onclick="showArtInfo(${i})" style="text-align:center;">INFO</button>
-                                <button class="pill" onclick="burnArt(${i})" style="background:var(--red); text-align:center;">BURN</button>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px; margin-top:10px;">
+                                <button class="pill" onclick="showArtInfo(${i})">INFO</button>
+                                <button class="pill" onclick="listInAuction(${i})" style="background:var(--accent); color:#000;">SELL</button>
                             </div>
-                            <button class="btn-zk" onclick="listInAuction(${i})" style="width:100%; margin-top:8px; text-align:center;">LIST FOR SALE</button>
                         </div>`;
-                           }
-                        } catch (e) { continue; }
-                    }
-//container.innerHTML = found ? html : '<p>No assets found in vault.</p>';
-container.innerHTML = foundCount > 0 ? html : '<p style="grid-column:1/-1; text-align:center;">No assets found in this vault.</p>';
-        log(`[GALLERY] Scan complete. Found ${foundCount} assets.`);
-                    } catch (e) {
-        console.error("Gallery Sync Error:", e);
+                }
+            } catch (e) {
+                // Token ID doesn't exist, continue to next
+                continue;
+            }
+        }
+
+        container.innerHTML = foundCount > 0 ? html : '<div style="grid-column:1/-1; text-align:center;">No assets found in Vault. Check Registry address.</div>';
+        log(`[GALLERY] Deep Scan Complete. Found ${foundCount} assets.`);
+
+    } catch (e) {
         log("Gallery Sync Error: Check MetaMask connection.");
-}}
+        console.error(e);
+    }
+}
         
 async function listInAuction(tokenId) {
     const price = prompt("Starting bid (LCAI):", "0.5");
@@ -2206,6 +2215,7 @@ async function listInAuction(tokenId) {
     </script>
 </body>
 </html>
+
 
 
 

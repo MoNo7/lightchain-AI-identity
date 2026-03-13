@@ -2113,7 +2113,6 @@ async function mintWithSocial() {
             }
         }
 
-// --- RESTORED AUCTION HOUSE ---
 async function renderAuctions() {
     const grid = document.getElementById('auctionGrid');
     if (!grid) return;
@@ -2121,16 +2120,21 @@ async function renderAuctions() {
 
     try {
         const provider = new ethers.BrowserProvider(window.ethereum);
-        // Minimal ABI for Auction House and Art Studio
+        // Explicit ABI for Auction House
         const auctionHouse = new ethers.Contract(CONFIG.auctionHouse, [
             "function auctions(address, uint256) view returns (address nftContract, uint256 startingPrice, uint256 highestBid, address highestBidder, uint256 endTime, bool active)"
         ], provider);
-        const artContract = new ethers.Contract(CONFIG.artStudio, CONFIG.abi, provider);
+        
+        // Explicit ABI for Art Studio to avoid "is not a function" errors
+        const artContract = new ethers.Contract(CONFIG.artStudio, [
+            "function tokenURI(uint256 tokenId) view returns (string)",
+            "function ownerOf(uint256 tokenId) view returns (address)"
+        ], provider);
         
         let html = "";
         let count = 0;
 
-        // Manual Scan 0-25 (Bypasses missing totalSupply function)
+        // Manual Scan 0-25 (Bypasses missing totalSupply/Enumerable functions)
         for (let i = 0; i < 25; i++) {
             try {
                 const data = await auctionHouse.auctions(CONFIG.artStudio, i);
@@ -2139,7 +2143,6 @@ async function renderAuctions() {
                     const uri = await artContract.tokenURI(i);
                     const currentPrice = ethers.formatEther(data.highestBid > 0 ? data.highestBid : data.startingPrice);
                     
-                    // Standardized Decryption
                     let img = uri.startsWith("U2Fsd") ? await decryptArt(uri) : uri;
                     if (img && !img.startsWith("data:image") && !img.startsWith("http")) {
                         img = "data:image/jpeg;base64," + img;
@@ -2163,7 +2166,6 @@ async function renderAuctions() {
     } catch (e) { console.error("Market Error:", e); }
 }
 
-// --- RESTORED GALLERY ---
 async function loadGallery() {
     const container = document.getElementById('galleryGrid');
     if (!userWallet) return;
@@ -2171,27 +2173,32 @@ async function loadGallery() {
 
     try {
         const provider = new ethers.BrowserProvider(window.ethereum);
-        const artContract = new ethers.Contract(CONFIG.artStudio, CONFIG.abi, provider);
         
-        // Ensure key is available for decryption
+        // FIXED: Added tokenURI and ownerOf to this specific ABI instance
+        const artContract = new ethers.Contract(CONFIG.artStudio, [
+            "function ownerOf(uint256 tokenId) view returns (address)",
+            "function tokenURI(uint256 tokenId) view returns (string)"
+        ], provider);
+        
         if (!userEncryptionKey) await getEncryptionKey();
 
         const scanPromises = [];
         for (let i = 0; i < 25; i++) {
+            // We use ownerOf to find which tokens belong to the user
             scanPromises.push(artContract.ownerOf(i).then(owner => ({ id: i, owner })).catch(() => null));
         }
 
         const results = await Promise.all(scanPromises);
         let html = "";
         let foundCount = 0;
-        window.userGallery = []; // Track metadata for INFO buttons
+        window.userGallery = []; 
 
         for (const res of results) {
             if (res && res.owner.toLowerCase() === userWallet.toLowerCase()) {
                 foundCount++;
+                // Now this call will work because tokenURI is in the ABI above
                 const uri = await artContract.tokenURI(res.id);
                 
-                // Decrypt exactly like Auction House
                 let imgData = uri.startsWith("U2Fsd") ? await decryptArt(uri) : uri;
                 if (imgData && !imgData.startsWith("data:image") && !imgData.startsWith("http")) {
                     imgData = "data:image/jpeg;base64," + imgData;
@@ -2213,7 +2220,10 @@ async function loadGallery() {
             }
         }
         container.innerHTML = foundCount > 0 ? html : '<div style="grid-column:1/-1; text-align:center; padding:20px;">No assets found in Vault.</div>';
-    } catch (e) { console.error("Gallery Error:", e); }
+    } catch (e) { 
+        console.error("Gallery Error:", e); 
+        log("Gallery Sync Failed. Check Console.");
+    }
 }
         
 async function listInAuction(tokenId) {

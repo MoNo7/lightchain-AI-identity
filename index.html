@@ -1975,11 +1975,13 @@ async function mintWithSocial() {
                         </div>`;
             }
             } catch (e) { continue; }
-        }
 //container.innerHTML = found ? html : '<p>No assets found in vault.</p>';
 container.innerHTML = foundCount > 0 ? html : '<p style="grid-column:1/-1; text-align:center;">No assets found in this vault.</p>';
         log(`[GALLERY] Scan complete. Found ${foundCount} assets.`);
-}
+                    } catch (e) {
+        console.error("Gallery Sync Error:", e);
+        log("Gallery Sync Error: Check MetaMask connection.");
+}}
         
 async function listInAuction(tokenId) {
     const price = prompt("Starting bid (LCAI):", "0.5");
@@ -2203,6 +2205,7 @@ async function listInAuction(tokenId) {
     </script>
 </body>
 </html>
+
 
 
 

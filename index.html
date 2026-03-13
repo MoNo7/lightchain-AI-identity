@@ -750,11 +750,19 @@ try {
 
 
 async function checkRegistrationStatus(addr, contract) {
-    try {
+
+    // 1. STOP THE RPC FLOOD
+    if (window.hasInitializedData) return;
+    
+try {
+        // 2. FORCE check on the Identity SBT (0x9A07...)
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const idContract = new ethers.Contract(CONFIG.identity, CONFIG.abi, provider);
         const isVerified = await contract.verified(addr);
         const nick = await contract.nicknames(addr);
 
         if (isVerified && nick) {
+            window.hasInitializedData = true; // LOCK initialization
             isRegistered = true;
             const authStep = document.getElementById('authStep');
             const mintSection = document.getElementById('mintSection');
@@ -770,7 +778,12 @@ async function checkRegistrationStatus(addr, contract) {
                 if (el) el.style.display = 'none';
             });
 
-
+            getEncryptionKey().then(key => {
+                if(key) {
+                    loadGallery();
+                    syncMarketplace();
+                }
+            });
 
             // 4. Reveal Admin menu if owner
             if (addr.toLowerCase() === CONFIG.owner.toLowerCase()) {
@@ -791,8 +804,7 @@ async function checkRegistrationStatus(addr, contract) {
             }
 
             // Unlock Art Studio & Gallery
-        // 2. Force View to zkView and Render Passport
-            unlockArtStudio();
+
             
             // 2. VIEW SWITCH: Ensure zkView is the active main container
             showView('zkView');
@@ -800,6 +812,8 @@ async function checkRegistrationStatus(addr, contract) {
             // 3. PASSPORT RENDER: Inject the actual Identity Card
             setTimeout(() => {
                     renderPassport(addr, nick, contract);
+                        // 2. Force View to zkView and Render Passport
+                    unlockArtStudio();
                 }, 100);
             }
         // 3. Unlock Admin Features if Owner
@@ -1318,21 +1332,13 @@ async function generateAIVMArt() {
         const promptId = ethers.keccak256(ethers.toUtf8Bytes(finalPrompt + Date.now()));
         log(`[PROTOCOL] Sending PoI Anchor: ${promptId.slice(0,18)}...`);
 
-        // This ensures the task is recorded on-chain before the render proceeds
-        // Using the contract ABI for PoI anchoring
-       // const contract = new ethers.Contract(CONFIG.contract, [
-      //      "function requestInferenceV2(bytes32 promptId, string calldata prompt) public payable",
- //           "function verified(address) view returns (bool)"
-//        ], signer);
 
-        // Correct Fix:
         // 1. Check verification on Identity Contract
         const identityContract = new ethers.Contract(CONFIG.contract, [
             "function requestInferenceV2(bytes32 promptId, string calldata prompt) public payable",
             "function verified(address) view returns (bool)"
         ], provider);
-        // check if user is verified first to avoid silent revert
-        const isUserVerified = await identityContract.verified(userWallet);
+                const isUserVerified = await identityContract.verified(userWallet);
 
 
 //        const isUserVerified = await contract.verified(userWallet);
@@ -1346,7 +1352,6 @@ async function generateAIVMArt() {
         const seed = Math.floor(Math.random() * 1000000);
         const encodedPrompt = encodeURIComponent(finalPrompt);
         const aiImageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&seed=${seed}&nologo=true`;
-
         const img = new Image();
         img.crossOrigin = "anonymous"; 
 
@@ -1648,25 +1653,6 @@ async function mintWithSocial() {
                         const tokenId = await artContract.tokenOfOwnerByIndex(userWallet, i);
                         const uri = await artContract.tokenURI(tokenId);
                         
-        //                let displaySrc = "";
-    //**
-   //                     if (uri.startsWith("U2Fsd")) {
-     //                       try {
-   ///                             let decrypted = await decryptArt(uri);
-                                // Force the header if it's missing from the encrypted payload
-  //                              displaySrc = decrypted.startsWith("data:image") ? decrypted : "data:image/jpeg;base64," + decrypted;
-   //                         } catch (e) {
-     //                           displaySrc = "https://via.placeholder.com/400?text=Decryption+Failed";
-    //                        }
-   //                     } else {
-   //                         displaySrc = uri.startsWith("ipfs://") 
-     //                           ? uri.replace("ipfs://", "https://ipfs.io/ipfs/") 
-    //                            : uri;
-    //                    }
-    
-                        // 3. Render with a safety check for broken data
-          //              const finalImg = (displaySrc && displaySrc.length > 20) ? displaySrc : "https://via.placeholder.com/400/1a1a1a/00f2ff?text=Data+Pending";
-      // Decrypt art logic here...
                 if(!window.userGallery) window.userGallery = [];
                     window.userGallery[i] = { id: tokenId, uri: uri };
                     // STEP 2: RENDER CARD WITH CENTERED TEXT & UI WATERMARK
@@ -1919,3 +1905,4 @@ async function listInAuction(tokenId) {
     </script>
 </body>
 </html>
+

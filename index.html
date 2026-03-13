@@ -567,6 +567,9 @@ window.onload = async () => {
                 showView('zkView'); 
             } else {
                 showView('galleryView');
+                if (!userEncryptionKey) {
+                    await getEncryptionKey(); 
+                }
                 loadGallery();
             }
         }
@@ -671,54 +674,34 @@ async function getArcadeKey() {
         const signer = await provider.getSigner();
         const sessionKey = await getArcadeKey();
         
-        // The actual contract connection
         const refereeAbi = [
-            "function requestMove(bytes32 sessionKey, string fen) public",
-            "function getLatestMove(bytes32 sessionKey) public view returns (string)"
-        ];
-        const refereeContract = new ethers.Contract("0x479b15998f4E63901b089b033d47C62464D6856", refereeAbi, signer);
-
-        // 1. Send the transaction to request inference
-        logMsg("Signing AIVM Inference Request...");
-        const tx = await refereeContract.requestMove(sessionKey, game.fen(), { gasLimit: 500000 });
-        logMsg(`Tx submitted: ${tx.hash}. Awaiting AIVM processing...`);
+                    "function requestMove(bytes32 sessionKey, string fen) public",
+                    "function getLatestMove(bytes32 sessionKey) public view returns (string)"
+                ];
+                const refereeContract = new ethers.Contract("0x479b15998f4E63901b089b033d47C62464D6856", refereeAbi, signer);
         
-        await tx.wait();
-        logMsg("Transaction confirmed. Polling AIVM for counter-move...");
-
-        // 2. Poll the contract for the AI's response
-        let aiMoveStr = "";
-        let attempts = 0;
+                logMsg("Requesting AIVM Inference...");
+                const tx = await refereeContract.requestMove(sessionKey, game.fen(), { gasLimit: 500000 });
+                await tx.wait();
+                logMsg("Tx Confirmed. Waiting for AI move...");
         
-        const pollInterval = setInterval(async () => {
-            attempts++;
-            try {
-                aiMoveStr = await refereeContract.getLatestMove(sessionKey);
-                
-                if (aiMoveStr && aiMoveStr !== "") {
-                    clearInterval(pollInterval);
-                    const move = game.move(aiMoveStr);
-                    
-                    if (move) {
+                // Recursive Polling (Prevents Freezing)
+                async function poll() {
+                    const move = await refereeContract.getLatestMove(sessionKey);
+                    if (move && move !== "") {
+                        game.move(move);
                         board.position(game.fen());
-                        logMsg(`> AIVM Move Executed: ${aiMoveStr}`);
+                        logMsg(`> AIVM Move: ${move}`);
                     } else {
-                        logMsg(`> AIVM returned invalid move: ${aiMoveStr}`);
+                        setTimeout(poll, 3000); // Check again in 3s
                     }
-                } else if (attempts > 15) {
-                    clearInterval(pollInterval);
-                    logMsg("> AIVM Inference Timeout.");
                 }
-            } catch (err) {
-                console.warn("Polling error...", err);
+                poll();
+            } catch (e) {
+                console.error(e);
+                logMsg(`[ERROR] AIVM Connection Failed: ${e.message}`);
             }
-        }, 3000); // Poll every 3 seconds until AIVM responds
-
-    } catch (e) {
-        console.error(e);
-        logMsg(`[ERROR] AIVM Connection Failed: ${e.message}`);
-    }
-}
+        }
     // Simple move handler to trigger the AI
     function handleMove(source, target, piece) {
         const move = game.move({
@@ -2088,6 +2071,7 @@ async function listInAuction(tokenId) {
     </script>
 </body>
 </html>
+
 
 
 

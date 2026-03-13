@@ -1836,11 +1836,11 @@ async function mintWithSocial() {
                                 <div class="ui-watermark">AIVM AUTHENTICATED</div>
                             </div>
                             <div class="gallery-controls" style="width:100%; display:grid; grid-template-columns: 1fr 1fr 1fr; gap:5px; margin-top:10px;">
-                                <button class="pill" onclick="mintFromGallery(${tokenId})" style="background:var(--green); color:#000; text-align:center;">MINT</button>
+                                <button class="pill" onclick="mintFromGallery(${i})" style="background:var(--green); color:#000; text-align:center;">MINT</button>
                                 <button class="pill btn-info-black" onclick="showArtInfo(${i})" style="text-align:center;">INFO</button>
-                                <button class="pill" onclick="burnArt(${tokenId})" style="background:var(--red); text-align:center;">BURN</button>
+                                <button class="pill" onclick="burnArt(${i})" style="background:var(--red); text-align:center;">BURN</button>
                             </div>
-                            <button class="btn-zk" onclick="listInAuction(${tokenId})" style="width:100%; margin-top:8px; text-align:center;">LIST FOR SALE</button>
+                            <button class="btn-zk" onclick="listInAuction(${i})" style="width:100%; margin-top:8px; text-align:center;">LIST FOR SALE</button>
                         </div>`;
             }
             } catch (e) { continue; }
@@ -2071,6 +2071,7 @@ async function listInAuction(tokenId) {
     </script>
 </body>
 </html>
+
 
 
 

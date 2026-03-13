@@ -156,6 +156,10 @@
             <div id="galleryNavItem" class="nav-item locked-feature" onclick="handleGalleryClick()"><i id="galleryLockIcon" class="fas fa-lock"></i><span id="galleryLabel">Gallery</span></div>            
         </div>
         <div class="nav-section">
+            <div class="nav-label">Entertainment</div>
+            <div class="nav-item" onclick="showView('arcadeView')"><i class="fa-solid fa-gamepad"></i>AIVM Arcade</div>
+        </div>
+        <div class="nav-section">
             <span class="nav-label">Marketplace</span>
             <div id="marketNavItem" class="nav-item" onclick="showView('marketView')"><i class="fas fa-gavel"></i> Auction House </div>
         </div>
@@ -542,7 +546,38 @@ if (!window.ethereum) return;
     }
 }
         
+// ---------------------------------------------------------
+    // 9. ARCADE ENGINE (Preserved and Insulated from Gallery)
+    // ---------------------------------------------------------
+    function initArcadeEngine() {
+        if (!userWallet) return alert("Connect node to initialize engine.");
+        if (hasArcadeInitialized) return logMsg("Arcade engine already running.");
+        
+        logMsg("Booting Neural Chess Engine...");
+        document.getElementById('arcadeOverlay').style.display = "none";
+        document.getElementById('arcadeStatus').innerText = "Engine Online - Ready";
+        document.getElementById('arcadeStatus').style.color = "#0f0";
+        
+        // This is where your chessboard UI/logic injections go.
+        // It is safely separated from the Gallery's RPC calls.
+        document.getElementById('boardInner').innerHTML = `
+            <div style="display: flex; height: 100%; align-items: center; justify-content: center; color: var(--text-dim); border: 2px dashed var(--border); margin: 10px;">
+                [ Chess Board Render Area ]<br>Move generator active.
+            </div>
+        `;
+        
+        hasArcadeInitialized = true;
+    }
 
+    function resetArcadeBoard() {
+        if (!hasArcadeInitialized) return;
+        logMsg("Resetting board state...");
+        document.getElementById('arcadeOverlay').style.display = "flex";
+        document.getElementById('boardInner').innerHTML = "";
+        document.getElementById('arcadeStatus').innerText = "Awaiting Initialization";
+        document.getElementById('arcadeStatus').style.color = "var(--text-dim)";
+        hasArcadeInitialized = false;
+    }
         
 async function updateUI(addr) {
     try {
@@ -1919,3 +1954,4 @@ async function listInAuction(tokenId) {
     </script>
 </body>
 </html>
+

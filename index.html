@@ -116,6 +116,24 @@
             z-index: 5;
         }
 
+        /* Fix Arcade leakage */
+        #arcadeView {
+            position: relative;
+            z-index: 5;
+        }
+        
+        #boardInner {
+            clear: both;
+            display: block;
+            overflow: hidden; /* Keeps the board inside the Arcade card */
+            padding: 10px;
+        }
+        
+        /* Ensure other views hide the board if it tries to leak */
+        .view-section:not(.active) {
+            display: none !important;
+        }
+
         /* Utility Classes */
         .social-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 20px; }
         .btn-zk { background: var(--accent); color: #000; border: none; padding: 12px; border-radius: 4px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; transition: 0.2s; }
@@ -2023,6 +2041,7 @@ async function listInAuction(tokenId) {
     </script>
 </body>
 </html>
+
 
 
 

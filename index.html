@@ -619,6 +619,7 @@ window.onload = async () => {
                 loadGallery();
             }
         }
+        
 async function autoConnectWallet() {
     let selectedProvider;
 
@@ -660,7 +661,17 @@ let game = null;
 let board = null;
 let arcadeGame = null;
 let arcadeBoard = null;
+let hasInitializedVault = false; 
 
+// Add this if it's missing to bridge your interval to the actual check function
+async function verifyIdentity() {
+    if (!userWallet) return;
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const contract = new ethers.Contract(CONFIG.contract, CONFIG.abi, provider);
+    await checkRegistrationStatus(userWallet, contract);
+    hasInitializedVault = true; // Stop the interval from spamming
+}
+        
 // Ask MetaMask for a signature to create a unique password
 async function getEncryptionKey() {
     if (userEncryptionKey) return userEncryptionKey; // Use cached key if already signed
@@ -2206,36 +2217,3 @@ async function listInAuction(tokenId) {
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

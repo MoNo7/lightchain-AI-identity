@@ -749,19 +749,27 @@ async function getArcadeKey() {
         document.querySelector('nav').style.display = 'none';
         document.getElementById('console').style.display = 'none';
         document.querySelector('header').style.display = 'none';
+
+        // 2. Lock the workspace height
+        document.querySelector('.workspace').classList.add('tcg-active');
+        
         // Show the TCG Game Takeover
         const tcgView = document.getElementById('warriorTCGView');
-        tcgView.style.display = 'block';
-        tcgView.style.height = '95vh';
+        tcgView.style.display = 'flex';
+        tcgView.style.height = '100vh';
         logMsg("[ARCADE] Gateway Accessed. Swapping to Wallet Warrior TCG Protocol...");
     }
     
     function exitWarriorGateway() {
+        const tcgView = document.getElementById('warriorTCGView');
+        tcgView.style.display = 'none';
         document.querySelector('header').style.display = 'flex';
         document.querySelector('nav').style.display = 'flex';
         document.getElementById('console').style.display = 'block';
-        document.getElementById('warriorTCGView').style.display = 'none';
         document.getElementById('arcadeHub').style.display = 'grid';
+   
+        // 2. Unlock the workspace
+        document.querySelector('.workspace').classList.remove('tcg-active');
         logMsg("[ARCADE] Returned to Hub.");
     }
 
@@ -2190,6 +2198,7 @@ async function listInAuction(tokenId) {
     </script>
 </body>
 </html>
+
 
 
 

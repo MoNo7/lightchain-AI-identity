@@ -2,187 +2,1909 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lightchain AI | IAM Admin Portal</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root { --bg: #0a0a0c; --surface: #121216; --accent: #00f2ff; --text: #e0e0e6; --border: #2a2a32; }
-        body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; }
-        .admin-shell { display: flex; min-height: 100vh; }
-        .sidebar { width: 260px; background: var(--surface); border-right: 1px solid var(--border); padding: 20px; }
-        .main-content { flex: 1; padding: 40px; }
-        .nav-item { padding: 12px; cursor: pointer; border-radius: 8px; margin-bottom: 5px; color: #9494a0; }
-        .nav-item.active { background: #ffffff08; color: var(--accent); }
-        .glass-card { background: #ffffff05; border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
-        .pill { background: var(--accent); color: #000; border: none; padding: 10px 20px; border-radius: 20px; cursor: pointer; font-weight: 600; }
-        input { width: 100%; background: #000; border: 1px solid var(--border); padding: 12px; color: #fff; border-radius: 8px; margin-bottom: 15px; }
-        .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
-        .gallery-card { background: var(--surface); border: 1px solid var(--border); padding: 10px; border-radius: 12px; text-align: center; }
+        :root { --bg: #030406; --sidebar: #0a0c10; --accent: #00f2ff; --text: #c9d1d9; --text-dim: #484f58; --border: #1b1f24; --panel: #0d1117; --green: #39d353; --red: #ff4444; }
+        body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; display: flex; height: 100vh; overflow: hidden; }
+
+        /* Navigation */
+        nav { width: 260px; background: var(--sidebar); border-right: 1px solid var(--border); padding: 20px; display: flex; flex-direction: column; }
+        .nav-header { padding-bottom: 25px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+        .nav-section { margin-bottom: 25px; }
+        .nav-label { font-size: 0.65rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; display: block; padding-left: 10px; }
+        .nav-item { padding: 12px; cursor: pointer; color: #8b949e; display: flex; align-items: center; gap: 10px; border-radius: 6px; font-size: 0.85rem; transition: 0.2s; margin-bottom: 5px; }
+        .nav-item:hover, .nav-item.active { background: var(--panel); color: var(--accent); }
+        .nav-item i.fa-lock { font-size: 0.7rem; color: var(--text-dim); }
+        .locked-feature {  opacity: 0.5; cursor: not-allowed !important; filter: grayscale(1); }
+
+        /* Workspace */
+        .workspace { flex: 1; display: flex; flex-direction: column; background: #050608; overflow: hidden; }
+        header { height: 70px; background: var(--sidebar); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 25px; }
+        .pill-group { display: flex; flex:1; justify-center; gap: 10px; align-items: center; }
+        .pill { background: #000; border: 1px solid var(--border); padding: 6px 14px; border-radius: 20px; font-size: 0.75rem; display: flex; align-items: center; gap: 8px; font-family: monospace; }
+        .pill, .btn-zk {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            font-weight: bold;
+            text-transform: uppercase;
+            padding: 8px 4px;
+            font-size: 0.7rem;
+        }
+        /* Main View Container */
+        main { flex: 1; padding: 25px; overflow-y: auto; }
+        .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 25px; max-width: 1000px; margin: 0 auto 20px auto; }
+
+        #modelSelector {
+    appearance: none;
+    -webkit-appearance: none;
+    transition: all 0.3s ease;
+}
+
+#modelSelector:hover {
+    background: rgba(0, 255, 163, 0.2);
+    box-shadow: 0 0 10px rgba(0, 255, 163, 0.3);
+}
+
+#modelSelector option {
+    background: #111; /* Dark background for the dropdown list */
+    color: var(--accent);
+}
+
+        .watermark-wrapper {
+            position: relative;
+        }
+        .watermark-overlay {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            color: rgba(0, 242, 255, 0.4);
+            font-family: monospace;
+            font-size: 0.6rem;
+            pointer-events: none;
+            text-shadow: 1px 1px 2px #000;
+        }
+
+        .art-container {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+        
+        .ui-watermark {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 10px;
+            color: rgba(0, 242, 255, 0.5);
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 6px;
+            border-radius: 4px;
+            pointer-events: none;
+            text-transform: uppercase;
+        }
+
+        /* Ensure modal sits on top of everything */
+        #artInfoModal {
+            background: #000 !important;
+            border: 1px solid #00f2ff !important;
+            box-shadow: 0 0 15px rgba(0, 242, 255, 0.4);
+            color: #ffffff !important;
+            text-align: left;
+        }
+        
+        #artInfoModal p, #artInfoModal strong {
+            color: #fff !important; /* Forces white text */
+            margin: 8px 0;
+        }
+        
+        /* Ensure buttons are clickable and centered */
+        .pill {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 5;
+        }
+
+        /* Utility Classes */
+        .social-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 20px; }
+        .btn-zk { background: var(--accent); color: #000; border: none; padding: 12px; border-radius: 4px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; transition: 0.2s; }
+        .btn-zk.locked-provider { background: #1b1f24 !important; color: var(--text-dim) !important; cursor: not-allowed; opacity: 0.6; }
+        .step-locked { opacity: 0.25; pointer-events: none; }
+        input, textarea { background: #000; border: 1px solid var(--border); color: #fff; padding: 12px; width: 100%; margin: 10px 0; border-radius: 4px; box-sizing: border-box; font-family: inherit; }
+
+        /* Status Colors */
+        .status-text.online { color: #00ff88; }
+        .status-text.working { color: #00d4ff; }
+        .status-text.locked { color: #ffcc00; }
+        .status-text.offline { color: #ff4d4d; }
+
+        #console { height: 120px; background: #000; border-top: 1px solid var(--border); color: var(--green); padding: 15px; font-family: monospace; overflow-y: auto; font-size: 0.75rem; }
+       @keyframes pulse-green {
+            0% { background-color: rgba(57, 211, 83, 0.5); transform: scale(1.05); }
+            100% { background-color: transparent; transform: scale(1); }
+        }
+        
+        @keyframes pulse-red {
+            0% { background-color: rgba(255, 68, 68, 0.5); transform: scale(1.05); }
+            100% { background-color: transparent; transform: scale(1); }
+        }
+        
+        .blink-add { animation: pulse-green 1.5s ease-out; }
+        .blink-sub { animation: pulse-red 1.5s ease-out; }
     </style>
 </head>
 <body>
-
-<div class="admin-shell">
-    <aside class="sidebar">
-        <h2 style="color: var(--accent);">LCAI // IAM</h2>
-        <div class="nav-item active" onclick="showView('zkView')">Identity</div>
-        <div class="nav-item" onclick="showView('studioView')">AIVM Studio</div>
-        <div class="nav-item" onclick="showView('galleryView')">Vault Gallery</div>
-        <div style="margin-top: auto;">
-            <button class="pill" style="width: 100%" onclick="connect()">CONNECT WALLET</button>
-            <div id="walletDisplay" style="font-size: 0.7rem; margin-top: 10px; opacity: 0.5;"></div>
-        </div>
-    </aside>
-
-    <main class="main-content">
-        <div id="zkView" class="view-panel">
-            <h1>ZK Identity</h1>
-            <div id="passportContainer"><div class="glass-card">Connect to verify identity.</div></div>
+    <nav>
+        <div class="nav-header">
+            <h1 style="color:white; font-size:1.1rem; margin:0;">LIGHTCHAIN <span style="color:var(--accent)">AI</span></h1>
+            <div style="font-size: 0.65rem; color: var(--text-dim); margin-top:4px;">AIVM INFRASTRUCTURE</div>
         </div>
 
-        <div id="studioView" class="view-panel" style="display:none;">
-            <h1>AIVM Studio</h1>
-            <div class="glass-card">
-                <input type="text" id="artPrompt" placeholder="Prompt (e.g. Racoons in a race)">
-                <button class="pill" onclick="generateAIVMArt()">GENERATE</button>
+        <div class="nav-section">
+            <span class="nav-label">Core</span>
+            <div class="nav-item active" onclick="showView('dashView')"><i class="fas fa-th-large"></i> Dashboard</div>
+            <div class="nav-item" onclick="showView('zkView')"><i class="fas fa-fingerprint"></i> zk Identity</div>
+            <div id="artNavItem" class="nav-item locked-feature" onclick="handleArtClick()"><i class="fas fa-lock" id="artLockIcon"></i><span id="artLabel">AIVM Art Studio</span></div>
+            <div id="galleryNavItem" class="nav-item locked-feature" onclick="handleGalleryClick()"><i id="galleryLockIcon" class="fas fa-lock"></i><span id="galleryLabel">Gallery</span></div>            
+        </div>
+        <div class="nav-section">
+            <span class="nav-label">Marketplace</span>
+            <div id="marketNavItem" class="nav-item" onclick="showView('marketView')"><i class="fas fa-gavel"></i> Auction House </div>
+        </div>
+
+        <div id="adminItems" class="nav-section" style="display:none;">
+            <span class="nav-label">Protocol Management</span>
+            <div class="nav-item" onclick="showView('batchView')"><i class="fas fa-users-cog"></i> Registry</div>
+            <div class="nav-item" onclick="showView('revView')"><i class="fas fa-wallet"></i> Owner</div>
+        </div>
+    </nav>
+
+    <div class="workspace">
+        <header>
+            <div class="pill-group">
+                <div class="pill">NETWORK: <span style="color:var(--green)">● ONLINE</span></div>
+                <div class="pill"><i class="fas fa-microchip"></i> LOAD: <span id="loadPill">--%</span></div>
             </div>
-            <div id="renderArea" style="text-align: center;">
-                <img id="aivmOutputImage" style="max-width: 100%; border-radius: 12px; display:none;">
-                <div id="renderLoader" style="display:none;">Neural weights loading...</div>
-                <button id="saveArtBtn" class="pill" style="display:none; margin-top: 15px;" onclick="saveArt()">MINT TO VAULT</button>
+
+            <div class="pill-group">
+                <div class="pill" style="border-color:#627EEA">ETH: <span id="ethTicker" style="color:#627EEA">$0.00</span></div>
+                <div class="pill" style="border-color:var(--green)">LCAI: <span id="lcaiTicker" style="color:var(--green)">$0.000000</span></div>
+            </div>
+
+            <div class="pill-group">
+                <div class="pill" id="balancePill">0.00 LCAI</div>
+                <button onclick="connect()" id="walletBtn" class="pill" style="background:var(--accent); color:#000; font-weight:bold; cursor:pointer; border:none;">CONNECT WALLET</button>
+            </div>
+        </header>
+
+        <main>
+            <div id="dashView" class="card view-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3>AIVM Inference Models (Testnet-504)</h3>
+                    <span class="pill" style="color:var(--accent); border-color:var(--accent);">DA-LAYER: 0xdebf8a29fafa83603a58e9ed77e7f900984394a8c70f74f940f0b75c2704fc31 </span>
+                </div>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="text-align: left; color: var(--text-dim); border-bottom: 1px solid var(--border);">
+                            <th style="padding: 10px;">Model Name</th>
+                            <th style="padding: 10px;">Status</th>
+                            <th style="padding: 10px;">Load</th>
+                            <th style="padding: 10px;">Full Hash Address</th>
+                        </tr>
+                    </thead>
+                    <tbody id="realtimeModelTable">
+                        </tbody>
+                </table>
+                <div style="margin-top: 25px; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid var(--border);">
+
+                </div>
+            </div>
+
+        <div id="renderView" class="card view-section" style="display: none;">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-palette" style="color: var(--accent);"></i>
+                    <h3 style="margin: 0;">AIVM Render</h3>
+                    <select id="modelSelector" style="background: rgba(0,255,163,0.1); border: 1px solid var(--accent); color: var(--accent); border-radius: 20px; padding: 2px 10px; font-size: 0.7rem; cursor: pointer; font-family: monospace; outline: none;">
+                        <option value="DeepSeek-V3">DEEPSEEK-V3 (Balanced)</option>
+                        <option value="SDXL-Turbo">SDXL-TURBO (Fast)</option>
+                        <option value="Midjourney-v6">MJ-V6 (Artistic)</option>
+                        <option value="Flux-1">FLUX.1 (Photoreal)</option>
+                        <option value="DALL-E-3">DALL-E 3 (Creative)</option>
+                    </select>
+                </div>
+                <button onclick="clearRender()" class="pill" style="cursor: pointer; background: transparent; border: 1px solid var(--border); color: var(--text-dim);">CLEAR</button>
+            </div>
+
+                <div style="margin-top: 15px; display: grid; grid-template-columns: 1fr 200px; gap: 10px;">
+                    <input type="text" id="artPrompt" placeholder="Describe your vision (e.g., A futuristic city on Mars)..." style="margin: 0;">
+                    <select id="artStyle" style="background: #000; border: 1px solid var(--border); color: #fff; padding: 12px; border-radius: 4px; font-family: inherit;">
+                        <option value="">No Style (Raw)</option>
+                        <option value=", cinematic lighting, 8k resolution, highly detailed, sharp focus, masterpiece, shot on 35mm lens, depth of field, golden hour">🎬 Cinematic Masterpiece</option>
+                        <option value=", digital illustration, vibrant colors, clean lines, ArtStation trending, hyper-detailed, synthwave color palette">🎨 Digital Art</option>
+                        <option value=", classical oil painting, thick brushstrokes, textured canvas, dramatic chiaroscuro lighting, museum quality, Rembrandt style">🖼️ Fine Art (Oil)</option>
+                        <option value=", photorealistic, unreal engine 5 render, ray tracing, ultra-realistic textures, macro photography, bokeh">📸 Hyper-Realism</option>
+                        <option value=", minimalist, architectural sketch, clean geometric lines, professional concept art, neutral tones">📐 Architectural / Minimal</option>
+                    </select>
+                </div>
+            <button class="btn-zk" style="width: 100%; margin-top: 10px;" onclick="generateAIVMArt()">GENERATE ART</button>
+
+            <div id="renderPlaceholder" style="width: 100%; min-height: 350px; background: #000; border: 1px dashed var(--border); border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-top: 15px; overflow: hidden; position: relative;">
+                <canvas id="generatedCanvas" style="display:none;"></canvas>
+
+                <div id="renderLoader" style="display: none; text-align: center;">
+                    <i class="fas fa-sync fa-spin" style="font-size: 2rem; color: var(--accent); margin-bottom: 10px;"></i>
+                    <div style="color: var(--accent); font-size: 0.8rem; font-family: monospace;">AIVM Processing...</div>
+                </div>
+                <img id="aivmOutputImage" style="max-width: 100%; max-height: 350px; display: none;" src="">
+                <p id="renderStatusText" style="color: var(--text-dim); font-size: 0.8rem;">Awaiting your prompt...</p>
+            </div>
+            <button class="btn-zk" id="saveArtBtn" onclick="saveArtToGallery()" style="display:none; background:var(--green);">
+                <i class="fas fa-save"></i> SAVE TO GALLERY (MINT)
+            </button>
+            <button class="btn-zk" id="deleteArtBtn" onclick="deleteCurrentArt()" style="display:none; background:var(--red); color:white;">
+                <i class="fas fa-trash"></i> DELETE PREVIEW
+            </button>
+            <div style="margin-top: 10px; font-size: 0.7rem; color: var(--text-dim); font-family: monospace; display: flex; justify-content: space-between;">
+                <span>CID: <span id="renderCID" style="color: var(--accent);">Pending...</span></span>
+                <span id="costEstimate" style="color: var(--green);">Est. Cost: 0.005 LCAI</span>
             </div>
         </div>
 
-        <div id="galleryView" class="view-panel" style="display:none;">
-            <h1>Vault Gallery</h1>
-            <div id="galleryGrid" class="gallery-grid"></div>
+   <div id="zkView" class="card view-section" style="display:none; max-width: 1200px;">
+       <div style="display: grid; grid-template-columns: 0.7fr 1.3fr; gap: 30px;">
+
+           <div style="border-right: 1px solid var(--border); padding-right: 30px;">
+            <h3 style="color: var(--accent);"><i class="fas fa-user-plus"></i> 1. Site Registration</h3>
+            <p style="font-size: 0.8rem; color: var(--text-dim);">Create a local profile to unlock registered areas. No gas fee required for this step.</p>
+
+        <div id="authStep" class="step-locked">
+            <input type="text" id="regNick" placeholder="Display Name">
+            <input type="text" id="regDid" placeholder="Social Handle or DID <blank for default did:lcai:walletaddress>">
+            <button class="btn-zk" style="background: var(--green);" onclick="registerLocal()">CREATE PROFILE</button>
         </div>
-    </main>
-</div>
 
-<script>
-    // FIXED: Pointers restored to Raccoon-era contracts
-    const CONFIG = {
-        identity: "0x9A07d6a0eF4a8037318a0731E41bd4061f27B172",
-        artStudio: "0xe80d9542Ef60B680a621970d209d04DB24767614",
-        abi: [
-            "function nicknames(address) view returns (string)",
-            "function verified(address) view returns (bool)",
-            "function ownerOf(uint256) view returns (address)",
-            "function tokenURI(uint256) view returns (string)",
-            "function mintArtNFT(string, string, string) payable"
-        ]
-    };
+           </div>
+                 <div id="mintSection" class="step-locked">
+                <div>
+                <h3>Soulbound Identity Mint</h3>
+                   <p style="font-size:0.8rem; color:var(--accent);">1. Link Social Provider</p>
+                    <div class="social-grid">
+                        <button id="btn-discord" class="btn-zk locked-provider" onclick="startOAuth('Discord')"><i class="fab fa-discord"></i> Discord</button>
+                        <button id="btn-github" data="data-netlify-identity-button" class="btn-zk locked-provider" onclick="startOAuth('GitHub')"><i class="fab fa-github"></i> GitHub</button>
+                        <button id="btn-x" class="btn-zk locked-provider" onclick="startOAuth('X')"><i class="fab fa-x-twitter"></i> X / Twitter</button>
+                        <button id="btn-google" class="btn-zk locked-provider" onclick="startOAuth('Google')"><i class="fab fa-google"></i> Google</button>
+                        <button id="btn-linkedin" class="btn-zk locked-provider" onclick="startOAuth('LinkedIn')"><i class="fab fa-linkedin"></i> LinkedIn</button>
+                    </div>
+                </div>
+                     <h3 style="color: var(--accent);"><i class="fas fa-shield-check"></i> 2. Verify & Mint SBT</h3>
+                    <p style="font-size: 0.8rem; color: var(--text-dim);">Mint your identity to the Lightchain blockchain to unlock Verified features and AIVM Art.</p>
+                    <div id="qrcode" style="background:white; padding:10px; border-radius:4px; width:fit-content; margin:15px auto;"></div>
+                    <input type="text" id="nickName" placeholder="Identity Nickname">
+                    <button class="btn-zk" onclick="mintWithSocial()">MINT SBT</button>
+            </div>
+        </div>
+    </div>
+            <div id="batchView" class="card view-section" style="display:none;">
+                <h3>Protocol Identity Registry</h3>
+                <div style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid var(--border);">
+                    <p style="font-size: 0.8rem; color: var(--accent);">Single Identity Query</p>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="queryAddr" placeholder="0x..." style="margin:0;">
+                        <button class="btn-zk" onclick="queryIdentity()" style="margin:0; width: auto; padding: 0 20px;">CHECK</button>
+                    </div>
+                    <div id="queryResult" style="margin-top: 10px; font-size: 0.85rem; font-family: monospace;"></div>
+                </div>
+                <p style="font-size: 0.8rem; color: var(--accent);">Batch Operations (Comma Separated)</p>
+                <textarea id="batchAddrs" placeholder="0x..., 0x..."></textarea>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                    <button class="btn-zk" onclick="batchAction('verify')">VERIFY LIST</button>
+                    <button class="btn-zk" onclick="batchAction('revoke')" style="background:var(--red); color:#fff;">REVOKE USER</button>
+                    <button class="btn-zk" onclick="downloadRegistryCSV()" style="background:#2ea44f; color:#fff;"><i class="fas fa-file-download"></i> EXPORT CSV</button>
+                </div>
+            </div>
 
-    let userWallet = "";
-    let currentArtData = "";
-    window.hasInitialized = false;
+            <div id="revView" class="card view-section" style="display:none;">
+                <h3>Protocol Revenue</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+                    <div style="background: #000; padding: 20px; border-radius: 8px; border: 1px solid var(--border);">
+                        <div style="font-size: 0.7rem; color: var(--text-dim); margin-bottom: 10px;">TOTAL REVENUE</div>
+                        <div id="contractBalDisplay" style="font-size: 1.8rem; color: var(--green); font-weight: bold; font-family: monospace;">0.00 LCAI</div>
+                    </div>
+                    <div style="background: #000; padding: 20px; border-radius: 8px; border: 1px solid var(--border);">
+                        <button class="btn-zk" onclick="withdrawRevenue()">WITHDRAW REVENUE</button>
+                    </div>
+                </div>
+                <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--border);">
+                    <h4 style="color: var(--red); margin-bottom: 5px;"><i class="fas fa-exclamation-triangle"></i> Emergency Registry Cleanup</h4>
+                    <p style="font-size: 0.75rem; color: var(--text-dim);">Permanently delete all identity data (Nicknames, DIDs, Images) for an address. This action is irreversible.</p>
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <input type="text" id="removeAddrInput" placeholder="User Wallet Address (0x...)" style="margin:0;">
+                        <button class="btn-zk" onclick="ownerRemoveSBT()" style="margin:0; width: auto; padding: 0 25px; background:var(--red); color:#fff;">WIPE IDENTITY</button>
+                    </div>
+                </div>
+            </div>
+            <div id="galleryView" class="card view-section" style="display:none;">
+                <h3>AIVM Community Gallery</h3>
+                <div id="galleryGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">
+                    <p style="color:var(--text-dim)">Gallery items will appear here after minting...</p>
+                </div>
+            </div>
+            <div id="marketView" class="card view-section" style="display:none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <div>
+                        <h3 style="margin:0;">AIVM Auction House</h3>
+                        <p style="color: var(--text-dim); font-size: 0.8rem; margin: 5px 0 0 0;">Bid on community-minted AIVM Art</p>
+                    </div>
+                    <button class="pill" onclick="openMintSelect()" style="background:var(--accent); color:#000; font-weight:bold; cursor:pointer; border:none;">+ LIST NFT FOR AUCTION</button>
+                </div>
 
-    async function connect() {
-        if (window.ethereum) {
-            const provider = new ethers.BrowserProvider(window.ethereum);
-            const accounts = await provider.send("eth_requestAccounts", []);
-            userWallet = accounts[0];
-            document.getElementById('walletDisplay').innerText = userWallet;
-            
-            // FIXED: RPC Flood Guard added to the interval
-            setInterval(() => {
-                if(!window.hasInitialized) checkIdentity();
-            }, 3000);
-        }
+                <div id="auctionGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;">
+                    <div id="auctionEmpty" style="grid-column: 1/-1; text-align: center; padding: 40px; border: 1px dashed var(--border); border-radius: 8px;">
+                        <i class="fas fa-gavel" style="font-size: 2rem; color: var(--text-dim); margin-bottom: 10px;"></i>
+                        <div style="color: var(--text-dim);">No active auctions. Be the first to list!</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <div id="console">> [SYS] Initializing Lightchain AI Portal...</div>
+    </div>
+
+    <script>
+
+const LCAI_TOKEN = "0x9ca8530ca349c966fe9ef903df17a75b8a778927"; // Lightchain AI
+const WETH_TOKEN = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"; // Wrapped Ethereum
+const LCAI_PAIR = "0x0d047a370611437a1b8e6c2a95ea36f69fdda3be";
+const ETH_TOKEN = "0x0000000000000000000000000000000000000000";
+//owner: "0x6378A6993C7C77E4A28f8f263e778401309fD9E4",    
+const CONFIG = {
+address: "0xf6b5DeAb48934622c8a32D9374830E2401E9a12F",
+owner: "0x4D36B31d4BFB957A5D816B0f420a9e755EFc6a2c",    
+LCAI_PAIR : "0x0d047a370611437a1b8e6c2a95ea36f69fdda3be",
+ETH_PAIR : "0x96d4b53a38337a5733179751781178a2613306063c511b78cd02684739288c0a",
+LCAI_TOKEN : "0x9ca8530ca349c966fe9ef903df17a75b8a778927",
+ETH_TOKEN : "0x0000000000000000000000000000000000000000",
+USDC_TOKEN : "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",  
+WETH_TOKEN : "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+contract: "0x87188af8d112AAaF52Fe203568de0d3F36714987", // ZK KYC
+identity: "0x9A07d6a0eF4a8037318a0731E41bd4061f27B172",
+artStudio: "0xe80d9542Ef60B680a621970d209d04DB24767614",
+auctionHouse: "0x85C91ce310599Bf7BBc59726C2391911c46a6cCD",    
+RPC: "https://light-testnet-rpc.lightchain.ai",
+abi: [
+        "function isAdmin(address) view returns (bool)",
+        "function isOwner(address) view returns (bool)",
+        "function imageData(address) view returns (string)",
+        "function mintWithSocial(string, string, string, bytes32) payable",
+        "function socialProvider(address) view returns (string)",
+        "function nicknames(address) view returns (string)",
+        "function verified(address) view returns (bool)",
+        "function base64Image() view returns (string)",
+        "function removeSBT(address _u) public",
+        "function withdrawRevenue() public", 
+        "function mintArtNFT(string memory tokenURI) public payable returns (uint256)",
+        "function ownerOf(uint256 tokenId) view returns (address)",
+        "function owner() view returns (address)"
+    ]
+};
+// 1. IMMEDIATE SHORT-CIRCUIT FOR OAUTH POPUPS
+(function() {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    
+    // If we have a code and we are in a popup (window.opener exists)
+    if (code && window.opener) {
+        // Send the code to the parent window
+        window.opener.postMessage({ type: 'GITHUB_OAUTH', code: code }, "*");
+        
+        // Stop the rest of the page from loading
+        window.stop(); 
+        
+        // Close the popup
+        window.close();
+        
+        // Final kill switch for JS execution
+        document.documentElement.innerHTML = "Auth Successful. Closing...";
+        throw new Error("OAuth Redirect Detected: Closing Popup.");
     }
+})();
 
-    async function checkIdentity() {
-        try {
-            const provider = new ethers.BrowserProvider(window.ethereum);
-            const contract = new ethers.Contract(CONFIG.identity, CONFIG.abi, provider);
-            const isVerified = await contract.verified(userWallet);
-            const nick = await contract.nicknames(userWallet);
+ let userEncryptionKey = null;
 
-            if (isVerified && nick) {
-                window.hasInitialized = true; // Lock the session to stop RPC errors
-                renderPassport(userWallet, nick);
+// Ask MetaMask for a signature to create a unique password
+async function getEncryptionKey() {
+    if (userEncryptionKey) return userEncryptionKey; // Use cached key if already signed
+    try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        log("[PRIVACY] Please sign the message to unlock your encryption key...");
+        
+        // This signature is unique to the user's wallet
+        const signature = await signer.signMessage("Unlock Lightchain AIVM Private Gallery");
+        
+        // Hash it so we have a clean 256-bit AES key
+        userEncryptionKey = CryptoJS.SHA256(signature).toString();
+        return userEncryptionKey;
+    } catch (e) {
+        log("Encryption signature rejected.");
+        return null;
+    }
+}
+
+// Scramble the image
+async function encryptArt(base64Data) {
+    const key = await getEncryptionKey();
+    if (!key) throw new Error("Key required to encrypt");
+    return CryptoJS.AES.encrypt(base64Data, key).toString();
+}
+
+// Unscramble the image
+async function decryptArt(encryptedString) {
+    const key = await getEncryptionKey();
+    if (!key) throw new Error("Key required to decrypt");
+    const bytes = CryptoJS.AES.decrypt(encryptedString, key);
+    return bytes.toString(CryptoJS.enc.Utf8);
+}       
+        
+window.onload = async () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    // 1. POPUP MODE: If this is the popup, talk to the main window and DIE
+    if (code && window.opener) {
+        // Send the code to the parent window
+        window.opener.postMessage({ type: 'GITHUB_OAUTH', code: code }, "*");
+        // Close the popup immediately to prevent it from loading the dashboard
+        window.close();
+        return; 
+    }
+    window.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'GITHUB_OAUTH') {
+            console.log("Received code from popup:", event.data.code);
+            processGitHubLink(event.data.code);
+        }
+    });
+    // 2. MAIN WINDOW MODE: Restore wallet sync
+    await autoConnectWallet();
+    setInterval(fetchPrices, 3000);
+    setInterval(refreshModelDashboard, 3000);
+    fetchPrices();
+    refreshModelDashboard();
+    setInterval(() => {
+        if (document.getElementById('marketView').style.display === 'block') {
+            renderAuctions();
+            console.log("[SYS] Auto-refresh: Marketplace synced with explorer.");
+        }
+    }, 30000); // 30 second pulse
+    
+};
+
+    
+        let userWallet;
+        let isRegistered = false;
+
+        const inferenceModels = [
+            { name: "Neural-Llama-3-70B", hash: "0xE035b7192a5d816b0f420a9e755efc6a2c1ea51d", baseLoad: 12.4 },
+            { name: "DeepSeek-V3-Base", hash: "0xB6f1E497D6879C325c65fa77cB717227976fd04E", baseLoad: 45.8 },
+            { name: "Mistral-Large-2", hash: "0xbcA3b7b7975c1f544d69392603336feb27b8a83aD8FB", baseLoad: 0 }
+        ];
+
+        function handleArtClick() {
+            const item = document.getElementById('artNavItem');
+            const lockIcon = document.getElementById('artLockIcon'); // Ensure capital I
+
+            if (item && item.classList.contains('locked-feature')) {
+                log("Access Denied: Please Register or Mint an Identity to unlock the Art Studio.");
+                showView('zkView'); 
+            } else {
+                // If it's already unlocked, just show the view
+                showView('renderView');
+                if (lockIcon) lockIcon.className = "fas fa-palette"; 
+            }
+        }
+
+        function handleGalleryClick() {
+            const item = document.getElementById('galleryNavItem');
+            if (item.classList.contains('locked-feature')) {
+                log("Access Denied: Please Register your Identity to view the AIVM Gallery.");
+                showView('zkView'); 
+            } else {
+                showView('galleryView');
                 loadGallery();
             }
-        } catch (e) { console.warn("Syncing..."); }
-    }
-
-    function renderPassport(addr, nick) {
-        const qr = qrcode(0, 'L'); qr.addData(addr); qr.make();
-        document.getElementById('passportContainer').innerHTML = `
-            <div class="glass-card" style="text-align:center;">
-                <h2>${nick}</h2>
-                <div style="background:white; display:inline-block; padding:10px; border-radius:10px;">${qr.createImgTag(4)}</div>
-                <p style="font-family:monospace; margin-top:15px;">${addr}</p>
-            </div>`;
-    }
-
-    async function generateAIVMArt() {
-        const prompt = document.getElementById('artPrompt').value;
-        document.getElementById('renderLoader').style.display = "block";
+        }
+async function autoConnectWallet() {
+if (!window.ethereum) return;
+    const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+    
+    if (accounts.length > 0) {
+        // CRITICAL: This sets the global variable so registerLocal can see it
+        userWallet = accounts[0]; 
         
-        // FIXED: Deprecated /p/ endpoint updated to image subdomain
-        const seed = Math.floor(Math.random() * 999999);
-        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&seed=${seed}&nologo=true`;
+        const navBtn = document.getElementById('walletBtn');
+        if (navBtn) {
+            navBtn.innerText = `${userWallet.slice(0,6)}...${userWallet.slice(-4)}`;
+        }
+
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        const contract = new ethers.Contract(CONFIG.contract, CONFIG.abi, signer);
         
-        const img = new Image();
-        img.crossOrigin = "anonymous";
-        img.src = url;
-        img.onload = () => {
-            // RESTORED: Raccoon-era 512px Compression (This made the raccoons work)
-            const canvas = document.createElement('canvas');
-            canvas.width = 512; canvas.height = 512;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, 512, 512);
-            currentArtData = canvas.toDataURL('image/jpeg', 0.6);
-            
-            document.getElementById('aivmOutputImage').src = img.src;
-            document.getElementById('aivmOutputImage').style.display = "block";
-            document.getElementById('renderLoader').style.display = "none";
-            document.getElementById('saveArtBtn').style.display = "inline-block";
-        };
+        checkRegistrationStatus(userWallet, contract);
+    }
+}
+        
+
+        
+async function updateUI(addr) {
+    try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        
+        // 1. Get the native LCAI balance (in Wei)
+        const balanceWei = await provider.getBalance(addr);
+        
+        // 2. Format to human-readable (18 decimals)
+        const balanceFormatted = ethers.formatEther(balanceWei);
+        
+        // 3. Update the specific Pill ID from your HTML
+        const balancePill = document.getElementById('balancePill');
+        if (balancePill) {
+            // We parse to float and back to string to show only 2 decimal places
+            balancePill.innerText = parseFloat(balanceFormatted).toFixed(2) + " LCAI";
+            console.log("Balance Sync Success:", balanceFormatted);
+        }
+    } catch (e) {
+        console.error("Balance Update Error:", e);
+    }
+}
+        
+async function startOAuth(provider) {
+    if (provider.toLowerCase() === 'github') {
+        log(`[Zk-Auth] Redirecting to GitHub Secure Gateway...`);
+        const clientId = "Ov23liu6ofJwlcYN1dc7"; 
+        // Force the redirect to the specific worker URL to prevent dashboard looping
+        const redirectUri = encodeURIComponent("https://lightchain-ai-iam.lcaitestnet.workers.dev/");
+        const authUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=user:email`;
+        // window.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=user:email`;
+
+        // SURGICAL FIX: Open in a popup instead of redirecting the main page
+        window.open(authUrl, "GitHub Auth", "width=600,height=700");
+    }
+}
+
+        window.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'GITHUB_OAUTH') {
+        log("[Zk-Auth] Secure payload received from popup.");
+        processGitHubLink(event.data.code);
+    }
+});
+
+function processGitHubLink(code) {
+    log("[Zk-Auth] GitHub Handshake successful. Unlocking Minting...");
+    const socialHash = ethers.keccak256(ethers.toUtf8Bytes(code));
+    window.lastSocialHash = socialHash;
+
+    const ghBtn = document.getElementById('btn-github');
+    if (ghBtn) {
+        ghBtn.style.border = "2px solid var(--green)";
+        ghBtn.style.color = "var(--green)";
+        ghBtn.innerHTML = '<i class="fab fa-github"></i> GitHub Linked';
     }
 
-    async function saveArt() {
-        try {
-            const provider = new ethers.BrowserProvider(window.ethereum);
-            const signer = await provider.getSigner();
-            const contract = new ethers.Contract(CONFIG.artStudio, CONFIG.abi, signer);
-            const tx = await contract.mintArtNFT(currentArtData, "LCAI_RACCOON", "{}", { gasLimit: 8000000 });
-            await tx.wait();
-            alert("Minted successfully!");
-            loadGallery();
-        } catch (e) { console.error(e); alert("Minting failed. Check gas/balance."); }
+    const mintSection = document.getElementById('mintSection');
+    if (mintSection) {
+        mintSection.classList.remove('step-locked');
+        mintSection.style.opacity = "1";
+        mintSection.style.pointerEvents = "auto";
+    }
+    
+
+    log(`[Zk-Auth] Social Hash Linked: ${socialHash.slice(0,16)}...`);
+}
+
+function checkGitHubCallback() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+
+    // Check for saved profile to restore "MiMo"
+    const savedProfile = localStorage.getItem('lcai_profile');
+    if (savedProfile) {
+        const profile = JSON.parse(savedProfile);
+        document.getElementById('regNick').value = profile.nick;
+        document.getElementById('regDid').value = profile.did;
+        registerLocal(); // This handles the first level of unlocking
     }
 
-    async function loadGallery() {
-        const grid = document.getElementById('galleryGrid');
-        grid.innerHTML = "Scanning Vault...";
+    if (code) {
+        log("[Zk-Auth] GitHub Handshake detected. Unlocking Minting...");
+
+        // MANUALLY UNLOCK THE MINT SECTION
+        const mintSection = document.getElementById('mintSection');
+        if (mintSection) {
+            mintSection.classList.remove('step-locked');
+            mintSection.style.opacity = "1";
+            mintSection.style.pointerEvents = "auto";
+        }
+
+        const socialHash = ethers.keccak256(ethers.toUtf8Bytes(code));
+        window.lastSocialHash = socialHash;
+
+        const ghBtn = document.getElementById('btn-github');
+        if(ghBtn) {
+            ghBtn.style.border = "2px solid var(--green)";
+            ghBtn.innerHTML = '<i class="fab fa-github"></i> GitHub Linked';
+        }
+
+        log(`[Zk-Auth] Social Hash Linked: ${socialHash.slice(0,16)}...`);
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+}
+
+        
+
+
+        // --- CORE FUNCTIONS ---
+             // --- CORE FUNCTIONS ---
+      async function fetchPrices() {
         try {
-            const provider = new ethers.BrowserProvider(window.ethereum);
-            const contract = new ethers.Contract(CONFIG.artStudio, CONFIG.abi, provider);
-            let html = "";
-            for(let i=0; i<25; i++) {
-                try {
-                    const owner = await contract.ownerOf(i);
-                    if(owner.toLowerCase() === userWallet.toLowerCase()) {
-                        const uri = await contract.tokenURI(i);
-                        html += `<div class="gallery-card"><img src="${uri}" style="width:100%; border-radius:8px;"><p>NFT #${i}</p></div>`;
-                    }
-                } catch(e) { continue; }
+            // Multi-token fetch for efficiency
+            const response = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${LCAI_TOKEN},${ETH_TOKEN}`);
+            const data = await response.json();
+    
+            if (data.pairs && data.pairs.length > 0) {
+              // Find LCAI - Target the highest liquidity pair automatically
+              const lcaiPair = data.pairs.find(p => p.baseToken.address.toLowerCase() === LCAI_TOKEN.toLowerCase());
+              if (lcaiPair && document.getElementById('lcaiTicker')) {
+                const price = parseFloat(lcaiPair.priceUsd);
+                document.getElementById('lcaiTicker').innerText = "$" + price.toFixed(6);
+              }
+    
+              // Find ETH - Target the highest liquidity pair automatically
+    
+              const ethPair = data.pairs.find(p => p.baseToken.address.toLowerCase() === ETH_TOKEN.toLowerCase());
+              if (ethPair && document.getElementById('ethTicker')) {
+                const price = parseFloat(ethPair.priceUsd);
+                document.getElementById('ethTicker').innerText = "$" + price.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+              });
+             }
+                console.log("Tickers updated: " + new Date().toLocaleTimeString());
             }
-            grid.innerHTML = html || "No items found.";
-        } catch(e) { console.error(grid.innerHTML = "Error loading gallery."); }
+        } catch (error) {
+        // Silently retry to keep the UI clean
+        console.warn("Price sync pending...");
+        }
+        }
+
+        
+async function connect() {
+    // Force the ID to reveal if you are the owner defined in CONFIG
+if (userWallet && userWallet.toLowerCase() === CONFIG.owner.toLowerCase()) {
+    const adminMenu = document.getElementById('adminItems');
+    if (adminMenu) adminMenu.setAttribute('style', 'display: block !important');
+}
+try {
+        if (!window.ethereum) return alert("MetaMask not found!");
+
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const accounts = await provider.send("eth_requestAccounts", []);
+        const userAddress = accounts[0];
+
+        userWallet = accounts[0];
+        updateUI(userWallet);
+        document.getElementById('walletBtn').innerText = userWallet.slice(0,6) + "...";
+        const signer = await provider.getSigner();
+        const contract = new ethers.Contract(CONFIG.contract, CONFIG.abi, signer);
+
+
+    const isVerified = await contract.verified(userWallet);
+        if (isVerified) {
+            document.querySelectorAll('.locked-feature').forEach(el => {
+                el.classList.remove('locked-feature');
+                el.style.opacity = "1";
+            });
+        }
+
+        const adminItems = document.getElementById('adminItems');
+        if (adminItems && userWallet.toLowerCase() === CONFIG.owner.toLowerCase()) {
+            console.log("[AUTH] Admin detected. Unlocking Protocol Management.");
+            adminItems.style.display = 'block';
+            // Update the revenue display while we are here
+            if (typeof updateRevenueDisplay === 'function') updateRevenueDisplay();
+        }
+        const adminSection = document.getElementById('adminItems');
+        if (adminSection && userWallet.toLowerCase() === CONFIG.owner.toLowerCase()) {
+            adminSection.style.display = 'block';
+            log("[AUTH] Admin Privileges Granted.");
+        }
+
+    
+        // Trigger status check
+        await checkRegistrationStatus(userAddress, contract);
+      // Unlock the registration panel
+        const authStep = document.getElementById('authStep');
+        if (authStep) {
+            authStep.classList.remove('step-locked');
+            authStep.style.opacity = "1";
+        }
+    // Check if this wallet is the Owner/Admin
+        await checkRegistrationStatus(userWallet, contract);
+        console.log("Connected Successfully:", userAddress);
+        if (userWallet) {
+            startBalanceSystems(userWallet); 
+        }
+    } catch (err) {
+        console.error("Connection Error:", err.message);
+    }
+}
+
+
+
+async function checkRegistrationStatus(addr, contract) {
+    try {
+        const isVerified = await contract.verified(addr);
+        const nick = await contract.nicknames(addr);
+
+        if (isVerified && nick) {
+            isRegistered = true;
+            const authStep = document.getElementById('authStep');
+            const mintSection = document.getElementById('mintSection');
+            if (authStep) authStep.style.display = 'none';
+            if (mintSection) mintSection.style.display = 'none';
+
+            
+            log(`[IAM] Identity Found: ${nick}. Transitioning to Passport...`);
+
+            // 1. Force hide registration boxes
+            ['authStep', 'mintSection'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = 'none';
+            });
+
+
+
+            // 4. Reveal Admin menu if owner
+            if (addr.toLowerCase() === CONFIG.owner.toLowerCase()) {
+                const adminMenu = document.getElementById('adminItems');
+                if (adminMenu) adminMenu.style.setProperty('display', 'block', 'important');
+            }
+
+        // 1. Sidebar Name Update (ZK Identity -> MiMo)
+            const sideLabel = document.querySelector('.nav-item[onclick*="zkView"]');
+            if (sideLabel) {
+                sideLabel.innerHTML = `<i class="fas fa-fingerprint" style="color:var(--green)"></i> ${nick}`;
+            }
+        
+            // 4. SIDEBAR SYNC: Update the label to "MiMo"
+            const identityLabel = document.querySelector('.nav-item[onclick*="zkView"]');
+            if (identityLabel) {
+                identityLabel.innerHTML = `<i class="fas fa-fingerprint" style="color:var(--green)"></i> ${nick}`;
+            }
+
+            // Unlock Art Studio & Gallery
+        // 2. Force View to zkView and Render Passport
+            unlockArtStudio();
+            
+            // 2. VIEW SWITCH: Ensure zkView is the active main container
+            showView('zkView');
+
+            // 3. PASSPORT RENDER: Inject the actual Identity Card
+            setTimeout(() => {
+                    renderPassport(addr, nick, contract);
+                }, 100);
+            }
+        // 3. Unlock Admin Features if Owner
+            if (addr.toLowerCase() === CONFIG.owner.toLowerCase()) {
+                const adminPanel = document.getElementById('adminItems');
+                if (adminPanel) adminPanel.style.setProperty('display', 'block', 'important');
+            }
+    } catch (e) {
+        console.error("Identity check failed:", e);
+    }
+}
+
+// Move this OUTSIDE as a standalone function
+async function renderPassport(addr, nick, contract) {
+
+    try {
+  ///      log("[IAM] Downloading ZK SBT Metadata...");
+        
+        //1. Fetch the image from the contract
+    let img = await contract.base64Image();
+        // 2. Ensure correct data URI format
+    // if (!img.startsWith("data:image")) img = "data:image/png;base64," + img;
+        if (img && !img.startsWith("data:image")) {
+            img = "data:image/png;base64," + img;
+        }
+
+    const zkView = document.getElementById('zkView');
+    if (!zkView) return;
+    zkView.innerHTML = `
+        <div style="text-align: center; padding: 40px; background: var(--panel); border-radius: 15px; border: 1px solid var(--green);">
+            <h2 style="color: var(--green);"><i class="fas fa-check-circle"></i> Identity Verified</h2>
+            <div style="margin: 20px auto; width: 300px; border: 2px solid var(--accent); border-radius: 10px; overflow: hidden; background: #000;">
+                <img src="${img}" style="width: 100%; display: block;">
+                <div style="padding: 15px;">
+                    <div style="font-size: 1.2rem; font-weight: bold; color: var(--accent);">${nick}</div>
+                    <div style="font-size: 0.7rem; color: var(--text-dim); font-family: monospace;">${addr}</div>
+                </div>
+            </div>
+            <div id="verifiedQR" style="background: white; padding: 10px; border-radius: 8px; margin: 20px auto; width: fit-content; cursor: pointer;" onclick="window.open('https://testnet.lightscan.app/address/${addr}')"></div>
+        </div>
+    `;
+
+    new QRCode(document.getElementById("verifiedQR"), {
+        text: `lcai:id:${addr}`,
+        width: 128,
+        height: 128
+    });
+
+//        log("[IAM] ZK Passport Rendered Successfully.");
+
+    } catch (e) {
+        console.error("Passport Render Error:", e);
+        log("Error: Failed to fetch on-chain identity assets.");
+    }
+}
+
+
+async function registerLocal() {
+    const nick = document.getElementById('regNick').value.trim();
+    const did = document.getElementById('regDid').value.trim();
+    
+    if (!userWallet && window.ethereum) {
+        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        userWallet = accounts[0];
+    }
+    
+    if (!nick || !userWallet) return log("Error: Name and Wallet required.");
+
+    // SURGICAL FIX: Autofill the minting field
+    const mintNickField = document.getElementById('nickName');
+    if (mintNickField) mintNickField.value = nick;
+
+    // SAVE TO BROWSER STORAGE
+    const profile = { nick, did, wallet: userWallet };
+
+    const userData = {
+        nickname: nick,
+        did: did,
+        wallet: userWallet,
+        registered: true,
+        timestamp: Date.now()
+    };
+
+    isRegistered = true;
+    log(`[Local] Welcome ${nick}! Profile saved for session.`);
+    localStorage.setItem('lcai_profile', JSON.stringify({ nick, did, wallet: userWallet }));
+
+    // UI Transitions
+    unlockFeature('artNavItem', 'fas fa-palette');
+    unlockFeature('galleryNavItem', 'fas fa-images');
+
+    const mintSection = document.getElementById('mintSection');
+    if (mintSection) {
+        mintSection.classList.remove('step-locked');
+        mintSection.style.opacity = "1";
+        mintSection.style.pointerEvents = "auto";
     }
 
-    function showView(viewId) {
-        document.querySelectorAll('.view-panel').forEach(v => v.style.display = 'none');
-        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-        document.getElementById(viewId).style.display = 'block';
-        event.currentTarget.classList.add('active');
+    document.querySelectorAll('.locked-provider').forEach(btn => {
+        btn.classList.remove('locked-provider');
+        btn.style.opacity = "1";
+        btn.style.cursor = "pointer";
+    });
+    // Save to local storage so the site remembers you
+    localStorage.setItem('lcai_user', JSON.stringify({
+        nickname: nick,
+        did: did,
+        wallet: userWallet,
+        timestamp: Date.now()
+    }));
+    // Save and Unlock
+    //localStorage.setItem('lcai_user', JSON.stringify({nickname: nick, wallet: userWallet}));
+    document.getElementById('authStep').style.display = 'none';
+
+    unlockFeature('artNavItem', 'fas fa-palette');
+    unlockFeature('galleryNavItem', 'fas fa-images');
+}
+
+          function refreshModelDashboard() {
+            try {
+                const container = document.getElementById('realtimeModelTable');
+                if (!container) return; 
+        
+                if (typeof inferenceModels === 'undefined') return;
+        
+                let html = '';
+                inferenceModels.forEach(model => {
+                    // FIX: Use model.baseLoad (from your array) instead of model.load
+                    const loadValue = model.baseLoad || 0;
+                    const simulatedLoad = (loadValue + (Math.random() * 1.5)).toFixed(1) + "%";
+                    
+                    // FIX: Derive status from loadValue
+                    const statusText = loadValue > 0 ? "ONLINE" : "IDLE";
+                    const statusColor = loadValue > 0 ? "var(--green)" : "var(--text-dim)";
+        
+                    html += `
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 12px; color: var(--text);">${model.name}</td>
+                        <td style="padding: 12px; color: ${statusColor}; font-weight: bold;">${statusText}</td>
+                        <td style="padding: 12px;">${simulatedLoad}</td>
+                        <td style="padding: 12px; font-family: monospace; color: var(--text-dim); font-size: 0.75rem;">${model.hash}</td>
+                    </tr>`;
+                });
+                container.innerHTML = html;
+        
+                // Keep the Header Load Pill in sync
+                const loadPill = document.getElementById('loadPill');
+                if (loadPill) {
+                    loadPill.innerText = (12.4 + Math.random()).toFixed(1) + "%";
+                }
+            } catch (e) {
+                console.error("Dashboard Sync Error:", e);
+            }
+        }
+
+        let activeAuctions = [];
+
+        function openMintSelect() {
+            if (!isRegistered) return log("Error: You must be registered to list art.");
+
+            // For this surgical fix, we grab the last generated art from your canvas
+            const canvas = document.getElementById('generatedCanvas');
+            if (canvas.style.display === "none") {
+                return log("Action Required: Generate art in the Art Studio first to list it!");
+            }
+
+            const imgData = canvas.toDataURL();
+            const nftName = prompt("Enter a name for your Masterpiece:", "AIVM Genesis #1");
+            const startPrice = prompt("Set starting bid (LCAI):", "0.05");
+
+            if (nftName && startPrice) {
+                postToAuction(nftName, startPrice, imgData);
+            }
+        }
+
+        function postToAuction(name, price, img) {
+            const auctionItem = {
+                id: Date.now(),
+                seller: userWallet,
+                name: name,
+                price: price,
+                image: img,
+                endTime: Date.now() + (24 * 60 * 60 * 1000) // 24 Hour Auction
+            };
+
+            activeAuctions.push(auctionItem);
+            renderAuctions();
+            log(`[MARKET] Success: ${name} listed for ${price} LCAI.`);
+        }
+
+async function renderAuctions() {
+    const grid = document.getElementById('auctionGrid');
+    grid.innerHTML = ""; // Clear old auctions
+    if (!grid) return;
+
+    activeAuctions.forEach((auc, i) => {
+        grid.innerHTML += `
+            <div class="card">
+                <div class="art-container"> <img src="${auc.img}" style="width:100%; border-radius:8px;">
+                    <div class="ui-watermark">AIVM MARKET VERIFIED</div>
+                </div>
+                <div style="margin-top:10px; display:flex; justify-content:space-between; align-items:center;">
+                    <span style="color:var(--accent); font-weight:bold;">${auc.price} LCAI</span>
+                    <div style="display:flex; gap:5px;">
+                        <button class="pill btn-info-black" onclick="showMarketInfo(${i})">INFO</button>
+                        <button class="pill" onclick="placeBid(${auc.id})">BID</button>
+                    </div>
+                </div>
+            </div>`;
+    });
+
+    try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const auctionHouse = new ethers.Contract(CONFIG.auctionHouse, [
+            "function auctions(address, uint256) view returns (address nftContract, uint256 startingPrice, uint256 highestBid, address highestBidder, uint256 endTime, bool active)"
+        ], provider);
+        
+        const artContract = new ethers.Contract(CONFIG.artStudio, [
+            "function totalSupply() view returns (uint256)",
+            "function tokenURI(uint256) view returns (string)"
+        ], provider);
+
+        const total = await artContract.totalSupply();
+        let html = "";
+        let count = 0;
+
+        for (let i = 0; i < total; i++) {
+            const data = await auctionHouse.auctions(CONFIG.artStudio, i);
+            
+            if (data.active) { 
+                count++;
+                // FIX: Use 'artContract' (matching the variable above)
+                const uri = await artContract.tokenURI(i); 
+                const currentPrice = ethers.formatEther(data.highestBid > 0 ? data.highestBid : data.startingPrice);
+                
+                let img = uri.startsWith("U2Fsd") ? await decryptArt(uri) : uri;
+                if (!img.startsWith("data:image")) img = "data:image/jpeg;base64," + img;
+
+                html += `
+                    <div class="card" style="border:1px solid var(--accent); margin-bottom:15px;">
+                        <img src="${img}" style="width:100%; border-radius:8px;">
+                        <div style="margin-top:10px; display:flex; justify-content:space-between; align-items:center;">
+                            <div>
+                                <span style="color:var(--accent); font-weight:bold;">${currentPrice} LCAI</span>
+                                <div style="font-size:0.6rem; color:var(--text-dim);">TOKEN #${i}</div>
+                            </div>
+                            <button class="pill" onclick="placeBid(${i}, '${currentPrice}')" style="background:var(--accent); color:#000;">BID</button>
+                        </div>
+                    </div>`;
+            }
+        }
+        grid.innerHTML = count > 0 ? html : '<div id="auctionEmpty" style="grid-column:1/-1; text-align:center; padding:40px;">No active on-chain auctions.</div>';
+    } catch (e) {
+        console.error("Marketplace Sync Error:", e);
+        log("Marketplace Sync Error: Check Console.");
     }
-</script>
+}
+
+        async function placeBid(tokenId, currentPrice) {
+            const bidAmount = prompt(`Current price is ${currentPrice} LCAI. Enter your bid:`, (parseFloat(currentPrice) + 0.1).toString());
+            if (!bidAmount) return;
+        
+            try {
+                const provider = new ethers.BrowserProvider(window.ethereum);
+                const signer = await provider.getSigner();
+                const contract = new ethers.Contract(CONFIG.auctionHouse, [
+                    "function placeBid(address _nftContract, uint256 _tokenId) external payable"
+                ], signer);
+        
+                log(`[BID] Submitting ${bidAmount} LCAI for Token #${tokenId}...`);
+                const tx = await contract.placeBid(CONFIG.artStudio, tokenId, {
+                    value: ethers.parseEther(bidAmount)
+                });
+                await tx.wait();
+                log("[SUCCESS] You are now the highest bidder!");
+                renderAuctions();
+            } catch (e) {
+                log(`[BID ERROR] ${e.message}`);
+            }
+        }
+
+        async function cancelAuction(tokenId) {
+            try {
+                const provider = new ethers.BrowserProvider(window.ethereum);
+                const signer = await provider.getSigner();
+                const contract = new ethers.Contract(CONFIG.auctionHouse, [
+                    "function endAuction(address _nftContract, uint256 _tokenId) external"
+                ], signer);
+        
+                log(`[MARKET] Cancelling Auction for Token #${tokenId}...`);
+                const tx = await contract.endAuction(CONFIG.artStudio, tokenId);
+                await tx.wait();
+                log("[SUCCESS] Auction cleared. You can now re-list.");
+                renderAuctions();
+            } catch (e) { log(`[CANCEL ERROR] ${e.message}`); }
+        }
+
+
+        // --- ADMIN FUNCTIONS ---
+        async function queryIdentity() {
+            const input = document.getElementById('queryAddr').value.trim();
+            const res = document.getElementById('queryResult');
+            if (!ethers.isAddress(input)) return res.innerHTML = `<span style="color:var(--red)">INVALID ADDRESS</span>`;
+
+            log(`Querying Registry: ${input}`);
+            try {
+               // const provider = new ethers.BrowserProvider(window.ethereum);
+                // Updated ABI to match your actual contract mappings
+                const provider = new ethers.BrowserProvider(window.ethereum);
+                const contract = new ethers.Contract(CONFIG.contract, [
+                    "function nicknames(address) view returns (string)",
+                    "function dids(address) view returns (string)",
+                    "function socialProvider(address) view returns (string)", // Added
+                    "function identityHashes(address) view returns (bytes32)", // Added
+                    "function verified(address) view returns (bool)",
+                    "function isAdmin(address) view returns (bool)",
+                    "function creationTime(address) view returns (uint256)"
+                ], provider);
+
+                // Fetch values from individual mappings
+                const name = await contract.nicknames(input);
+                const did = await contract.dids(input);
+                const isVerified = await contract.verified(input);
+                const adminStatus = await contract.isAdmin(input); 
+                const providerName = await contract.socialProvider(input);
+                const idHash = await contract.identityHashes(input);
+                const rawTime = await contract.creationTime(input);
+
+                if (name && name !== "") {
+                    const dateObj = new Date(Number(rawTime) * 1000);
+                    const formattedDate = dateObj.toLocaleDateString('en-US', {
+                        month: 'long',
+                        day: 'numeric',
+                        year: 'numeric'
+                    });
+                    const status = isVerified ? "VERIFIED" : "PENDING";
+                    const adminTag = adminStatus ? " <span style='color:var(--accent)'>[ADMIN]</span>" : "";
+                    res.innerHTML = `<span style="color:var(--green)">${status}:</span> ${name} (${did})${adminTag}(${providerName})<span style="color:var(--text-dim); font-size:0.75rem;">Member Since: ${formattedDate}</span>`;
+                    log(`Match Found: ${name} is ${status}`);
+                } else {
+                    res.innerHTML = `<span style="color:var(--red)">NOT FOUND</span>`;
+                    log("No identity record found.");
+                }
+            } catch (e) {
+                log("Query Error: Protocol communication failed.");
+                res.innerHTML = `<span style="color:var(--red)">ERROR</span>`;
+            }
+        }
+        async function batchAction(action) {
+            const input = document.getElementById('batchAddrs').value;
+            const addrs = input.split(',').map(a => a.trim()).filter(a => ethers.isAddress(a));
+
+            if (addrs.length === 0) return log("Error: No valid addresses provided.");
+            if (!userWallet) return log("Error: Connect wallet first.");
+
+            log(`Starting batch ${action} for ${addrs.length} users...`);
+            try {
+                const provider = new ethers.BrowserProvider(window.ethereum);
+                const signer = await provider.getSigner();
+
+                // Match the function name in your LCAI-ZkKYCSBT.sol: "verifyUser"
+                const contract = new ethers.Contract(CONFIG.contract, [
+                    "function verifyUser(address _u) public",
+                    "function revokeUser(address _u) public",
+                    "function removeSBT(address _u) public"
+                ], signer);
+
+                for (const addr of addrs) {
+                    log(`Processing: ${addr.slice(0,10)}...`);
+                    let tx;
+                    if (action === 'verify') {
+                        tx = await contract.verifyUser(addr, { gasLimit: 100000 } );
+                    } else if (action === 'revoke') {
+                        // This calls the simple un-verify function
+                        tx = await contract.revokeUser(addr);
+                    } else if (action === 'remove') {
+                        // This calls the function that wipes all data
+                        tx = await contract.removeSBT(addr);
+                    }
+
+                    await tx.wait();
+                    log(`Success: ${addr.slice(0,6)} updated.`);
+                }
+            } catch (e) {
+            log(`Transaction Failed: ${e.message}`);
+            }
+        }
+
+async function withdrawRevenue() {
+    try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        const contract = new ethers.Contract(CONFIG.contract, CONFIG.abi, signer);
+
+        log("Requesting treasury release...");
+        const tx = await contract.withdrawRevenue(); // Updated function name
+        await tx.wait();
+        log("Success: Revenue transferred to owner.");
+        updateRevenueDisplay();
+    } catch (e) {
+        log(`Withdraw Failed: ${e.reason || "Unauthorized. Use Owner Wallet."}`);
+    }
+}
+
+        async function downloadRegistryCSV() {
+            const addrs = document.getElementById('batchAddrs').value.split(',').map(a=>a.trim()).filter(a=>ethers.isAddress(a));
+            if(addrs.length === 0) return log("Registry empty.");
+            log("Exporting CSV...");
+            let csv = "Address,Username,DID,Verified\n";
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            const contract = new ethers.Contract(CONFIG.contract, ["function profiles(address) view returns (string, string, bool, bool)"], provider);
+            for(let a of addrs) {
+                const p = await contract.profiles(a);
+                if(p[3]) csv += `${a},${p[0]},${p[1]},${p[2]}\n`;
+            }
+            const blob = new Blob([csv], {type: 'text/csv'});
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = `Registry_${Date.now()}.csv`;
+            a.click();
+            log("CSV Downloaded.");
+        }
+
+        // --- RENDER FUNCTION ---
+        function renderAIVMResult(data, model="DeepSeek-V3") {
+            const view = document.getElementById('renderView');
+            const img = document.getElementById('aivmOutputImage');
+            const placeholder = document.getElementById('renderStatusText');
+            const loader = document.getElementById('renderLoader');
+            view.style.display = 'block';
+            loader.style.display = 'block';
+            placeholder.style.display = 'none';
+            img.style.display = 'none';
+            //document.getElementById('modelNameDisplay').innerText = model;
+
+            if(data.startsWith('data:image')) { img.src = data; document.getElementById('renderCID').innerText = "Base64 Stream"; }
+            else { img.src = `https://ipfs.io/ipfs/${data}`; document.getElementById('renderCID').innerText = data; }
+
+            img.onload = () => { loader.style.display = 'none'; img.style.display = 'block'; log(`[RENDER] Inference complete.`); };
+        }
+
+        function unlockFeature(id, iconClass) {
+            const el = document.getElementById(id);
+            el.classList.remove('locked-feature');
+            el.style.pointerEvents = "auto";
+            el.querySelector('i').className = iconClass;
+        }
+
+        function lockFeature(id) {
+            const el = document.getElementById(id);
+            el.classList.add('locked-feature');
+            el.style.pointerEvents = "none";
+            el.querySelector('i').className = "fas fa-lock";
+        }
+
+
+        function unlockArtStudio() {
+            const artItem = document.getElementById('artNavItem');
+            const artLockIcon = document.getElementById('artLockIcon');
+            if (artItem) {
+                artItem.classList.remove('locked-feature');
+                artItem.style.opacity = "1";
+                artItem.style.filter = "grayscale(0)";
+                artItem.style.pointerEvents = "auto";
+                if (artLockIcon) artLockIcon.className = "fas fa-palette";
+            }
+
+            // 2. Unlock Gallery
+            const galleryItem = document.getElementById('galleryNavItem');
+            const galleryLockIcon = document.getElementById('galleryLockIcon');
+            if (galleryItem) {
+                galleryItem.classList.remove('locked-feature');
+                galleryItem.style.opacity = "1";
+                galleryItem.style.filter = "grayscale(0)";
+                galleryItem.style.pointerEvents = "auto"; // THIS is what fixes the "unclickable" issue
+                if (galleryLockIcon) galleryLockIcon.className = "fas fa-images";
+            }
+
+            // Switch lock icon to the palette icon
+            log("Art Studio & Gallery Unlocked!");
+        }
+
+
+
+let isGenerating = false;
+
+async function generateAIVMArt() {
+    const btn = event.target; // Assuming called from the button
+    btn.disabled = true;
+    setTimeout(() => { btn.disabled = false; }, 10000); // 10s Cooldown
+    if (isGenerating) return log("System busy: Awaiting protocol PoI...");
+
+    const basePrompt = document.getElementById('artPrompt').value.trim();
+    const styleSuffix = document.getElementById('artStyle').value;
+    const selectedModel = document.getElementById('modelSelector').value;
+
+    if (!basePrompt) return log("Error: Please enter a prompt first.");
+    if (!userWallet) return log("Error: Connect wallet to anchor PoI.");
+
+    isGenerating = true; 
+    const finalPrompt = (basePrompt + styleSuffix).replace(/\s+/g, ' ');
+
+    // UI Feedback
+    document.getElementById('renderStatusText').style.display = 'none';
+    document.getElementById('aivmOutputImage').style.display = 'none';
+    const loader = document.getElementById('renderLoader');
+    loader.style.display = 'block';
+    loader.querySelector('div').innerText = `Anchoring PoI to Testnet...`;
+
+    try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+
+        // --- STEP 1: PROTOCOL ANCHOR (PoI) ---
+        // We anchor the prompt hash to the LCAI AIVM V2 Registry
+        const promptId = ethers.keccak256(ethers.toUtf8Bytes(finalPrompt + Date.now()));
+        log(`[PROTOCOL] Sending PoI Anchor: ${promptId.slice(0,18)}...`);
+
+        // This ensures the task is recorded on-chain before the render proceeds
+        // Using the contract ABI for PoI anchoring
+       // const contract = new ethers.Contract(CONFIG.contract, [
+      //      "function requestInferenceV2(bytes32 promptId, string calldata prompt) public payable",
+ //           "function verified(address) view returns (bool)"
+//        ], signer);
+
+        // Correct Fix:
+        // 1. Check verification on Identity Contract
+        const identityContract = new ethers.Contract(CONFIG.contract, [
+            "function requestInferenceV2(bytes32 promptId, string calldata prompt) public payable",
+            "function verified(address) view returns (bool)"
+        ], provider);
+        // check if user is verified first to avoid silent revert
+        const isUserVerified = await identityContract.verified(userWallet);
+
+
+//        const isUserVerified = await contract.verified(userWallet);
+        if (!isUserVerified) {
+            isGenerating = false;
+            return log("Error: You must be a Verified Identity to anchor PoI.");
+        }
+
+
+        // --- STEP 2: STABILIZED RENDER ---
+        const seed = Math.floor(Math.random() * 1000000);
+        const encodedPrompt = encodeURIComponent(finalPrompt);
+        const aiImageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&seed=${seed}&nologo=true`;
+
+        const img = new Image();
+        img.crossOrigin = "anonymous"; 
+
+            img.onload = () => {
+const mainCanvas = document.getElementById('generatedCanvas');
+    const mainCtx = mainCanvas.getContext('2d');
+    mainCanvas.width = 1024;
+    mainCanvas.height = 1024;
+    
+    // 1. Draw the raw AI art first
+    mainCtx.drawImage(img, 0, 0, 1024, 1024);
+
+    // 2. CRITICAL: Capture CLEAN DATA for the NFT now (No Watermark)
+    // This is what gets encrypted and sent to the blockchain
+    currentArtData = mainCanvas.toDataURL('image/jpeg', 0.9);
+                // FIX: Use mainCtx (not ctx) for the watermark
+
+                const modelName = document.getElementById('modelSelector').value;
+                mainCtx.font = "bold 30px 'Courier New'";
+                mainCtx.fillStyle = "rgba(0, 242, 255, 0.6)";
+                mainCtx.fillText(`AIVM AUTH: ${modelName}`, 40, 950);
+
+                mainCtx.font = "italic 25px Arial";
+                mainCtx.fillText("LCAI-MiMo © 2026", 750, 985);
+
+                // 4. Update Preview with BOTH lines visible
+                const previewImg = document.getElementById('aivmOutputImage');
+                previewImg.src = mainCanvas.toDataURL('image/png');
+                previewImg.style.display = 'block';
+
+                document.getElementById('aivmOutputImage').src = mainCanvas.toDataURL('image/png');
+                document.getElementById('aivmOutputImage').style.display = 'block';
+            
+                // 2. Render Low-Res for Blockchain (The Fix for RPC Errors)
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCanvas.width = 512;
+                tempCanvas.height = 512;
+                tempCtx.drawImage(img, 0, 0, 512, 512);
+                
+                // This variable is now small enough to pass through the RPC
+                currentArtData = tempCanvas.toDataURL('image/jpeg', 0.6); 
+    
+                const cidElement = document.getElementById('renderCID');
+                if (currentArtData) {
+                    // Since we are bypassing IPFS and minting direct, we show the data type
+                    cidElement.innerText = "On-Chain (Base64)"; 
+                    cidElement.style.color = "var(--green)";
+                }
+            
+                isGenerating = false;
+                document.getElementById('renderLoader').style.display = 'none';
+                document.getElementById('saveArtBtn').style.display = 'block';
+                log("[AIVM] Render Stabilized. High-res preview active.");
+        };
+                
+        img.onerror = () => {
+            isGenerating = false;
+            loader.style.display = 'none';
+            document.getElementById('renderStatusText').style.display = 'block';
+            document.getElementById('renderStatusText').innerText = "AI Gateway Busy (Error 429). Please wait 30s.";
+            // CRITICAL: Hide the save button so you don't mint a blank white box
+            document.getElementById('saveArtBtn').style.display = 'none';            
+            log(`[AIVM Error] Connection Reset. PoI remains anchored.`);
+        };
+
+        img.src = aiImageUrl;
+    } catch (e) {
+        isGenerating = false;
+        log(`[Fatal Error] ${e.message}`);
+        loader.style.display = 'none';
+    }
+}
+
+let currentArtData = null; // Stores the Base64 of the generated image
+
+function deleteCurrentArt() {
+    if (!confirm("Discard this render? This will not remove the PoI anchor from the chain.")) return;
+    
+    // UI Cleanup
+    document.getElementById('aivmOutputImage').src = "";
+    document.getElementById('aivmOutputImage').style.display = "none";
+    document.getElementById('renderStatusText').style.display = "block";
+    document.getElementById('renderStatusText').innerText = "Preview Deleted.";
+    document.getElementById('saveArtBtn').style.display = "none";
+    document.getElementById('deleteArtBtn').style.display = "none";
+    currentArtData = null;
+    log("[STUDIO] Preview discarded.");
+}
+
+async function uploadToIPFS(base64Data) {
+    log("[IPFS] Uploading art to decentralized storage...");
+    try {
+        const blob = await (await fetch(base64Data)).blob();
+        const formData = new FormData();
+        formData.append('file', blob);
+
+        const response = await fetch("https://api.pinata.cloud/pinning/pinFileToIPFS", {
+            method: 'POST',
+            headers: {
+                // IMPORTANT: Replace this with your actual Pinata JWT from their dashboard
+                'Authorization': `Bearer YOUR_ACTUAL_JWT_HERE` 
+            },
+            body: formData
+        });
+
+        const result = await response.json();
+        if (result.IpfsHash) {
+            log(`[IPFS] Success! CID: ${result.IpfsHash}`);
+            return `ipfs://${result.IpfsHash}`;
+        } else {
+            throw new Error("Pinata rejected upload. Check JWT.");
+        }
+    } catch (e) {
+        log(`[IPFS ERROR] ${e.message}. Falling back to low-res string...`);
+        // Fallback: Return a truncated string to prevent the 'null data' gas error
+        return base64Data.substring(0, 1000); 
+    }
+}
+
+async function saveArtToGallery() {
+    // If currentArtData is null or too short, it's a blank canvas
+    if (!currentArtData || currentArtData.length < 2000) {
+        return log("Error: No image data found. Did the AI fail to render?");
+    }
+    
+    const model = document.getElementById('modelSelector').value;
+    const promptText = document.getElementById('artPrompt').value;
+    const hint = promptText.slice(0, 32);
+    
+    if (!currentArtData) return log("Error: No art to save.");
+
+    // ENSURE THE HEADER IS ATTACHED BEFORE ENCRYPTION
+    const fullDataWithHeader = currentArtData.startsWith("data:image") ? 
+                               currentArtData : 
+                               "data:image/jpeg;base64," + currentArtData;
+    try {
+        // 1. ENCRYPT BEFORE MINTING
+        const encryptedData = await encryptArt(currentArtData);
+        
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        const artContract = new ethers.Contract(CONFIG.artStudio, [
+            "function mintArtNFT(string memory _tokenURI, string memory _model, string memory _hint) public payable returns (uint256)"
+        ], signer);
+
+        log("[MINT] Sending Art Data (Heavy Payload) to Lightchain...");
+        
+        // FIX: Increased gasLimit to 10M to accommodate the Base64 storage
+        const tx = await artContract.mintArtNFT(encryptedData, model, hint, {
+                value: ethers.parseEther("0.25"),
+                gasLimit: 10000000 
+            });
+
+        log(`[MINT] Transaction hash: ${tx.hash}`);
+        await tx.wait();
+        log("[SUCCESS] Art minted directly to chain!");
+        loadGallery(); 
+    } catch (e) {
+        log(`[MINT ERROR] ${e.message}`);
+    }
+}
+
+async function mintWithSocial() {
+    const nick = document.getElementById('regNick').value.trim();
+    const did = document.getElementById('regDid').value.trim();
+    const providerName = "GitHub"; // Explicit string, no objects
+    // Instead of the dynamic canvas, we use your specified stable asset
+    const sbtImage = "https://testnet.lightscan.app/assets/images/banner/banner-thumb.png";
+
+    try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        const contract = new ethers.Contract(CONFIG.contract, CONFIG.abi, signer);
+
+        //const idHash = window.lastSocialHash || ethers.keccak256(ethers.toUtf8Bytes(nick + did + userWallet));
+        const idHash = ethers.keccak256(
+            ethers.solidityPacked(
+                ["bytes32", "string", "address"],
+                [window.lastSocialHash || ethers.ZeroHash, nick, userWallet]
+            )
+        );
+        
+        const isAlreadyVerified = await contract.verified(userWallet);
+        if (isAlreadyVerified) {
+            log("[SYS] Identity already verified on-chain. Updating local view...");
+            return checkRegistrationStatus(userWallet, contract);
+        }
+        log(`[SYS] Minting SBT with Banner Identity...`);
+        const tx = await contract.mintWithSocial(nick, did, providerName, idHash, {
+            value: ethers.parseEther("0.01") 
+        });
+
+        await tx.wait();
+        log(`[SUCCESS] SBT Minted! Tx: ${tx.hash.slice(0,12)}`);
+
+        checkRegistrationStatus(userWallet, contract);
+    } catch (e) {
+        log(`[MINT ERROR] ${e.message}`);
+    }
+}
+
+        async function ownerRemoveSBT() {
+            const targetAddr = document.getElementById('removeAddrInput').value.trim();
+
+            if (!ethers.isAddress(targetAddr)) return log("Error: Invalid address provided.");
+            if (!userWallet) return log("Error: Please connect your admin wallet.");
+
+            log(`[OWNER] Initiating permanent wipe for: ${targetAddr}`);
+
+            try {
+                const provider = new ethers.BrowserProvider(window.ethereum);
+                const signer = await provider.getSigner();
+
+                // Define the contract with the removeSBT interface
+                const contract = new ethers.Contract(CONFIG.contract, [
+                    "function removeSBT(address _u) public",
+                    "function owner() view returns (address)"
+                ], signer);
+
+                // Pre-flight check
+                const contractOwner = await contract.owner();
+                const currentUser = await signer.getAddress();
+                if (userWallet.toLowerCase() !== contractOwner.toLowerCase()) {
+                    return log("Critical Error: Unauthorized. Only the contract owner can wipe identities. Contract Owner is ${contractOwner.slice(0,10)}...`");
+                }
+
+                const tx = await contract.removeSBT(targetAddr);
+                log("Transaction sent. Waiting for block confirmation...");
+
+                await tx.wait();
+                log(`Success: Identity for ${targetAddr.slice(0,10)}... has been wiped from the blockchain.`);
+
+                // Clear input after success
+                document.getElementById('removeAddrInput').value = "";
+            } catch (e) {
+                log(`Removal Failed: ${e.reason || e.message}`);
+            }
+        }
+
+        function updateRevenueDisplay() {
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            provider.getBalance(CONFIG.contract).then(bal => {
+                document.getElementById('contractBalDisplay').innerText = ethers.formatEther(bal) + " LCAI";
+            });
+        }
+
+        async function deleteArtNFT(tokenId) {
+        const confirmBurn = confirm(`Burning Token #${tokenId} costs 1 LCAI fee. The art will be permanently deleted. Proceed?`);
+            if (!confirmBurn) return;
+        
+            try {
+                const provider = new ethers.BrowserProvider(window.ethereum);
+                const signer = await provider.getSigner();
+                
+                // Update ABI to include our new burnArt function
+                const contract = new ethers.Contract(CONFIG.artStudio, [
+                    "function burnArt(uint256 tokenId) public payable"
+                ], signer);
+        
+                log(`[BURN] Sending 1 LCAI Fee and burning Token #${tokenId}...`);
+                
+                const tx = await contract.burnArt(tokenId, {
+                    value: ethers.parseEther("1.0") // The 1 LCAI Fee
+                });
+        
+                await tx.wait();
+                log(`[SUCCESS] Token #${tokenId} incinerated. 1 LCAI sent to Treasury.`);
+                loadGallery(); 
+            } catch (e) {
+                log(`[BURN ERROR] ${e.message}`);
+            }
+        }
+
+        async function loadGallery() {
+            const container = document.getElementById('galleryGrid');
+                if (!userWallet) return container.innerHTML = "Connect wallet to view gallery.";
+
+            // CRITICAL: Clear the container first to prevent double-rendering
+            container.innerHTML = '<div style="grid-column:1/-1; text-align:center;">Syncing with Lightchain AIVM...</div>';
+            
+                try {
+                    const provider = new ethers.BrowserProvider(window.ethereum);
+                    const contract = new ethers.Contract(CONFIG.artStudio, [
+                        "function balanceOf(address owner) view returns (uint256)",
+                        "function tokenOfOwnerByIndex(address owner, uint256 index) view returns (uint256)",
+                        "function tokenURI(uint256 tokenId) view returns (string)"
+                    ], provider);
+            
+                    const balance = await contract.balanceOf(userWallet);
+                    container.innerHTML = ""; 
+
+                    if (balance == 0) {
+                        container.innerHTML = '<p style="color:var(--text-dim)">No NFTs found in this wallet.</p>';
+                        return;
+                    }
+            
+                    for (let i = 0; i < balance; i++) {
+                        const tokenId = await artContract.tokenOfOwnerByIndex(userWallet, i);
+                        const uri = await artContract.tokenURI(tokenId);
+                        
+                if(!window.userGallery) window.userGallery = [];
+                    window.userGallery[i] = { id: tokenId, uri: uri };
+                    // STEP 2: RENDER CARD WITH CENTERED TEXT & UI WATERMARK
+                    const card = `
+                        <div class="gallery-card" style="display:flex; flex-direction:column; align-items:center;">
+                            <div class="art-container" style="position:relative; width:100%;">
+                                <img src="${imgData}" style="width:100%; border-radius:8px;">
+                                <div class="ui-watermark">AIVM AUTHENTICATED</div>
+                            </div>
+                            <div class="gallery-controls" style="width:100%; display:grid; grid-template-columns: 1fr 1fr 1fr; gap:5px; margin-top:10px;">
+                                <button class="pill" onclick="mintFromGallery(${tokenId})" style="background:var(--green); color:#000; text-align:center;">MINT</button>
+                                <button class="pill btn-info-black" onclick="showArtInfo(${i})" style="text-align:center;">INFO</button>
+                                <button class="pill" onclick="burnArt(${tokenId})" style="background:var(--red); text-align:center;">BURN</button>
+                            </div>
+                            <button class="btn-zk" onclick="listInAuction(${tokenId})" style="width:100%; margin-top:8px; text-align:center;">LIST FOR SALE</button>
+                        </div>`;
+            container.insertAdjacentHTML('beforeend', card);
+        }
+                } catch (e) {
+                    console.log("Gallery sync pending...");
+               
+                }
+            }
+        
+async function listInAuction(tokenId) {
+    const price = prompt("Starting bid (LCAI):", "0.5");
+    const duration = prompt("Duration (minutes):", "1440"); // Default 24 hours
+    
+    if (!price || !duration) return log("Listing cancelled.");
+
+    try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        
+        // 1. Approve the Auction House to Escrow your NFT
+        const artContract = new ethers.Contract(CONFIG.artStudio, [
+            "function approve(address to, uint256 tokenId)"
+        ], signer);
+        
+        log("[MARKET] Approving NFT for Escrow...");
+        let tx = await artContract.approve(CONFIG.auctionHouse, tokenId);
+        await tx.wait();
+
+        // 2. Create the On-Chain Auction
+        const auctionContract = new ethers.Contract(CONFIG.auctionHouse, [
+            "function createAuction(address _nftContract, uint256 _tokenId, uint256 _startingPrice, uint256 _durationMinutes)"
+        ], signer);
+        
+        log("[MARKET] Creating Smart Contract Auction...");
+        tx = await auctionContract.createAuction(
+            CONFIG.artStudio, 
+            tokenId, 
+            ethers.parseEther(price), 
+            parseInt(duration)
+        );
+        await tx.wait();
+        
+        log("[SUCCESS] Auction is officially live on the blockchain!");
+        // Optional: Call a function to refresh your UI's Auction House view
+    } catch (e) {
+        log(`[SELL ERROR] ${e.message}`);
+    }
+}
+        
+        function showView(viewId) {
+            console.log("Switching to view:", viewId);
+            
+            // 1. Hide EVERYTHING with the class 'view-section'
+            const sections = document.querySelectorAll('.view-section');
+            sections.forEach(s => {
+                s.style.setProperty('display', 'none', 'important');
+            });
+        
+            // 2. Show only the target view
+             const target = document.getElementById(viewId);
+                if (target) {
+                    target.style.setProperty('display', 'block', 'important');
+                }
+        
+            // 3. Update Sidebar Highlights
+            document.querySelectorAll('.nav-item').forEach(nav => {
+                nav.classList.remove('active');
+                const clickHandler = nav.getAttribute('onclick') || "";
+                if (clickHandler.includes(viewId)) {
+                    nav.classList.add('active');
+                }
+            });
+        
+            // 4. Trigger Data Refreshes
+            if (viewId === 'marketView') renderAuctions();
+        }
+
+        function log(m) {
+            const c = document.getElementById('console');
+            c.innerHTML += `<br>> [${new Date().toLocaleTimeString()}] ${m}`;
+            c.scrollTop = c.scrollHeight;
+        }
+
+        // Init
+        setInterval(fetchPrices, 5000);
+        setInterval(refreshModelDashboard, 3000);
+        refreshModelDashboard();
+        checkGitHubCallback();
+        // Ensure listeners are attached AFTER page load
+        window.addEventListener('load', () => {
+            fetchPrices();
+            setInterval(fetchPrices, 5000);
+            
+            const btn = document.getElementById('walletBtn');
+            if (btn) btn.addEventListener('click', connect);
+        });
+        
+        function startBalanceSystems(addr) {
+            console.log("[SYS] Starting Live Balance Sync for:", addr);
+            
+            // Initial fetch
+            syncBalance(addr);
+            
+            // Refetch every 10 seconds (standard block time for LCAI testnet)
+            setInterval(() => {
+                syncBalance(addr);
+            }, 10000);
+        }
+
+        async function showNftDetails(tokenId) {
+            try {
+                const provider = new ethers.BrowserProvider(window.ethereum);
+                const contract = new ethers.Contract(CONFIG.artStudio, [
+                    "function publicSpecs(uint256) view returns (string, string, uint256)",
+                    "function tokenURI(uint256) view returns (string)"
+                ], provider);
+        
+                log(`[INFO] Fetching Metadata for Token #${tokenId}...`);
+                const specs = await contract.publicSpecs(tokenId);
+                const rawUri = await contract.tokenURI(tokenId);
+                
+                // Show the info in a standard browser alert or custom modal
+                // For now, we'll use a stylized alert:
+                const infoMessage = `
+        --- AIVM AUTHENTICITY KEY ---
+        Token ID: ${tokenId}
+        Model Used: ${specs[0]}
+        Prompt Hint: "${specs[1]}"
+        Minted On: ${new Date(Number(specs[2]) * 1000).toLocaleString()}
+        
+        --- PRIVACY METADATA ---
+        Storage: ${rawUri.startsWith('U2Fsd') ? 'Encrypted (AES-256)' : 'Public'}
+        Decryption Key: ${userEncryptionKey ? userWallet.slice(0,10) + '...Active' : 'Locked'}
+                `;
+                
+                alert(infoMessage);
+            } catch (e) {
+                log(`[INFO ERROR] Could not retrieve metadata: ${e.message}`);
+            }
+        }
+        
+        /**
+         * The standalone silent refetcher
+         */
+        let lastBalance = null; // Global tracker
+    
+        async function syncBalance(addr) {
+            try {
+                const provider = new ethers.JsonRpcProvider("https://light-testnet-rpc.lightchain.ai");
+                const balanceWei = await provider.getBalance(addr);
+                const currentBalance = parseFloat(ethers.formatEther(balanceWei));
+                
+                const balancePill = document.getElementById('balancePill');
+                if (balancePill && lastBalance !== null) {
+                    
+                    // Detect Change
+                    if (currentBalance > lastBalance) {
+                        // ADDITION (Green)
+                        triggerBlink(balancePill, 'blink-add');
+                        console.log(`[SYS] Payment Received: +${(currentBalance - lastBalance).toFixed(4)} LCAI`);
+                    } else if (currentBalance < lastBalance) {
+                        // SUBTRACTION (Red)
+                        triggerBlink(balancePill, 'blink-sub');
+                        console.log(`[SYS] Payment Sent: -${(lastBalance - currentBalance).toFixed(4)} LCAI`);
+                    }
+                }
+                
+                // Update values for next check
+                lastBalance = currentBalance;
+                if (balancePill) {
+                    balancePill.innerText = currentBalance.toFixed(2) + " LCAI";
+                }
+            } catch (e) {
+                console.warn("Sync error - retrying...");
+            }
+        }
+        /**
+         * Helper to restart the animation class
+         */
+        function triggerBlink(element, className) {
+            element.classList.remove('blink-add', 'blink-sub');
+            void element.offsetWidth; // Force reflow to restart animation
+            element.classList.add(className);
+        }
+                if (window.ethereum) {
+            window.ethereum.on('accountsChanged', (accounts) => {
+                if (accounts.length > 0) {
+                    window.location.reload(); // Simplest way to resync the whole UI
+                } else {
+                    userWallet = null;
+                    document.getElementById('walletBtn').innerText = "CONNECT WALLET";
+                    log("[SYS] Wallet Disconnected.");
+                }
+            });
+        }
+
+        // Start the Auto-Refresh Loop
+        function startMarketplaceSync() {
+            log("[MARKET] Initializing Live On-Chain Sync...");
+            // Initial Render
+            renderAuctions();
+            
+            // Refresh every 30 seconds
+            setInterval(() => {
+                // Only refresh if the user is currently looking at the Marketplace view
+                if (document.getElementById('marketView').style.display === 'block') {
+                    renderAuctions();
+                    console.log("[SYS] Auction House view refreshed.");
+                }
+            }, 30000); 
+        }
+        
+        // Call this inside your window.onload or after connect()
+        startMarketplaceSync();
+        function showArtInfo(index) {
+            const art = window.userGallery[index];
+                if (!art) return log("Error: Art metadata not found.");
+            
+                const modalHtml = `
+                    <div id="artInfoModal" style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#000; border:2px solid var(--accent); padding:20px; border-radius:12px; z-index:10000; width:320px; box-shadow: 0 0 20px var(--accent);">
+                        <h3 style="color:var(--accent); margin-top:0;">NFT SPECIFICATIONS</h3>
+                        <div style="font-family:monospace; font-size:0.8rem; color:#fff; line-height:1.5;">
+                            <p><strong>TOKEN ID:</strong> #${art.id}</p>
+                            <p><strong>STATUS:</strong> <span style="color:var(--green)">ON-CHAIN</span></p>
+                            <p><strong>ENCRYPTION:</strong> AES-256 (PRIVATE)</p>
+                            <p style="word-break:break-all; font-size:0.6rem; color:var(--text-dim);"><strong>URI:</strong> ${art.uri.substring(0,60)}...</p>
+                        </div>
+                        <button onclick="document.getElementById('artInfoModal').remove()" class="btn-zk" style="background:var(--accent); color:#000; margin-top:15px;">CLOSE</button>
+                    </div>
+                `;
+                const existing = document.getElementById('artInfoModal');
+                if (existing) existing.remove();
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }
+    </script>
 </body>
 </html>
+
+
+
+
+
+
+
+

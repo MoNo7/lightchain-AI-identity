@@ -2113,6 +2113,57 @@ async function mintWithSocial() {
             }
         }
 
+// --- RESTORED AUCTION HOUSE ---
+async function renderAuctions() {
+    const grid = document.getElementById('auctionGrid');
+    if (!grid) return;
+    grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:20px;">Syncing Marketplace...</div>';
+
+    try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        // Minimal ABI for Auction House and Art Studio
+        const auctionHouse = new ethers.Contract(CONFIG.auctionHouse, [
+            "function auctions(address, uint256) view returns (address nftContract, uint256 startingPrice, uint256 highestBid, address highestBidder, uint256 endTime, bool active)"
+        ], provider);
+        const artContract = new ethers.Contract(CONFIG.artStudio, CONFIG.abi, provider);
+        
+        let html = "";
+        let count = 0;
+
+        // Manual Scan 0-25 (Bypasses missing totalSupply function)
+        for (let i = 0; i < 25; i++) {
+            try {
+                const data = await auctionHouse.auctions(CONFIG.artStudio, i);
+                if (data.active) {
+                    count++;
+                    const uri = await artContract.tokenURI(i);
+                    const currentPrice = ethers.formatEther(data.highestBid > 0 ? data.highestBid : data.startingPrice);
+                    
+                    // Standardized Decryption
+                    let img = uri.startsWith("U2Fsd") ? await decryptArt(uri) : uri;
+                    if (img && !img.startsWith("data:image") && !img.startsWith("http")) {
+                        img = "data:image/jpeg;base64," + img;
+                    }
+
+                    html += `
+                        <div class="card" style="border:1px solid var(--accent); margin:0; display:flex; flex-direction:column;">
+                            <div class="art-container" style="aspect-ratio:1/1; overflow:hidden; background:#000; border-radius:8px;">
+                                <img src="${img}" style="width:100%; height:100%; object-fit:cover;">
+                                <div class="ui-watermark">TOKEN #${i}</div>
+                            </div>
+                            <div style="padding:10px; display:flex; justify-content:space-between; align-items:center;">
+                                <span style="color:var(--accent); font-weight:bold;">${currentPrice} LCAI</span>
+                                <button class="pill" onclick="placeBid(${i}, '${currentPrice}')" style="background:var(--accent); color:#000; border:none; cursor:pointer;">BID</button>
+                            </div>
+                        </div>`;
+                }
+            } catch (e) { continue; }
+        }
+        grid.innerHTML = count > 0 ? html : '<div style="grid-column:1/-1; text-align:center; padding:40px;">No active auctions found.</div>';
+    } catch (e) { console.error("Market Error:", e); }
+}
+
+// --- RESTORED GALLERY ---
 async function loadGallery() {
     const container = document.getElementById('galleryGrid');
     if (!userWallet) return;
@@ -2121,6 +2172,8 @@ async function loadGallery() {
     try {
         const provider = new ethers.BrowserProvider(window.ethereum);
         const artContract = new ethers.Contract(CONFIG.artStudio, CONFIG.abi, provider);
+        
+        // Ensure key is available for decryption
         if (!userEncryptionKey) await getEncryptionKey();
 
         const scanPromises = [];
@@ -2131,16 +2184,20 @@ async function loadGallery() {
         const results = await Promise.all(scanPromises);
         let html = "";
         let foundCount = 0;
+        window.userGallery = []; // Track metadata for INFO buttons
 
         for (const res of results) {
             if (res && res.owner.toLowerCase() === userWallet.toLowerCase()) {
                 foundCount++;
                 const uri = await artContract.tokenURI(res.id);
-                let imgData = uri.startsWith("U2Fsd") ? await decryptArt(uri) : uri;
                 
+                // Decrypt exactly like Auction House
+                let imgData = uri.startsWith("U2Fsd") ? await decryptArt(uri) : uri;
                 if (imgData && !imgData.startsWith("data:image") && !imgData.startsWith("http")) {
                     imgData = "data:image/jpeg;base64," + imgData;
                 }
+
+                window.userGallery[res.id] = { id: res.id, uri: uri };
 
                 html += `
                     <div class="gallery-card" style="background:var(--panel); border:1px solid var(--border); padding:10px; border-radius:12px;">
@@ -2150,62 +2207,14 @@ async function loadGallery() {
                         </div>
                         <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px; margin-top:10px;">
                             <button class="pill" onclick="showArtInfo(${res.id})">INFO</button>
-                            <button class="pill" onclick="listInAuction(${res.id})" style="background:var(--accent); color:#000; border:none;">SELL</button>
+                            <button class="pill" onclick="listInAuction(${res.id})" style="background:var(--accent); color:#000; border:none; cursor:pointer;">SELL</button>
                         </div>
                     </div>`;
             }
         }
-        container.innerHTML = foundCount > 0 ? html : "No assets found in Vault.";
+        container.innerHTML = foundCount > 0 ? html : '<div style="grid-column:1/-1; text-align:center; padding:20px;">No assets found in Vault.</div>';
     } catch (e) { console.error("Gallery Error:", e); }
 }
-
-async function renderAuctions() {
-    const grid = document.getElementById('auctionGrid');
-    if (!grid) return;
-    grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:20px;">Syncing Marketplace...</div>';
-
-    try {
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const auctionHouse = new ethers.Contract(CONFIG.auctionHouse, [
-            "function auctions(address, uint256) view returns (address nftContract, uint256 startingPrice, uint256 highestBid, address highestBidder, uint256 endTime, bool active)"
-        ], provider);
-        const artContract = new ethers.Contract(CONFIG.artStudio, CONFIG.abi, provider);
-        
-        let html = "";
-        let count = 0;
-
-        // Manual Scan (Bypasses the missing totalSupply error)
-        for (let i = 0; i < 25; i++) {
-            try {
-                const data = await auctionHouse.auctions(CONFIG.artStudio, i);
-                if (data.active) {
-                    count++;
-                    const uri = await artContract.tokenURI(i);
-                    const currentPrice = ethers.formatEther(data.highestBid > 0 ? data.highestBid : data.startingPrice);
-                    
-                    let img = uri.startsWith("U2Fsd") ? await decryptArt(uri) : uri;
-                    if (img && !img.startsWith("data:image") && !img.startsWith("http")) {
-                        img = "data:image/jpeg;base64," + img;
-                    }
-
-                    html += `
-                        <div class="card" style="border:1px solid var(--accent); margin:0; display:flex; flex-direction:column;">
-                            <div class="art-container" style="aspect-ratio:1/1; overflow:hidden; background:#000;">
-                                <img src="${img}" style="width:100%; height:100%; object-fit:cover;">
-                                <div class="ui-watermark">TOKEN #${i}</div>
-                            </div>
-                            <div style="padding:10px; display:flex; justify-content:space-between; align-items:center;">
-                                <span style="color:var(--accent); font-weight:bold;">${currentPrice} LCAI</span>
-                                <button class="pill" onclick="placeBid(${i}, '${currentPrice}')" style="background:var(--accent); color:#000; border:none;">BID</button>
-                            </div>
-                        </div>`;
-                }
-            } catch (e) { continue; }
-        }
-        grid.innerHTML = count > 0 ? html : '<div style="grid-column:1/-1; text-align:center; padding:40px;">No active auctions found.</div>';
-    } catch (e) { console.error("Market Error:", e); }
-}
-        
         
 async function listInAuction(tokenId) {
     const price = prompt("Starting bid (LCAI):", "0.5");

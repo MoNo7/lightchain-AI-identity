@@ -568,7 +568,7 @@ window.onload = async () => {
             } else {
                 showView('galleryView');
                 if (!userEncryptionKey) {
-                    await getEncryptionKey(); 
+                    getEncryptionKey(); 
                 }
                 loadGallery();
             }
@@ -2092,6 +2092,7 @@ async function listInAuction(tokenId) {
     </script>
 </body>
 </html>
+
 
 
 

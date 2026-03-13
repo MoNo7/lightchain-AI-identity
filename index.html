@@ -1295,7 +1295,6 @@ async function registerLocal() {
 
 async function renderAuctions() {
     const grid = document.getElementById('auctionGrid');
-    grid.innerHTML = ""; // Clear old auctions
     if (!grid) return;
 
     activeAuctions.forEach((auc, i) => {
@@ -1325,11 +1324,11 @@ async function renderAuctions() {
             "function tokenURI(uint256) view returns (string)"
         ], provider);
 
-        const total = await artContract.totalSupply();
         let html = "";
         let count = 0;
 
-        for (let i = 0; i < total; i++) {
+        for (let i = 0; i < 10; i++) {
+            try {
             const data = await auctionHouse.auctions(CONFIG.artStudio, i);
             
             if (data.active) { 
@@ -1939,8 +1938,10 @@ async function loadGallery() {
         let html = "";
         let foundCount = 0;
 
+        // Ensure we have the signature/key first
         if (!userEncryptionKey) await getEncryptionKey();
 
+        // MANUAL SCAN: This is what found your 5 assets
         for (let i = 0; i < 25; i++) {
             try {
                 const owner = await artContract.ownerOf(i);
@@ -1948,19 +1949,21 @@ async function loadGallery() {
                     foundCount++;
                     const uri = await artContract.tokenURI(i);
                     
-                    // 1. DECRYPT
+                    // --- THE FIX: Define imgData ---
                     let imgData = uri.startsWith("U2Fsd") ? await decryptArt(uri) : uri;
                     
-                    // 2. VALIDATE DATA HEADER
+                    // Ensure it has the correct header
                     if (imgData && !imgData.startsWith("data:image") && !imgData.startsWith("http")) {
                         imgData = "data:image/jpeg;base64," + imgData;
                     }
 
-                    // 3. GENERATE HTML (Ensure display:block and visible dimensions)
+                    if(!window.userGallery) window.userGallery = [];
+                    window.userGallery[i] = { id: i, uri: uri };
+
                     html += `
                         <div class="gallery-card" style="background:var(--panel); border:1px solid var(--border); padding:10px; border-radius:12px; display:flex; flex-direction:column;">
                             <div class="art-container" style="width:100%; aspect-ratio:1/1; overflow:hidden; border-radius:8px; background:#000;">
-                                <img src="${imgData}" style="width:100%; height:100%; object-fit:cover; display:block;" onerror="this.src='https://via.placeholder.com/200?text=Render+Error'">
+                                <img src="${imgData}" style="width:100%; height:100%; object-fit:cover; display:block;">
                                 <div class="ui-watermark">TOKEN #${i}</div>
                             </div>
                             <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px; margin-top:10px;">
@@ -1971,13 +1974,10 @@ async function loadGallery() {
                 }
             } catch (e) { continue; }
         }
-        
-        // Final render
         container.innerHTML = foundCount > 0 ? html : "No assets found.";
-        log(`[GALLERY] Render complete for ${foundCount} assets.`);
-
+        log(`[GALLERY] Success: ${foundCount} assets visible.`);
     } catch (e) {
-        log("Gallery Display Error.");
+        log("Gallery Sync Error.");
         console.error(e);
     }
 }
@@ -2205,6 +2205,7 @@ async function listInAuction(tokenId) {
     </script>
 </body>
 </html>
+
 
 
 

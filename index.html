@@ -1942,7 +1942,7 @@ async function loadGallery() {
     const container = document.getElementById('galleryGrid');
     if (!userWallet) return;
 
-    container.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:20px; color:var(--accent);">Scanning Vault (Manual Sync)...</div>';
+    container.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:20px; color:var(--accent);">Synchronizing Vault...</div>';
 
     try {
         const provider = new ethers.BrowserProvider(window.ethereum);
@@ -1950,50 +1950,54 @@ async function loadGallery() {
         let html = "";
         let foundCount = 0;
 
-        // Ensure encryption key is ready before starting the loop
         if (!userEncryptionKey) await getEncryptionKey();
 
-        // MANUAL SCAN: Loop through IDs 0-25. 
-        // This avoids the 'tokenOfOwnerByIndex' RPC errors.
+        // Use Promise.all to scan IDs 0-25 in parallel (faster)
+        const scanPromises = [];
         for (let i = 0; i < 25; i++) {
-            try {
-                const owner = await artContract.ownerOf(i);
-                
-                if (owner.toLowerCase() === userWallet.toLowerCase()) {
+            scanPromises.push(
+                artContract.ownerOf(i).then(owner => ({ id: i, owner })).catch(() => null)
+            );
+        }
+
+        const results = await Promise.all(scanPromises);
+
+        for (const res of results) {
+            if (res && res.owner.toLowerCase() === userWallet.toLowerCase()) {
+                try {
                     foundCount++;
-                    const uri = await artContract.tokenURI(i);
+                    const uri = await artContract.tokenURI(res.id);
                     
-                    // Decrypt the data (Matches Auction House logic)
+                    // DECRYPT: This is where the Auction House succeeds and Gallery often fails
                     let imgData = uri.startsWith("U2Fsd") ? await decryptArt(uri) : uri;
                     
+                    // Ensure valid Data URI header
                     if (imgData && !imgData.startsWith("data:image") && !imgData.startsWith("http")) {
                         imgData = "data:image/jpeg;base64," + imgData;
                     }
 
-                    // Save to global for the INFO button
                     if(!window.userGallery) window.userGallery = [];
-                    window.userGallery[i] = { id: i, uri: uri };
+                    window.userGallery[res.id] = { id: res.id, uri: uri };
 
                     html += `
-                        <div class="gallery-card" style="background:var(--panel); border:1px solid var(--border); padding:10px; border-radius:12px; display:flex; flex-direction:column;">
+                        <div class="gallery-card" style="background:var(--panel); border:1px solid var(--border); padding:10px; border-radius:12px; display:flex; flex-direction:column; min-height:280px;">
                             <div class="art-container" style="width:100%; aspect-ratio:1/1; overflow:hidden; border-radius:8px; background:#000;">
                                 <img src="${imgData}" style="width:100%; height:100%; object-fit:cover; display:block;">
-                                <div class="ui-watermark">TOKEN #${i}</div>
+                                <div class="ui-watermark">TOKEN #${res.id}</div>
                             </div>
                             <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px; margin-top:10px;">
-                                <button class="pill" onclick="showArtInfo(${i})">INFO</button>
-                                <button class="pill" onclick="listInAuction(${i})" style="background:var(--accent); color:#000;">SELL</button>
+                                <button class="pill" onclick="showArtInfo(${res.id})">INFO</button>
+                                <button class="pill" onclick="listInAuction(${res.id})" style="background:var(--accent); color:#000;">SELL</button>
                             </div>
                         </div>`;
+                } catch (err) {
+                    console.warn(`Token #${res.id} metadata error:`, err);
                 }
-            } catch (e) {
-                // Token ID doesn't exist yet, skip to next
-                continue;
             }
         }
 
-        container.innerHTML = foundCount > 0 ? html : '<div style="grid-column:1/-1; text-align:center;">No assets found in Vault.</div>';
-        log(`[GALLERY] Manual Scan Complete. Found ${foundCount} assets.`);
+        container.innerHTML = foundCount > 0 ? html : "No assets found in Vault.";
+        log(`[GALLERY] Sync Complete. ${foundCount} assets ready.`);
 
     } catch (e) {
         log("Gallery Sync Error.");

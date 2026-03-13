@@ -574,6 +574,16 @@ window.onload = async () => {
             }
         }
 async function autoConnectWallet() {
+    let selectedProvider;
+
+    // Check if multiple wallets are fighting over window.ethereum
+    if (window.ethereum && window.ethereum.providers) {
+        // Find the specific provider that is MetaMask
+        selectedProvider = window.ethereum.providers.find(p => p.isMetaMask);
+    } else {
+        selectedProvider = window.ethereum;
+    }
+
     setInterval(() => {
         // ONLY run if we haven't found the identity yet. 
         // Once found, hasInitializedVault becomes true and the loop goes silent.
@@ -2092,6 +2102,7 @@ async function listInAuction(tokenId) {
     </script>
 </body>
 </html>
+
 
 
 

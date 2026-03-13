@@ -613,23 +613,23 @@ async function getArcadeKey() {
     // ---------------------------------------------------------
     function initArcadeEngine() {
         if (!userWallet) return log("Error: Connect node to initialize engine.");
-
+        
+        // Reset the logic engine
         game = new Chess();
-            
-            document.getElementById('arcadeOverlay').style.display = "none";
-            document.getElementById('boardInner').innerHTML = `<div id="myBoard" style="width: 350px; margin: 0 auto;"></div>`;
-            
-            // RESTORE: Piece images from CDN + Strict Sizing
-            board = Chessboard('myBoard', {
-                draggable: true,
-                dropOffBoard: 'snapback',
-                position: 'start',
-                // POINT TO CDN IMAGES:
-                pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
-                onDrop: handleMove
-            });
+        
+        document.getElementById('arcadeOverlay').style.display = "none";
+        document.getElementById('boardInner').innerHTML = `<div id="myBoard" style="width: 350px; margin: 0 auto;"></div>`;
+        
+        board = Chessboard('myBoard', {
+            draggable: true,
+            position: 'start',
+            pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
+            onDragStart: onDragStart,
+            onDrop: handleMove,
+            onSnapEnd: onSnapEnd
+        });
     
-        log("[ARCADE] AIVM Chess Engine Online.");
+        log("[ARCADE] AIVM Chess Engine Online. You are White.");
     }
 
     // 1. Only allow the user to move White pieces on their turn
@@ -639,41 +639,86 @@ async function getArcadeKey() {
         if (piece.search(/^b/) !== -1) return false;
     }
 
+    // 2. Validate the user's move
+    function handleMove(source, target) {
+        const move = game.move({
+            from: source,
+            to: target,
+            promotion: 'q' // Always promote to queen for simplicity
+        });
+    
+        // Illegal move
+        if (move === null) return 'snapback';
+    
+        log(`[ARCADE] Move: ${source}-${target}. AIVM Thinking...`);
+        
+        // Trigger AI move after a short delay
+        window.setTimeout(makeAIVMMove, 500);
+    }
+
     // 3. Update the board visual after the logic move
     function onSnapEnd () {
         board.position(game.fen());
     }
 
-    async function makeAIVMMove() {
-    if (game.game_over()) return log("Game Over.");
+   async function makeAIVMMove() {
+    if (game.game_over()) return logMsg("Game Over.");
+
+    logMsg(`[ARCADE] Submitting board state to AIVM Node...`);
     
-        log("[ARCADE] Generating AIVM Counter-move...");
+    try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        const sessionKey = await getArcadeKey();
         
-        try {
-            // This simulates the request to the Referee contract (0x479...)
-            // In a real match, you'd send game.fen() to the contract here.
-            
-            // SIMULATED AI RESPONSE (e.g., e7e5)
-            const aiMoveStr = "e5"; // For a simple start
-            
-            setTimeout(() => {
-                const move = game.move(aiMoveStr);
-                if (move) {
-                    board.position(game.fen()); // THIS actually moves the piece on screen
-                    log(`> AIVM Move Received: ${aiMoveStr}`);
-                } else {
-                    // Fallback for simulation: make a random legal move
-                    const moves = game.moves();
-                    const randomMove = moves[Math.floor(Math.random() * moves.length)];
-                    game.move(randomMove);
-                    board.position(game.fen());
-                    log(`> AIVM Move Received: ${randomMove}`);
+        // The actual contract connection
+        const refereeAbi = [
+            "function requestMove(bytes32 sessionKey, string fen) public",
+            "function getLatestMove(bytes32 sessionKey) public view returns (string)"
+        ];
+        const refereeContract = new ethers.Contract("0x479b15998f4E63901b089b033d47C62464D6856", refereeAbi, signer);
+
+        // 1. Send the transaction to request inference
+        logMsg("Signing AIVM Inference Request...");
+        const tx = await refereeContract.requestMove(sessionKey, game.fen(), { gasLimit: 500000 });
+        logMsg(`Tx submitted: ${tx.hash}. Awaiting AIVM processing...`);
+        
+        await tx.wait();
+        logMsg("Transaction confirmed. Polling AIVM for counter-move...");
+
+        // 2. Poll the contract for the AI's response
+        let aiMoveStr = "";
+        let attempts = 0;
+        
+        const pollInterval = setInterval(async () => {
+            attempts++;
+            try {
+                aiMoveStr = await refereeContract.getLatestMove(sessionKey);
+                
+                if (aiMoveStr && aiMoveStr !== "") {
+                    clearInterval(pollInterval);
+                    const move = game.move(aiMoveStr);
+                    
+                    if (move) {
+                        board.position(game.fen());
+                        logMsg(`> AIVM Move Executed: ${aiMoveStr}`);
+                    } else {
+                        logMsg(`> AIVM returned invalid move: ${aiMoveStr}`);
+                    }
+                } else if (attempts > 15) {
+                    clearInterval(pollInterval);
+                    logMsg("> AIVM Inference Timeout.");
                 }
-            }, 1000);
-        } catch (e) {
-            log("Arcade Error: Could not reach AIVM Referee.");
-        }
+            } catch (err) {
+                console.warn("Polling error...", err);
+            }
+        }, 3000); // Poll every 3 seconds until AIVM responds
+
+    } catch (e) {
+        console.error(e);
+        logMsg(`[ERROR] AIVM Connection Failed: ${e.message}`);
     }
+}
     // Simple move handler to trigger the AI
     function handleMove(source, target, piece) {
         const move = game.move({
@@ -2043,6 +2088,7 @@ async function listInAuction(tokenId) {
     </script>
 </body>
 </html>
+
 
 
 

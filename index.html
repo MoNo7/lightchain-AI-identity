@@ -1953,39 +1953,53 @@ async function loadGallery() {
         // Ensure we have the signature/key first
         if (!userEncryptionKey) await getEncryptionKey();
 
-        // MANUAL SCAN: This is what found your 5 assets
-        for (let i = 0; i < 25; i++) {
-            try {
-                const owner = await artContract.ownerOf(i);
-                if (owner.toLowerCase() === userWallet.toLowerCase()) {
-                    foundCount++;
-                    const uri = await artContract.tokenURI(i);
-                    
-                    // --- THE FIX: Define imgData ---
-                    let imgData = uri.startsWith("U2Fsd") ? await decryptArt(uri) : uri;
-                    
-                    // Ensure it has the correct header
-                    if (imgData && !imgData.startsWith("data:image") && !imgData.startsWith("http")) {
-                        imgData = "data:image/jpeg;base64," + imgData;
-                    }
+for (let i = 0; i < 25; i++) {
+    try {
+        const owner = await artContract.ownerOf(i);
+        if (owner.toLowerCase() === userWallet.toLowerCase()) {
+            foundCount++;
+            const uri = await artContract.tokenURI(i);
+            
+            let imgData = uri;
 
-                    if(!window.userGallery) window.userGallery = [];
-                    window.userGallery[i] = { id: i, uri: uri };
+            // 1. Decrypt if it's ZK-Encrypted
+            if (uri.startsWith("U2Fsd")) {
+                imgData = await decryptArt(uri);
+            } 
+            // 2. UNWRAP ON-CHAIN JSON METADATA (This is likely what Token #1 is)
+            else if (uri.startsWith("data:application/json;base64,")) {
+                const jsonStr = atob(uri.split(',')[1]);
+                const metadata = JSON.parse(jsonStr);
+                imgData = metadata.image; // Extract the actual image property
+            }
 
-                    html += `
-                        <div class="gallery-card" style="background:var(--panel); border:1px solid var(--border); padding:10px; border-radius:12px; display:flex; flex-direction:column;">
-                            <div class="art-container" style="width:100%; aspect-ratio:1/1; overflow:hidden; border-radius:8px; background:#000;">
-                                <img src="${imgData}" style="width:100%; height:100%; object-fit:cover; display:block;">
-                                <div class="ui-watermark">TOKEN #${i}</div>
-                            </div>
-                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px; margin-top:10px;">
-                                <button class="pill" onclick="showArtInfo(${i})">INFO</button>
-                                <button class="pill" onclick="listInAuction(${i})" style="background:var(--accent); color:#000;">SELL</button>
-                            </div>
-                        </div>`;
-                }
-            } catch (e) { continue; }
+            // 3. Fix IPFS Links (Browsers need a gateway)
+            if (imgData && imgData.startsWith("ipfs://")) {
+                imgData = imgData.replace("ipfs://", "https://ipfs.io/ipfs/");
+            }
+
+            // 4. Fix raw base64 (if the header was stripped)
+            if (imgData && !imgData.startsWith("data:image") && !imgData.startsWith("http")) {
+                imgData = "data:image/jpeg;base64," + imgData;
+            }
+
+            if(!window.userGallery) window.userGallery = [];
+            window.userGallery[i] = { id: i, uri: uri };
+
+            html += `
+                <div class="gallery-card" style="background:var(--panel); border:1px solid var(--border); padding:10px; border-radius:12px; display:flex; flex-direction:column;">
+                    <div class="art-container" style="width:100%; aspect-ratio:1/1; overflow:hidden; border-radius:8px; background:#000;">
+                        <img src="${imgData}" style="width:100%; height:100%; object-fit:cover; display:block;">
+                        <div class="ui-watermark">TOKEN #${i}</div>
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px; margin-top:10px;">
+                        <button class="pill" onclick="showArtInfo(${i})">INFO</button>
+                        <button class="pill" onclick="listInAuction(${i})" style="background:var(--accent); color:#000;">SELL</button>
+                    </div>
+                </div>`;
         }
+    } catch (e) { continue; }
+}
         container.innerHTML = foundCount > 0 ? html : "No assets found.";
         log(`[GALLERY] Success: ${foundCount} assets visible.`);
     } catch (e) {

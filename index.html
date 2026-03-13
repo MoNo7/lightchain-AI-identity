@@ -1951,32 +1951,33 @@ async function loadGallery() {
         let html = "";
         let foundCount = 0;
 
-        // 1. Ensure encryption key is ready (Prevents the 'null' imgData issue)
+        // 1. Unified Unlock: Only one signature request at the start
         if (!userEncryptionKey) await getEncryptionKey();
 
-        // 2. Parallel Scan (Faster & more resilient to RPC warnings)
+        // 2. Parallel ID Scan: Checks 0-25 all at once (Stops the linear lag)
         const scanRange = 25;
         const scanPromises = [];
         for (let i = 0; i < scanRange; i++) {
             scanPromises.push(
                 artContract.ownerOf(i)
                     .then(owner => ({ id: i, owner }))
-                    .catch(() => null) // Silently ignore empty IDs to stop the warnings
+                    .catch(() => null) // This line silences the RPC warnings
             );
         }
 
         const results = await Promise.all(scanPromises);
 
         for (const res of results) {
+            // Only process if the ID exists and belongs to you
             if (res && res.owner.toLowerCase() === userWallet.toLowerCase()) {
                 try {
                     foundCount++;
                     const uri = await artContract.tokenURI(res.id);
                     
-                    // 3. Mirror the working Auction House decryption logic
+                    // 3. Decrypt data exactly like the working Auction House logic
                     let imgData = uri.startsWith("U2Fsd") ? await decryptArt(uri) : uri;
                     
-                    // 4. Ensure the Base64 header is attached
+                    // 4. Ensure the image has the valid Base64 header
                     if (imgData && !imgData.startsWith("data:image") && !imgData.startsWith("http")) {
                         imgData = "data:image/jpeg;base64," + imgData;
                     }
@@ -1996,7 +1997,8 @@ async function loadGallery() {
                             </div>
                         </div>`;
                 } catch (innerE) {
-                    console.warn(`[GALLERY] Token #${res.id} skip:`, innerE);
+                    // Silently skip corrupted metadata to prevent UI crash
+                    continue; 
                 }
             }
         }

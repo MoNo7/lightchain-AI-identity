@@ -516,7 +516,13 @@ abi: [
     }
 })();
 
- let userEncryptionKey = null;
+let userEncryptionKey = null;
+let game = null;
+let board = null;
+let arcadeGame = null;
+let arcadeBoard = null;
+let hasInitializedVault = false; 
+
 
 // Ask MetaMask for a signature to create a unique password
 async function getEncryptionKey() {
@@ -657,11 +663,6 @@ async function autoConnectWallet() {
             checkRegistrationStatus(userWallet, contract);
         }
 }
-let game = null;
-let board = null;
-let arcadeGame = null;
-let arcadeBoard = null;
-let hasInitializedVault = false; 
 
 // Add this if it's missing to bridge your interval to the actual check function
 async function verifyIdentity() {

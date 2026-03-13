@@ -1623,30 +1623,29 @@ async function mintWithSocial() {
 
         async function loadGallery() {
             const container = document.getElementById('galleryGrid');
-                if (!userWallet) return container.innerHTML = "Connect wallet to view gallery.";
-
+            if (!userWallet || !userEncryptionKey) return;
             // CRITICAL: Clear the container first to prevent double-rendering
             container.innerHTML = '<div style="grid-column:1/-1; text-align:center;">Syncing with Lightchain AIVM...</div>';
             
                 try {
                     const provider = new ethers.BrowserProvider(window.ethereum);
-                    const contract = new ethers.Contract(CONFIG.artStudio, [
-                        "function balanceOf(address owner) view returns (uint256)",
-                        "function tokenOfOwnerByIndex(address owner, uint256 index) view returns (uint256)",
-                        "function tokenURI(uint256 tokenId) view returns (string)"
-                    ], provider);
+                    const contract = new ethers.Contract(CONFIG.artStudio, CONFIG.abi, provider);
+                    let html = "";
+                    let found = false;
             
-                    const balance = await contract.balanceOf(userWallet);
+                    
                     container.innerHTML = ""; 
 
-                    if (balance == 0) {
-                        container.innerHTML = '<p style="color:var(--text-dim)">No NFTs found in this wallet.</p>';
-                        return;
-                    }
-            
-                    for (let i = 0; i < balance; i++) {
+              for (let i = 0; i < 25; i++) {
+                try {
+                const owner = await contract.ownerOf(i);
+                if (owner.toLowerCase() === userWallet.toLowerCase()) {
+                    found = true;
+                    const uri = await contract.tokenURI(i);
                         const tokenId = await artContract.tokenOfOwnerByIndex(userWallet, i);
                         const uri = await artContract.tokenURI(tokenId);
+                }
+                let imgData = uri.startsWith("U2Fsd") ? await decryptArt(uri) : uri;
                         
                 if(!window.userGallery) window.userGallery = [];
                     window.userGallery[i] = { id: tokenId, uri: uri };
@@ -1665,12 +1664,15 @@ async function mintWithSocial() {
                             <button class="btn-zk" onclick="listInAuction(${tokenId})" style="width:100%; margin-top:8px; text-align:center;">LIST FOR SALE</button>
                         </div>`;
             container.insertAdjacentHTML('beforeend', card);
-        }
-                } catch (e) {
+        
+           } catch (e) { continue; } // Skip IDs that don't exist
                     console.log("Gallery sync pending...");
                
                 }
+            container.innerHTML = found ? html : "Vault is empty.";
+    } catch (e) { console.error("Gallery Sync Error:", e); }        
             }
+                
         
 async function listInAuction(tokenId) {
     const price = prompt("Starting bid (LCAI):", "0.5");
@@ -1900,6 +1902,7 @@ async function listInAuction(tokenId) {
     </script>
 </body>
 </html>
+
 
 
 

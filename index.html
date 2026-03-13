@@ -1942,7 +1942,7 @@ async function loadGallery() {
     const container = document.getElementById('galleryGrid');
     if (!userWallet) return;
 
-    container.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:20px; color:var(--accent);">Unlocking 5 Vault Assets...</div>';
+    container.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:20px; color:var(--accent);">Decoding 5 Vault Assets...</div>';
 
     try {
         const provider = new ethers.BrowserProvider(window.ethereum);
@@ -1952,7 +1952,7 @@ async function loadGallery() {
 
         if (!userEncryptionKey) await getEncryptionKey();
 
-        // MANUAL SCAN: This loop is what correctly finds your 5 assets
+        // Scanning 0-25 to find your 5 assets
         for (let i = 0; i < 25; i++) {
             try {
                 const owner = await artContract.ownerOf(i);
@@ -1960,10 +1960,9 @@ async function loadGallery() {
                     foundCount++;
                     const uri = await artContract.tokenURI(i);
                     
-                    // --- THE FIX: We are actually defining imgData now ---
+                    // --- THE FIX: Define imgData here ---
                     let imgData = uri.startsWith("U2Fsd") ? await decryptArt(uri) : uri;
                     
-                    // Add the header if it's raw base64
                     if (imgData && !imgData.startsWith("data:image") && !imgData.startsWith("http")) {
                         imgData = "data:image/jpeg;base64," + imgData;
                     }
@@ -1986,9 +1985,9 @@ async function loadGallery() {
             } catch (e) { continue; }
         }
         container.innerHTML = foundCount > 0 ? html : "Vault is empty.";
-        log(`[GALLERY] Success: ${foundCount} assets rendered.`);
+        log(`[GALLERY] Success: ${foundCount} assets displayed.`);
     } catch (e) {
-        log("Gallery Sync Error.");
+        log("Gallery Display Error.");
         console.error(e);
     }
 }

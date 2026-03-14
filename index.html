@@ -1059,9 +1059,22 @@ function saveGameState() {
     
     // Function to manually resign
     async function resignChessGame() {
-        if (chessGame.game_over() || chessGame.history().length === 0) return;
-        logAIVM("<span>[USER]</span> Resigned.");
-        await submitGameToChain("0-1"); // AIVM wins
+if (chessGame.game_over() || chessGame.history().length === 0) {
+        return logAIVM("<span style='color:var(--text-dim);'>[SYS]</span> No active game to resign.");
+    }
+
+    const confirmResign = confirm("Are you sure you want to resign? This will record a win for the AIVM on-chain.");
+    if (!confirmResign) return;
+
+    logAIVM("<span>[USER]</span> Resigned. Finalizing match data...");
+    
+    // "0-1" indicates Black (AIVM) wins
+    await submitGameToChain("0-1"); 
+    
+    // Reset UI
+    chessGame.reset();
+    chessBoard.start();
+    updateChessStatus();
     }
     
     // Push to Lightchain Testnet
@@ -2293,8 +2306,6 @@ async function loadGallery() {
 
     try {
         const provider = new ethers.BrowserProvider(window.ethereum);
-        
-        // FIXED: Added tokenURI and ownerOf to this specific ABI instance
         const artContract = new ethers.Contract(CONFIG.artStudio, [
             "function ownerOf(uint256 tokenId) view returns (address)",
             "function tokenURI(uint256 tokenId) view returns (string)"
@@ -2325,7 +2336,6 @@ async function loadGallery() {
                 }
 
                 window.userGallery[res.id] = { id: res.id, uri: uri };
-                // We escape the URI string to prevent syntax errors in the onclick handler
                 const safeUri = uri.replace(/'/g, "\\'");
 
                 html += `
@@ -2338,7 +2348,7 @@ async function loadGallery() {
                             <button class="pill" onclick="mintArtNFT('${safeUri}')" style="background:var(--green); color:#000; border:none; font-size:0.6rem; font-weight:bold; cursor:pointer;">MINT</button>
                             <button class="pill" onclick="showArtInfo(${res.id})" style="background:transparent; border:1px solid #fff; color:#fff; font-size:0.6rem;">INFO</button>
                             <button class="pill" onclick="listInAuction(${res.id})" style="background:var(--accent); color:#000; border:none; cursor:pointer;">SELL</button>
-                            <button class="pill" onclick="deleteArtNFT(${safeUri})" style="display:none; background:var(--red); color:white;border:none; font-size:0.6rem; font-weight:bold; cursor:pointer;">Burn</button>
+                            <button class="pill" onclick="deleteArtNFT(${res.id})" style="display:none; background:var(--red); color:white;border:none; font-size:0.6rem; font-weight:bold; cursor:pointer;">Burn</button>
                         </div>
                     </div>`;
             }

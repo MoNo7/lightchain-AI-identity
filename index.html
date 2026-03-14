@@ -2116,7 +2116,7 @@ async function mintArtNFT(uri) {
         
         const tx = await artContract.mint(userWallet, uri, {
             value: mintFee,
-            gasLimit: 300000 // Manually setting gas limit helps prevent random 'require' failures
+            gasLimit: 1000000 // Manually setting gas limit helps prevent random 'require' failures
         });
 
         log(`[PENDING] Tx Hash: ${tx.hash.slice(0, 18)}...`);
@@ -2125,7 +2125,6 @@ async function mintArtNFT(uri) {
         
         if (receipt.status === 1) {
             log("<span style='color:var(--green);'>[SUCCESS]</span> Art successfully moved to Wallet!");
-            // Update the UI to show the new Token ID
             loadGallery(); 
         }
 

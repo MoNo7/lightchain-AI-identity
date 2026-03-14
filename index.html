@@ -441,10 +441,9 @@
         </button>
     </div>
     
-    <div style="display:flex; gap:30px; flex-wrap:wrap; justify-content:center; align-items:flex-start;">
-        
-        <div style="width: 450px; max-width: 100%; background:var(--panel); padding:15px; border-radius:12px; border:1px solid var(--border);">
-            <div id="aivmBoard" style="width: 100%;"></div>
+<div style="display:flex; gap:20px; justify-content:center; align-items:flex-start; flex:1;">
+        <div style="width: 450px; background:var(--panel); padding:15px; border-radius:12px; border:1px solid var(--border);">
+            <div id="boardInner" style="width: 100%;"></div>
         </div>
         
         <div style="flex:1; min-width:300px; max-width:500px; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:20px; display:flex; flex-direction:column;">
@@ -760,7 +759,14 @@ function initArcadeEngine() {
     // 2. Show the Chess Board and Log
     const chessView = document.getElementById('chessView');
     chessView.style.display = 'flex';
-    launchGrandmasterEngine(); 
+    // 3. Initialize or Restore the Engine
+    if (!chessBoard) {
+        launchGrandmasterEngine();
+    } else {
+        // If board exists, force it to snap to the new container size
+        chessBoard.resize();
+        chessBoard.position(chessGame.fen());
+    }
 }
 
 
@@ -1034,7 +1040,10 @@ function saveGameState() {
     
     function exitChess() {
         document.getElementById('chessView').style.display = 'none';
-        document.getElementById('arcadeHub').style.display = 'grid'; // Or 'block' based on your CSS
+        
+            const hub = document.getElementById('arcadeHub');
+            hub.style.display = 'grid'; 
+            hub.style.removeProperty('height');        
     }
     
     function logAIVM(msg) {

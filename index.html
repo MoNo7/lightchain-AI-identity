@@ -430,7 +430,7 @@
     </div>
 </div>
 
-    <div id="chessView" style="display:none; flex-direction:column; flex:1; padding:20px; overflow-y:auto;">
+    <div id="chessView"style="display:none; flex-direction:column; height: 100%; width: 100%; background:var(--bg); border-radius:12px; padding:10px;">
     
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px; border-bottom:1px solid var(--border); padding-bottom:15px;">
         <h2 style="color:var(--accent); display:flex; align-items:center; gap:10px; margin:0;">
@@ -756,6 +756,10 @@ function initArcadeEngine() {
     if (!isRegistered) return log("Register to unlock AIVM games.");
     // Hide overlay and show board
     document.getElementById('arcadeOverlay').style.display = "none";
+    document.getElementById('arcadeHub').style.display = "none";
+    // 2. Show the Chess Board and Log
+    const chessView = document.getElementById('chessView');
+    chessView.style.display = 'flex';
     launchGrandmasterEngine(); 
 }
 

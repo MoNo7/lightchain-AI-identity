@@ -1884,7 +1884,6 @@ async function generateAIVMArt() {
     const finalPrompt = (basePrompt + styleSuffix).replace(/\s+/g, ' ');
     localStorage.setItem('last_render_time', Date.now());
     
-    const aiImageUrl = `https://aivm.lightchain.ai/api/v1/render?prompt=${encodeURIComponent(finalPrompt)}&model=${selectedModel}&promptId=${promptId}&wallet=${userWallet}`;
     
     // UI Feedback
     document.getElementById('renderStatusText').style.display = 'none';
@@ -1901,6 +1900,7 @@ async function generateAIVMArt() {
         // We anchor the prompt hash to the LCAI AIVM V2 Registry
         const promptId = ethers.keccak256(ethers.toUtf8Bytes(finalPrompt + Date.now()));
         log(`[PROTOCOL] Sending PoI Anchor: ${promptId.slice(0,18)}...`);
+        const aiImageUrl = `https://aivm.lightchain.ai/api/v1/render?prompt=${encodeURIComponent(finalPrompt)}&model=${selectedModel}&promptId=${promptId}&wallet=${userWallet}`;
 
         // 1. Check verification on Identity Contract
         const identityContract = new ethers.Contract(CONFIG.contract, [

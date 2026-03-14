@@ -2085,41 +2085,58 @@ async function saveArtToGallery() {
 }
 
 async function mintArtNFT(uri) {
-    if (!uri) {
-        log("<span style='color:var(--red);'>[ERR]</span> No metadata URI provided for minting.");
-        return;
-    }
+    if (!uri) return log("<span style='color:var(--red);'>[ERR]</span> Metadata URI is missing.");
 
-    log("[STUDIO] Preparing to mint Vault asset to Lightchain...");
-    
     try {
         const provider = new ethers.BrowserProvider(window.ethereum);
         const signer = await provider.getSigner();
         
-        // Initialize contract with the mint function ABI
+        // 1. Initialize the Art Studio Contract
+        // Ensure the ABI matches your AIArtStudio.sol precisely
         const artContract = new ethers.Contract(CONFIG.artStudio, [
-            "function mint(address to, string uri) public returns (uint256)"
+            "function mint(address to, string uri) public returns (uint256)",
+            "function getMintingFee() view returns (uint256)"
         ], signer);
 
-        // Execute the mint transaction
-        const tx = await artContract.mint(userWallet, uri);
+        log("[STUDIO] Validating Vault asset with Lightchain...");
+
+        // 2. Check for Fee Requirements
+        // If your contract requires a fee to mint from the gallery, we fetch it here
+        let mintFee = 0;
+        try {
+            mintFee = await artContract.getMintingFee();
+        } catch(e) { 
+            mintFee = ethers.parseEther("0"); // Fallback if no fee is set
+        }
+
+        // 3. Execute Mint
+        // We pass the URI (which contains the Raccoon-style metadata) 
+        // and include the required fee to prevent 'require(false)' reverts.
+        log(`[PROTOCOL] Initiating Mint for: <span style='color:var(--accent);'>Vault Asset</span>`);
         
-        log(`[MINT] Transaction sent: <span style='color:var(--accent);'>${tx.hash.slice(0, 18)}...</span>`);
+        const tx = await artContract.mint(userWallet, uri, {
+            value: mintFee,
+            gasLimit: 300000 // Manually setting gas limit helps prevent random 'require' failures
+        });
+
+        log(`[PENDING] Tx Hash: ${tx.hash.slice(0, 18)}...`);
         
-        // Wait for network confirmation
         const receipt = await tx.wait();
         
         if (receipt.status === 1) {
-            log("<span style='color:var(--green);'>[SUCCESS]</span> Art successfully minted to your wallet!");
-            // Refresh the gallery to show the updated ownership/state
+            log("<span style='color:var(--green);'>[SUCCESS]</span> Art successfully moved to Wallet!");
+            // Update the UI to show the new Token ID
             loadGallery(); 
-        } else {
-            throw new Error("Transaction reverted by the network.");
         }
 
     } catch (err) {
-        console.error("Minting Error:", err);
-        log(`<span style='color:var(--red);'>[MINT ERROR]</span> ${err.reason || err.message}`);
+        console.error("Mint Error:", err);
+        // Direct handling of the 'require(false)' issue
+        if (err.message.includes("execution reverted")) {
+            log("<span style='color:var(--red);'>[MINT ERROR]</span> Contract rejected the mint. Check if this URI was already minted or if the fee is insufficient.");
+        } else {
+            log(`<span style='color:var(--red);'>[MINT ERROR]</span> ${err.reason || err.message}`);
+        }
     }
 }
 

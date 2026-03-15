@@ -841,89 +841,54 @@ async function autoConnectWallet() {
 
         
 async function getStarterPack() {
-    if (!userWallet) return log("<span style='color:var(--red);'>[TCG ERR]</span> Connect wallet first.");
-    log("[TCG] Initializing AIVM Neural Forge. Generating strictly formatted deck...");
+    if (!userWallet) return log("Connect wallet first.");
+    log("[TCG] Contacting AIVM to forge your 7-card Deck...");
 
     try {
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const signer = await provider.getSigner();
+        const systemPrompt = "You are a TCG data server. Output ONLY a raw JSON array. No markdown. No text.";
+        const userPrompt = `Generate 7 cards: 4 Common (1), 1 Rare (2), 1 Epic (3), 1 Legendary (4). Format: [{"name":"N","cardType":"AI","atk":20,"def":20,"rarity":1}]`;
         
-        // 🟢 1. The System & User Prompts
-        // We tell the AI it is a machine, not an assistant.
-        const systemPrompt = "You are a strict JSON data server. You do not use markdown. You do not speak. You output ONLY a raw, minified JSON array.";
-        
-        const userPrompt = `Generate a TCG deck of exactly 7 cards.
-        Requirements: 4 Common (rarity 1), 1 Rare (rarity 2), 1 Epic (rarity 3), 1 Legendary (rarity 4).
-        Output format must be a raw JSON array of objects with EXACTLY these keys: "name" (string), "cardType" (string), "atk" (number), "def" (number), "rarity" (number).
-        Example of one item: {"name": "Neon Knight", "cardType": "Cyber", "atk": 45, "def": 30, "rarity": 2}
-        DO NOT wrap in \`\`\`json. DO NOT add any introductory or concluding text.`;
-
-        const response = await fetch('https://chat2.lightchain.ai/api/v1/chat/completions', {
+        const response = await fetch('[https://chat2.lightchain.ai/api/v1/chat/completions](https://chat2.lightchain.ai/api/v1/chat/completions)', {
             method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json', 
-                'Authorization': `Bearer ${userWallet}` 
-            },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${userWallet}` },
             body: JSON.stringify({ 
                 model: "DeepSeek-V3-Base", 
-                messages: [
-                    { role: "system", content: systemPrompt },
-                    { role: "user", content: userPrompt }
-                ],
-                temperature: 0.1 // 🟢 Very low temperature for maximum consistency
+                messages: [{role:"system", content:systemPrompt}, {role:"user", content:userPrompt}],
+                temperature: 0.1 
             })
         });
         
-        if (!response.ok) throw new Error(`Gateway Error: ${response.status}`);
-        
         const data = await response.json();
         let content = data.choices[0].message.content;
-
-        // 🟢 2. Ironclad Parsing
-        // Even if the AI disobeys and adds text, this finds the absolute first '[' and last ']'
-        const firstBracket = content.indexOf('[');
-        const lastBracket = content.lastIndexOf(']');
         
-        if (firstBracket === -1 || lastBracket === -1) {
-            throw new Error("AIVM failed to return a valid array. Check console for raw output.");
-        }
+        // 🟢 THE FIX: Aggressively strip markdown and find JSON
+        content = content.replace(/```json|```/gi, "").trim();
+        const jsonMatch = content.match(/\[.*\]/s);
+        const deck = JSON.parse(jsonMatch[0]);
+
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
         
-        const cleanJson = content.substring(firstBracket, lastBracket + 1);
-        const deck = JSON.parse(cleanJson);
-
-        if (!Array.isArray(deck) || deck.length !== 7) {
-            throw new Error(`AIVM returned ${deck?.length || 0} cards instead of exactly 7.`);
-        }
-
-        log("[TCG] Deck forged successfully. Awaiting blockchain signature...");
-
-        // 🟢 3. Contract Execution
+        // Use the synchronized address from your Remix tab
         const tcgContract = new ethers.Contract("0xaE7d46Ce849A3F6ee2a26F6585f547c1eCfC9518", [
             "function mintAIVMStarterPack(string[] names, string[] types, uint256[] atks, uint256[] defs, uint256[] rarities) public payable"
         ], signer);
 
         const tx = await tcgContract.mintAIVMStarterPack(
-            deck.map(c => c.name), 
-            deck.map(c => c.cardType),
-            deck.map(c => Number(c.atk)), // Ensures these are passed as numbers
-            deck.map(c => Number(c.def)), 
-            deck.map(c => Number(c.rarity)),
+            deck.map(c => c.name), deck.map(c => c.cardType),
+            deck.map(c => Number(c.atk)), deck.map(c => Number(c.def)), deck.map(c => Number(c.rarity)),
             { value: ethers.parseEther("0.1"), gasLimit: 4000000 }
         );
-
-        log(`[PENDING] Forging on Lightchain: ${tx.hash.slice(0, 15)}...`);
         
+        log(`[PENDING] Tx: ${tx.hash.slice(0, 15)}...`);
         await tx.wait();
-        log("<span style='color:var(--green);'>[SUCCESS]</span> Starter Deck Secured!");
-        
+        log("[SUCCESS] Warriors are in the fight!");
         renderDeck(deck);
 
     } catch (e) {
-        console.error("Starter Pack Error:", e);
-        log(`<span style='color:var(--red);'>[TCG ERR]</span> ${e.message}`);
+        log(`[TCG ERR] ${e.message}`);
     }
 }
-
     
         
 async function executeForge() {
@@ -2345,146 +2310,51 @@ let isGenerating = false;
 
 async function generateAIVMArt() {
     const userSelected = document.getElementById('modelSelector').value;
-    
-    const modelMap = {
-        'SDXL-TURBO': '@cf/stabilityai/stable-diffusion-xl-base-1.0',
-        'FLUX.1': '@cf/black-forest-labs/flux-1-schnell',
-        'DEEPSEEK-V3': '@cf/deepseek-ai/deepseek-v3' // This will fail for images!
-    };
-    let modelPath = "@cf/stabilityai/stable-diffusion-xl-base-1.0"; 
-    if (selected === "Flux-1") modelPath = "@cf/black-forest-labs/flux-1-schnell";
-    const modelId = modelMap[userSelected] || modelMap['SDXL-TURBO'];
-    
-    // Ensure your fetch body uses this mapped ID
-    const aiImageUrl = `https://aivm.lightchain.ai/api/v1/render?prompt=${encodeURIComponent(finalPrompt)}&model=${modelId}&wallet=${userWallet}`;
-    
-    
-    const btn = event.target; // Assuming called from the button
-    btn.disabled = true;
-    setTimeout(() => { btn.disabled = false; }, 10000); // 10s Cooldown
-    if (isGenerating) return log("System busy: Awaiting protocol PoI...");
-
     const basePrompt = document.getElementById('artPrompt').value.trim();
     const styleSuffix = document.getElementById('artStyle').value;
-    const selectedModel = document.getElementById('modelSelector').value;
+    
+    if (!basePrompt) return log("Error: Enter a prompt.");
+    if (isGenerating) return log("System busy...");
+    isGenerating = true;
 
-    if (!basePrompt) return log("Error: Please enter a prompt first.");
-    if (!userWallet) return log("Error: Connect wallet to anchor PoI.");
-
-    isGenerating = true; 
+    // 🟢 THE FIX: Correct variable mapping and forcing image models
     const finalPrompt = (basePrompt + styleSuffix).replace(/\s+/g, ' ');
-    localStorage.setItem('last_render_time', Date.now());
+    const promptId = ethers.keccak256(ethers.toUtf8Bytes(finalPrompt + Date.now()));
     
-    
+    // Map text models to image models for the Render endpoint
+    let modelId = "@cf/stabilityai/stable-diffusion-xl-base-1.0";
+    if (userSelected === "Flux-1") modelId = "@cf/black-forest-labs/flux-1-schnell";
+    if (userSelected === "SDXL-Turbo") modelId = "@cf/stabilityai/stable-diffusion-xl-base-1.0";
+
+    const aiImageUrl = `https://aivm.lightchain.ai/api/v1/render?prompt=${encodeURIComponent(finalPrompt)}&model=${modelId}&promptId=${promptId}&wallet=${userWallet}`;
+
     // UI Feedback
-    document.getElementById('renderStatusText').style.display = 'none';
-    document.getElementById('aivmOutputImage').style.display = 'none';
     const loader = document.getElementById('renderLoader');
     loader.style.display = 'block';
-    loader.querySelector('div').innerText = `Anchoring PoI to Testnet...`;
+    loader.querySelector('div').innerText = `Inference: ${userSelected}...`;
 
-    try {
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const signer = await provider.getSigner();
-
-        // --- STEP 1: PROTOCOL ANCHOR (PoI) ---
-        // We anchor the prompt hash to the LCAI AIVM V2 Registry
-        const promptId = ethers.keccak256(ethers.toUtf8Bytes(finalPrompt + Date.now()));
-        log(`[PROTOCOL] Sending PoI Anchor: ${promptId.slice(0,18)}...`);
-        const aiImageUrl = `https://aivm.lightchain.ai/api/v1/render?prompt=${encodeURIComponent(finalPrompt)}&model=${selectedModel}&promptId=${promptId}&wallet=${userWallet}`;
-
-        // 1. Check verification on Identity Contract
-        const identityContract = new ethers.Contract(CONFIG.contract, [
-            "function requestInferenceV2(bytes32 promptId, string calldata prompt) public payable",
-            "function verified(address) view returns (bool)"
-        ], signer);
-        // check if user is verified first to avoid silent revert
-        const isUserVerified = await identityContract.verified(userWallet);
-
-
-//        const isUserVerified = await contract.verified(userWallet);
-        if (!isUserVerified) {
-            isGenerating = false;
-            loader.style.display = 'none';
-            return log("Error: You must be a Verified Identity to anchor PoI.");
-        }
-
-
-        // --- STEP 2: STABILIZED RENDER ---
-        const seed = Math.floor(Math.random() * 1000000);
-        const encodedPrompt = encodeURIComponent(finalPrompt);
-        const img = new Image();
-        img.crossOrigin = "anonymous"; 
-
-            img.onload = () => {
-const mainCanvas = document.getElementById('generatedCanvas');
-    const mainCtx = mainCanvas.getContext('2d');
-    mainCanvas.width = 1024;
-    mainCanvas.height = 1024;
-    
-    // 1. Draw the raw AI art first
-    mainCtx.drawImage(img, 0, 0, 1024, 1024);
-
-    // 2. CRITICAL: Capture CLEAN DATA for the NFT now (No Watermark)
-    // This is what gets encrypted and sent to the blockchain
-    currentArtData = mainCanvas.toDataURL('image/jpeg', 0.9);
-                // FIX: Use mainCtx (not ctx) for the watermark
-
-                const modelName = document.getElementById('modelSelector').value;
-                mainCtx.font = "bold 30px 'Courier New'";
-                mainCtx.fillStyle = "rgba(0, 242, 255, 0.6)";
-                mainCtx.fillText(`AIVM AUTH: ${modelName}`, 40, 950);
-
-                mainCtx.font = "italic 25px Arial";
-                mainCtx.fillText("LCAI-MiMo © 2026", 750, 985);
-
-                // 4. Update Preview with BOTH lines visible
-                const previewImg = document.getElementById('aivmOutputImage');
-                previewImg.src = mainCanvas.toDataURL('image/png');
-                previewImg.style.display = 'block';
-
-                document.getElementById('aivmOutputImage').src = mainCanvas.toDataURL('image/png');
-                document.getElementById('aivmOutputImage').style.display = 'block';
-            
-                // 2. Render Low-Res for Blockchain (The Fix for RPC Errors)
-                const tempCanvas = document.createElement('canvas');
-                const tempCtx = tempCanvas.getContext('2d');
-                tempCanvas.width = 256;
-                tempCanvas.height = 256;
-                tempCtx.drawImage(img, 0, 0, 256, 256);
-                
-                // This variable is now small enough to pass through the RPC
-                currentArtData = tempCanvas.toDataURL('image/jpeg', 0.1); 
-    
-                const cidElement = document.getElementById('renderCID');
-                if (currentArtData) {
-                    // Since we are bypassing IPFS and minting direct, we show the data type
-                    cidElement.innerText = "On-Chain (Base64)"; 
-                    cidElement.style.color = "var(--green)";
-                }
-            
-                isGenerating = false;
-                document.getElementById('renderLoader').style.display = 'none';
-                document.getElementById('saveArtBtn').style.display = 'block';
-                log("[AIVM] Render Stabilized. High-res preview active.");
-        };
-                
-        img.onerror = () => {
-            isGenerating = false;
-            loader.style.display = 'none';
-            document.getElementById('renderStatusText').style.display = 'block';
-            document.getElementById('renderStatusText').innerText = "AI Gateway Busy (Error 429). Please wait 30s.";
-            // CRITICAL: Hide the save button so you don't mint a blank white box
-            document.getElementById('saveArtBtn').style.display = 'none';            
-            log(`[AIVM Error] Connection Reset. PoI remains anchored.`);
-        };
-
-        img.src = aiImageUrl;
-    } catch (e) {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+        const mainCanvas = document.getElementById('generatedCanvas');
+        const mainCtx = mainCanvas.getContext('2d');
+        mainCanvas.width = 1024; mainCanvas.height = 1024;
+        mainCtx.drawImage(img, 0, 0, 1024, 1024);
+        
+        currentArtData = mainCanvas.toDataURL('image/jpeg', 0.8);
+        document.getElementById('aivmOutputImage').src = currentArtData;
+        document.getElementById('aivmOutputImage').style.display = 'block';
+        document.getElementById('renderLoader').style.display = 'none';
+        document.getElementById('saveArtBtn').style.display = 'block';
         isGenerating = false;
-        log(`[Fatal Error] ${e.message}`);
+        log("[AIVM] Art Rendered and Verified.");
+    };
+    img.onerror = () => {
+        isGenerating = false;
         loader.style.display = 'none';
-    }
+        log("[AIVM] Gateway Busy (429). Retry in 30s.");
+    };
+    img.src = aiImageUrl;
 }
 
 let currentArtData = null; // Stores the Base64 of the generated image

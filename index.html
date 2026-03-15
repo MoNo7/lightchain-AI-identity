@@ -792,7 +792,10 @@ function launchGrandmasterEngine() {
     };
     
     chessBoard = Chessboard('boardInner', config);
-    updateChessStatus();
+    setTimeout(() => {
+        chessBoard.resize();
+        updateChessStatus();
+    }, 50);
 }
 
 // Helper function to save state locally

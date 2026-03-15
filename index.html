@@ -549,7 +549,7 @@
 </div>
             
             
-            <div id="galleryView" class="card view-section" style=width: 95%; max-width: 1200px;margin: 0 auto;">
+            <div id="galleryView" class="card view-section" style=display:none;">
                 <h3>AIVM Community Gallery</h3>
                 <div id="galleryGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px;width: 100%;">
                     <p style="color:var(--text-dim)">Gallery items will appear here after minting...</p>
@@ -564,7 +564,7 @@
                     <button class="pill" onclick="openMintSelect()" style="background:var(--accent); color:#000; font-weight:bold; cursor:pointer; border:none;">+ LIST NFT FOR AUCTION</button>
                 </div>
 
-                <div id="auctionGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px;width: 100%;">
+                <div id="auctionGrid">
                     <div id="auctionEmpty" style="grid-column: 1/-1; text-align: center; padding: 40px; border: 1px dashed var(--border); border-radius: 8px;">
                         <i class="fas fa-gavel" style="font-size: 2rem; color: var(--text-dim); margin-bottom: 10px;"></i>
                         <div style="color: var(--text-dim);">No active auctions. Be the first to list!</div>
@@ -2785,6 +2785,7 @@ async function listInAuction(tokenId) {
         
        function showView(viewId) {
             // 1. Hide EVERYTHING that acts as a view
+           document.querySelectorAll('.view-section').forEach(v => v.style.display = 'none');
             const allPanels = document.querySelectorAll('.view-section, .view-panel');
             allPanels.forEach(p => {
                 p.style.display = 'none';
@@ -2807,6 +2808,7 @@ async function listInAuction(tokenId) {
                 }
                // if (nav.getAttribute('onclick')?.includes(viewId)) nav.classList.add('active');
             });
+            if (viewId === 'galleryView') loadGallery();
             if (viewId === 'marketView') {
                 const grid = document.getElementById('auctionGrid');
                 if (grid) grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:40px;">Syncing with Auction House...</div>';

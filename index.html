@@ -845,7 +845,7 @@ async function getStarterPack() {
         // 🟢 REGEX FIX: Strips out AI chatter like "Sure, here's your JSON..."
         const jsonMatch = content.match(/\[.*\]/s);
         if (!jsonMatch) throw new Error("AIVM response was not in a valid deck format.");
-        const deck = JSON.parse(jsonMatch[0]);
+        const GSPdeck = JSON.parse(jsonMatch[0]);
         
         // 🟢 ADDRESS SYNC: Ensure this matches your Remix 'WarriorCards' address
          const tcgContract = new ethers.Contract("0xaE7d46Ce849A3F6ee2a26F6585f547c1eCfC9518", [

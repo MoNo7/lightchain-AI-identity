@@ -155,24 +155,29 @@
         }
         
 #warriorTCGView {
-    display: grid !important;
+    display: none !important;
     /* Row 1: Title Bar | Row 2: Game Content */
     grid-template-rows: auto 1fr; 
     /* Three Columns for Collection, Store, Leaderboard */
-    grid-template-columns: 1fr 1fr 1fr; 
+    grid-template-columns: 1fr 1.2fr 1fr; 
     grid-template-areas: 
         "header header header"
         "collection store leaderboard";
-    gap: 30px;
-    padding: 40px;
+    gap: 25px;
+    padding: 30px;
     background: #050608;
     border: 1px solid var(--accent);
     min-height: 80vh;
-    width: 100%;
+    width: 95%%;
+    max-width: 1400px;
+    margin: 0 auto;
+    height: auto;
+    min-height: 700px;
     box-sizing: border-box;
+    position: relative;
 }
 /* Assign elements to the grid areas */
-.tcg-header-row { grid-area: header; }
+.tcg-header-row { grid-area: header; width:100%;margin-bottom: 10px;}
 .tcg-collection { grid-area: collection; }
 .tcg-store      { grid-area: store; }
 .tcg-leaderboard { grid-area: leaderboard; }

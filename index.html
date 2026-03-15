@@ -165,6 +165,13 @@
             gap: 20px;
             box-sizing: border-box;
         }
+
+        .view-section.card {
+            width: 95%;
+            max-width: 1100px;
+            margin: 0 auto 20px auto; /* Centers the card horizontally */
+            display: none; /* Managed by JS */
+        }
         
         .view-section.active {
             display: block !important;
@@ -559,14 +566,14 @@
             
             <div id="galleryView" class="card view-section" style=display:none;">
                 <h3>AIVM Community Gallery</h3>
-                <div id="galleryGrid">
-                    <p style="color:var(--text-dim)">Gallery items will appear here after minting...</p>
+                <div id="galleryGrid" style="margin-top:20px;">
+                <p style="color:var(--text-dim)">Gallery items will appear here after minting...</p>
                 </div>
             </div>
             <div id="marketView" class="card view-section" style="display:none;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <div>
-                        <h3 style="margin:0;">AIVM Auction House</h3>
+                        <h3 style="margin:0;"><i class="fas fa-gavel"></i>AIVM Auction House</h3>
                         <p style="color: var(--text-dim); font-size: 0.8rem; margin: 5px 0 0 0;">Bid on community-minted AIVM Art</p>
                     </div>
                     <button class="pill" onclick="openMintSelect()" style="background:var(--accent); color:#000; font-weight:bold; cursor:pointer; border:none;">+ LIST NFT FOR AUCTION</button>

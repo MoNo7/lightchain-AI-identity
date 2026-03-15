@@ -839,11 +839,20 @@ async function autoConnectWallet() {
 
 async function getStarterPack() {
     if (!userWallet) return log("Connect wallet first.");
-    log("[TCG] AIVM is forging your 7-card Deck...");
+    log("[TCG] Contacting AIVM for Starter Deck Forge...");
 
     try {
-        const prompt = `Generate exactly 7 TCG cards: 4 Standard (rarity 1), 1 Rare (rarity 2), 1 Epic (rarity 3), 1 Legendary (rarity 4). Return ONLY valid JSON array: [{"name": "Name", "cardType": "AI", "atk": 20, "def": 20, "rarity": 1}]`;
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
         
+        // 🟢 ADDRESS SYNC: Ensure this matches your Remix 'WarriorCards' address
+        const cardContractAddr = "0xaE7d46Ce849A3F6ee2a26F6585f547c1eCfC9518";
+        const tcgContract = new ethers.Contract(cardContractAddr, [
+            "function mintAIVMStarterPack(string[] names, string[] types, uint256[] atks, uint256[] defs, uint256[] rarities) public payable"
+        ], signer);
+
+        // AIVM Data Request
+        const prompt = `Generate 7 TCG cards: 4 Common, 1 Rare, 1 Epic, 1 Legendary. Return ONLY JSON array: [{"name":"N","cardType":"AI","atk":10,"def":10,"rarity":1}]`;
         const response = await fetch('https://chat2.lightchain.ai/api/v1/chat/completions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${userWallet}` },
@@ -851,34 +860,19 @@ async function getStarterPack() {
         });
         
         const data = await response.json();
-        const content = data.choices[0].message.content;
-        
-        // 🟢 THE FIX: This regex strips out any AI chatter and finds only the [ JSON ]
-        const jsonMatch = content.match(/\[.*\]/s);
-        if (!jsonMatch) throw new Error("AIVM response was not in a valid deck format.");
-        const deck = JSON.parse(jsonMatch[0]);
+        const deck = JSON.parse(data.choices[0].message.content.match(/\[.*\]/s)[0]);
 
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const signer = await provider.getSigner();
-        
-        // 🟢 MINTING: This calls your WarriorCards contract at 0xae7...
-        const tcgContract = new ethers.Contract("0xaE7d46Ce849A3F6ee2a26F6585f547c1eCfC9518", [
-            "function mintAIVMStarterPack(string[] names, string[] types, uint256[] atks, uint256[] defs, uint256[] rarities) public payable"
-        ], signer);
-
+        // 🟢 TRANSACTION: 0.1 LCAI fee required
         const tx = await tcgContract.mintAIVMStarterPack(
-            deck.map(c => c.name),
-            deck.map(c => c.cardType),
-            deck.map(c => c.atk),
-            deck.map(c => c.def),
-            deck.map(c => c.rarity),
-            { value: ethers.parseEther("0.1"), gasLimit: 4000000 } // Boosted gas for Lightchain
+            deck.map(c => c.name), deck.map(c => c.cardType),
+            deck.map(c => c.atk), deck.map(c => c.def), deck.map(c => c.rarity),
+            { value: ethers.parseEther("0.1"), gasLimit: 3000000 }
         );
-        
-        log(`[PENDING] Tx: ${tx.hash.slice(0, 15)}...`);
+
+        log(`[PENDING] Minting: ${tx.hash.slice(0, 12)}...`);
         await tx.wait();
-        log("<span style='color:var(--green);'>[SUCCESS]</span> Deck secured on Lightchain!");
-        renderDeck(deck); 
+        log("<span style='color:var(--green);'>[SUCCESS]</span> Deck minted to WarriorStats!");
+        renderDeck(deck);
 
     } catch (e) {
         log(`<span style='color:var(--red);'>[TCG ERR]</span> ${e.message}`);

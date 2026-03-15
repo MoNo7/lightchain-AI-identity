@@ -494,91 +494,92 @@
                     <button class="pill" onclick="exitWarriorGateway()" style="border-color: var(--red); color: var(--red);">EXIT TCG</button>
                 </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-top: 40px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-top: 40px;">
                     <div class="glass-card" style="text-align: center; padding: 30px;">
                         <i class="fa-solid fa-box-open" style="font-size: 2rem; margin-bottom: 15px;"></i>
                         <h4>MY COLLECTION</h4>
                         <div id="tcgDeckContainer">
-                            <p style="font-size: 0.7rem; color: var(--text-dim); margin-bottom: 15px;">No cards found in your NFT deck.</p>
-                            <button class="pill" onclick="getStarterPack()" style="width: 100%; background: var(--accent); color: #000; font-weight: bold;">
-                                GET STARTER PACK!
-                            </button>
-                            <button class="pill" onclick="openForgeMenu()" style="background: var(--accent); color: #000; font-weight: bold;">
-                                <i class="fas fa-hammer"></i> OPEN FORGE
-                            </button>
+                        <p style="font-size: 0.7rem; color: var(--text-dim); margin-bottom: 15px;">No cards found in your NFT deck.</p>
+                        <button class="pill" onclick="getStarterPack()" style="width: 100%; background: var(--accent); color: #000; font-weight: bold;">
+                        GET STARTER PACK!
+                        </button>
+                        <button class="pill" onclick="openForgeMenu()" style="background: var(--accent); color: #000; font-weight: bold;">
+                        <i class="fas fa-hammer"></i> OPEN FORGE
+                        </button>
                         </div>
                         <p style="font-size: 0.7rem; color: var(--text-dim);">Load NFTs from your Gallery</p>
                         <button class="pill" onclick="loadTCGDeck()" style="width: 100%;">SYNC DECK</button>
-                    </div>
+                        </div>
                     
-                    <div class="glass-card">
-                        <h4><i class="fas fa-store"></i> AIVM STORE</h4>
-                        <div style="padding: 20px; text-align: center; border: 1px dashed var(--border); border-radius: 12px; margin-bottom: 15px;">
-                        <i class="fas fa-bolt" style="font-size: 2rem; color: gold;"></i>
-                        <h5>BOOSTER PACK</h5>
-                        <p style="font-size: 0.7rem; color: #888;">Contains 1 AIVM Forged Card</p>
-                        <button class="pill" onclick="buyPack()" style="background: var(--green); color: #000;">0.05 LCAI</button>
+                        <div class="glass-card">
+                            <h4><i class="fas fa-store"></i> AIVM STORE</h4>
+                            <div style="padding: 20px; text-align: center; border: 1px dashed var(--border); border-radius: 12px; margin-bottom: 15px;">
+                            <i class="fas fa-bolt" style="font-size: 2rem; color: gold;"></i>
+                            <h5>BOOSTER PACK</h5>
+                            <p style="font-size: 0.7rem; color: #888;">Contains 1 AIVM Forged Card</p>
+                            <button class="pill" onclick="buyPack()" style="background: var(--green); color: #000;">0.05 LCAI</button>
+                            </div>
+                        
+                            <div style="padding: 20px; text-align: center; border: 1px dashed var(--border); border-radius: 12px;">
+                            <i class="fas fa-gem" style="font-size: 2rem; color: #b700ff;"></i>
+                            <h5>ELITE CRATE</h5>
+                            <p style="font-size: 0.7rem; color: #888;">Guaranteed Rare or Higher</p>
+                            <button class="pill" onclick="buyPack('elite')" style="background: var(--green); color: #000;">0.15 LCAI</button>
+                            </div>
+                        </div>
+                        <div class="glass-card" style="text-align: center; padding: 30px;">
+                        <i class="fa-solid fa-scroll" style="font-size: 2rem; margin-bottom: 15px;"></i>
+                        <h4>LEADERBOARD</h4>
+                        <p style="font-size: 0.7rem; color: var(--text-dim);">Global AIVM Rankings</p>
+                        <button class="pill" style="width: 100%;">VIEW RANK</button>
+                        </div>
                     </div>
-                  
-                    <div style="padding: 20px; text-align: center; border: 1px dashed var(--border); border-radius: 12px;">
-                        <i class="fas fa-gem" style="font-size: 2rem; color: #b700ff;"></i>
-                        <h5>ELITE CRATE</h5>
-                        <p style="font-size: 0.7rem; color: #888;">Guaranteed Rare or Higher</p>
-                        <button class="pill" onclick="buyPack('elite')" style="background: var(--green); color: #000;">0.15 LCAI</button>
-                    </div>
-            </div>
-            <div class="glass-card" style="text-align: center; padding: 30px;">
-                <i class="fa-solid fa-scroll" style="font-size: 2rem; margin-bottom: 15px;"></i>
-                <h4>LEADERBOARD</h4>
-                <p style="font-size: 0.7rem; color: var(--text-dim);">Global AIVM Rankings</p>
-                <button class="pill" style="width: 100%;">VIEW RANK</button>
-            </div>
-    </div>
+                </div>
 
     <div id="chessView"style="display:none; flex-direction:column; height: 100%; width: 100%; background:var(--bg); border-radius:12px; padding:10px;">
     
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px; border-bottom:1px solid var(--border); padding-bottom:15px;">
-            <h2 style="color:var(--accent); display:flex; align-items:center; gap:10px; margin:0;">
-                <i class="fa-solid fa-chess"></i> Chess Engine vs LCAI
-            </h2>
-            <button class="pill" onclick="exitChess()" style="background:var(--panel); color:var(--text); border:1px solid var(--border);">
-                <i class="fa-solid fa-arrow-left"></i> EXIT GAME
-            </button>
-        </div>
-    
-        <div style="display:flex; gap:20px; justify-content:center; align-items:flex-start; flex:1;">
-            <div style="width: 450px; background:var(--panel); padding:15px; border-radius:12px; border:1px solid var(--border);">
-                <div id="boardInner" style="width: 100%;"></div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px; border-bottom:1px solid var(--border); padding-bottom:15px;">
+                <h2 style="color:var(--accent); display:flex; align-items:center; gap:10px; margin:0;">
+                    <i class="fa-solid fa-chess"></i> Chess Engine vs LCAI
+                </h2>
+                <button class="pill" onclick="exitChess()" style="background:var(--panel); color:var(--text); border:1px solid var(--border);">
+                    <i class="fa-solid fa-arrow-left"></i> EXIT GAME
+                </button>
             </div>
-        
-        <div style="flex:1; min-width:300px; max-width:500px; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:20px; display:flex; flex-direction:column;">
+    
+            <div style="display:flex; gap:20px; justify-content:center; align-items:flex-start; flex:1;">
+            <div style="width: 450px; background:var(--panel); padding:15px; border-radius:12px; border:1px solid var(--border);">
+            <div id="boardInner" style="width: 100%;"></div>
+            </div>
+            
+            <div style="flex:1; min-width:300px; max-width:500px; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:20px; display:flex; flex-direction:column;">
             
             <h3 style="margin-top:0; color:#fff; margin-bottom:15px;">Match Status</h3>
             <div id="chessStatus" style="font-size:1.4rem; color:var(--accent); font-weight:bold; margin-bottom:10px;">
-                White to move
+            White to move
             </div>
             
             <div style="font-family:monospace; font-size:0.75rem; color:var(--text-dim); background:#000; padding:10px; border-radius:6px; word-break:break-all; margin-bottom:20px; border:1px solid #222;">
-                <span style="color:#666;">FEN:</span> <span id="chessFen">rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1</span>
+            <span style="color:#666;">FEN:</span> <span id="chessFen">rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1</span>
             </div>
             
             <div style="display:flex; gap:10px; margin-bottom:20px;">
-                <button class="pill" onclick="startNewChessGame()" style="background:var(--accent); color:#000; flex:1; font-weight:bold;">
-                    <i class="fa-solid fa-rotate-right"></i> NEW GAME
-                </button>
-                <button class="pill" onclick="undoChessMove()" style="flex:1; border:1px solid var(--border);">
-                    <i class="fa-solid fa-rotate-left"></i> UNDO
-                </button>
-            </div>
-
-            <h4 style="margin:0 0 10px 0; color:var(--text-dim); font-size:0.85rem; text-transform:uppercase; letter-spacing:1px;">AIVM Engine Log</h4>
-            <div id="aivmLog" style="background:#000; padding:15px; border-radius:8px; flex:1; min-height:150px; overflow-y:auto; font-family:monospace; font-size:0.85rem; color:var(--text); border:1px solid #222; box-shadow:inset 0 0 10px rgba(0,0,0,0.5);">
-                <span style="color:var(--text-dim);">[SYS]</span> Chess Engine Initialized.<br>
+            <button class="pill" onclick="startNewChessGame()" style="background:var(--accent); color:#000; flex:1; font-weight:bold;">
+            <i class="fa-solid fa-rotate-right"></i> NEW GAME
+            </button>
+            <button class="pill" onclick="undoChessMove()" style="flex:1; border:1px solid var(--border);">
+            <i class="fa-solid fa-rotate-left"></i> UNDO
+            </button>
             </div>
             
-        </div>
+            <h4 style="margin:0 0 10px 0; color:var(--text-dim); font-size:0.85rem; text-transform:uppercase; letter-spacing:1px;">AIVM Engine Log</h4>
+            <div id="aivmLog" style="background:#000; padding:15px; border-radius:8px; flex:1; min-height:150px; overflow-y:auto; font-family:monospace; font-size:0.85rem; color:var(--text); border:1px solid #222; box-shadow:inset 0 0 10px rgba(0,0,0,0.5);">
+            <span style="color:var(--text-dim);">[SYS]</span> Chess Engine Initialized.<br>
+            </div>
+            
+            </div>
+            </div>
     </div>
-        
             <div id="galleryView" class="card view-section" style="display:none;">
                 <h3>AIVM Community Gallery</h3>
                 <div id="galleryGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">
@@ -2841,6 +2842,12 @@ async function listInAuction(tokenId) {
                 const el = document.getElementById(id);
                 if (el) el.style.display = 'none';
             });
+
+            // 1. Reset Workspace UI (in case TCG altered it)
+            document.querySelector('nav').style.display = 'flex';
+            document.querySelector('header').style.display = 'flex';
+            document.getElementById('console').style.display = 'block';
+            document.querySelector('.workspace').classList.remove('tcg-active');
         
             // 1. Close Arcade/TCG Overlays first
             const tcgView = document.getElementById('warriorTCGView');
@@ -2849,9 +2856,9 @@ async function listInAuction(tokenId) {
             if (chessView) chessView.style.display = 'none';
             
             // Restore nav/header visibility if they were hidden by TCG
-            document.querySelector('nav').style.display = 'flex';
-            document.querySelector('header').style.display = 'flex';
-            document.getElementById('console').style.display = 'block';
+ //           document.querySelector('nav').style.display = 'flex';
+ //           document.querySelector('header').style.display = 'flex';
+ //           document.getElementById('console').style.display = 'block';
         
             // 2. Hide all standard sections
             document.querySelectorAll('.view-section').forEach(view => {
@@ -2864,6 +2871,11 @@ async function listInAuction(tokenId) {
             if (target) {
                 target.style.display = 'block';
                 target.classList.add('active');
+
+                if (viewId === 'arcadeView') {
+                    const hub = document.getElementById('arcadeHub');
+                    if (hub) hub.style.display = 'grid';
+                }
                 
                 // Trigger specific loaders
                 if (viewId === 'galleryView') loadGallery();

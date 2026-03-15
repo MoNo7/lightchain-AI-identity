@@ -826,7 +826,7 @@ async function autoConnectWallet() {
 }
 
 async function getStarterPack() {
-    if (!userWallet) return log("Connect wallet first.");
+if (!userWallet) return log("Connect wallet first.");
     log("[TCG] AIVM is forging your 7-card Deck...");
 
     try {
@@ -834,24 +834,30 @@ async function getStarterPack() {
         
         const response = await fetch('https://chat2.lightchain.ai/api/v1/chat/completions', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${userWallet}` },
-            body: JSON.stringify({ model: "DeepSeek-V3-Base", messages: [{ role: "user", content: prompt }] })
+            headers: { 
+                'Content-Type': 'application/json', 
+                'Authorization': `Bearer ${userWallet}` 
+            },
+            body: JSON.stringify({ 
+                model: "DeepSeek-V3-Base", 
+                messages: [{ role: "user", content: prompt }] 
+            })
         });
         
         const data = await response.json();
         const content = data.choices[0].message.content;
         
-        // --- ROBUST PARSING FIX ---
+        // 🟢 THE FIX: Extract ONLY the JSON array from the AIVM's response
         const jsonMatch = content.match(/\[.*\]/s);
-        if (!jsonMatch) {
-            console.log("AIVM Raw Output:", content);
-            throw new Error("AIVM output format invalid. Please try again.");
-        }
+        if (!jsonMatch) throw new Error("AIVM response was not in a valid deck format.");
+        
         const deck = JSON.parse(jsonMatch[0]);
 
         const provider = new ethers.BrowserProvider(window.ethereum);
         const signer = await provider.getSigner();
-        const tcgContract = new ethers.Contract("0xAE78BC8a0813958999aA9777995A6421AAC6", [
+        
+        // Use the WarriorCards address from your Remix panel
+        const tcgContract = new ethers.Contract("0xae7d46ce849a3f6ee2a26f6585f547c1ecfc9518", [
             "function mintAIVMStarterPack(string[] names, string[] types, uint256[] atks, uint256[] defs, uint256[] rarities) public payable"
         ], signer);
 
@@ -864,9 +870,9 @@ async function getStarterPack() {
             { value: ethers.parseEther("0.1"), gasLimit: 2000000 }
         );
         
-        log(`[PENDING] Anchoring AIVM Deck: ${tx.hash.slice(0, 15)}...`);
+        log(`[PENDING] Transaction: ${tx.hash.slice(0, 15)}...`);
         await tx.wait();
-        log("<span style='color:var(--green);'>[SUCCESS]</span> Deck secured!");
+        log("<span style='color:var(--green);'>[SUCCESS]</span> Deck secured on Lightchain!");
         renderDeck(deck); 
 
     } catch (e) {

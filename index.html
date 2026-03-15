@@ -157,16 +157,12 @@
 /* Fixes the TCG Layout to be centered and expansive */
 #warriorTCGView {
 display: none; /* Managed by JS */
-    grid-template-rows: auto 1fr;
     grid-template-columns: 1fr 1.2fr 1fr; 
     grid-template-areas: 
         "header header header"
         "collection store leaderboard";
     gap: 20px;
     padding: 30px;
-    background: #050608;
-    border: 1px solid var(--accent);
-    border-radius: 12px;
     width: 98%; 
     max-width: 1500px;
     margin: 0 auto; 
@@ -223,6 +219,13 @@ display: none; /* Managed by JS */
             min-height: 400px;
         }
 
+        /* 🟢 Prevents cards from expanding to fill the whole screen width */
+        .gallery-card, .glass-card {
+            width: 100%;
+            max-width: 350px; 
+            justify-self: center;
+        }
+
         /* 🟢 Ensures the Gallery Grid uses all available width */
         #auctionGrid {
             display: grid;
@@ -238,7 +241,6 @@ display: none; /* Managed by JS */
             gap: 25px;
             width: 100%;
             padding: 20px;
-            box-sizing: border-box;
         }
 
         /* Utility Classes */
@@ -872,9 +874,11 @@ async function getStarterPack() {
         const data = await response.json();
         let content = data.choices[0].message.content;
         
-        // 🟢 THE FIX: Aggressively strip markdown and find JSON
+          // 🟢 THE FIX: Strip markdown so JSON.parse doesn't crash
         content = content.replace(/```json|```/gi, "").trim();
         const jsonMatch = content.match(/\[.*\]/s);
+        if (!jsonMatch) throw new Error("AIVM sent back a non-JSON response.");
+        
         const deck = JSON.parse(jsonMatch[0]);
 
         const provider = new ethers.BrowserProvider(window.ethereum);

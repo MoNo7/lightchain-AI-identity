@@ -167,7 +167,7 @@
         .status-text.locked { color: #ffcc00; }
         .status-text.offline { color: #ff4d4d; }
 
-        #console { height: 120px; background: #000; border-top: 1px solid var(--border); color: var(--green); padding: 15px; font-family: monospace; overflow-y: auto; font-size: 0.75rem; width:100%; box-sizing: border-box;}
+        #console { height: 80px; position: fixed; bottom: 0; right: 0; background: #000; border-top: 1px solid var(--border); color: var(--green); padding: 15px; font-family: 'Courier New', monospace; overflow-y: auto; font-size: 0.75rem; width: calc(100% - 260px); box-sizing: border-box;z-index: 100;}
        @keyframes pulse-green {
             0% { background-color: rgba(57, 211, 83, 0.5); transform: scale(1.05); }
             100% { background-color: transparent; transform: scale(1); }

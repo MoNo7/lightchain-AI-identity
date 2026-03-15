@@ -2832,39 +2832,36 @@ async function listInAuction(tokenId) {
     }
 }
         
-       function showView(viewId) {
-            console.log("Switching to View:", viewId);
+        function showView(viewId) {
+            console.log("Navigating to:", viewId);
+        
+            // 1. Close Arcade/TCG Overlays first
+            const tcgView = document.getElementById('warriorTCGView');
+            const chessView = document.getElementById('chessView');
+            if (tcgView) tcgView.style.display = 'none';
+            if (chessView) chessView.style.display = 'none';
             
-            // 1. Hide all sections first
+            // Restore nav/header visibility if they were hidden by TCG
+            document.querySelector('nav').style.display = 'flex';
+            document.querySelector('header').style.display = 'flex';
+            document.getElementById('console').style.display = 'block';
+        
+            // 2. Hide all standard sections
             document.querySelectorAll('.view-section').forEach(view => {
                 view.style.display = 'none';
                 view.classList.remove('active');
             });
         
-            // 2. Show the requested section
-            const targetView = document.getElementById(viewId);
-            if (targetView) {
-                targetView.style.display = 'block';
-                targetView.classList.add('active');
+            // 3. Show the target
+            const target = document.getElementById(viewId);
+            if (target) {
+                target.style.display = 'block';
+                target.classList.add('active');
                 
-                // 3. RESTORED: Trigger data loading for specific views
-                if (viewId === 'galleryView') {
-                    if (typeof loadGallery === 'function') loadGallery();
-                } 
-                else if (viewId === 'marketView') {
-                    if (typeof loadAuctions === 'function') loadAuctions();
-                }
-            } else {
-                console.error("View ID not found:", viewId);
+                // Trigger specific loaders
+                if (viewId === 'galleryView') loadGallery();
+                if (viewId === 'marketView') renderAuctions();
             }
-        
-            // 4. Update Sidebar UI
-            document.querySelectorAll('.nav-item').forEach(nav => {
-                nav.classList.remove('active');
-                if (nav.getAttribute('onclick')?.includes(viewId)) {
-                    nav.classList.add('active');
-                }
-            });
         }
 
         function log(m) {

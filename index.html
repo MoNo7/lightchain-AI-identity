@@ -842,17 +842,22 @@ async function autoConnectWallet() {
         
 async function getStarterPack() {
     if (!userWallet) return log("<span style='color:var(--red);'>[TCG ERR]</span> Connect wallet first.");
-    log("[TCG] Contacting AIVM to forge your 7-card Starter Deck...");
+    log("[TCG] Initializing AIVM Neural Forge. Generating strictly formatted deck...");
 
     try {
         const provider = new ethers.BrowserProvider(window.ethereum);
         const signer = await provider.getSigner();
         
-        // 1. The Bulletproof AIVM Prompt
-        const prompt = `You are a TCG data generator. Generate exactly 7 cards: 4 Common (rarity 1), 1 Rare (rarity 2), 1 Epic (rarity 3), 1 Legendary (rarity 4). 
-        OUTPUT STRICTLY A RAW JSON ARRAY. NO MARKDOWN. NO INTRO TEXT. 
-        Format: [{"name":"N","cardType":"AI","atk":10,"def":10,"rarity":1}]`;
+        // 🟢 1. The System & User Prompts
+        // We tell the AI it is a machine, not an assistant.
+        const systemPrompt = "You are a strict JSON data server. You do not use markdown. You do not speak. You output ONLY a raw, minified JSON array.";
         
+        const userPrompt = `Generate a TCG deck of exactly 7 cards.
+        Requirements: 4 Common (rarity 1), 1 Rare (rarity 2), 1 Epic (rarity 3), 1 Legendary (rarity 4).
+        Output format must be a raw JSON array of objects with EXACTLY these keys: "name" (string), "cardType" (string), "atk" (number), "def" (number), "rarity" (number).
+        Example of one item: {"name": "Neon Knight", "cardType": "Cyber", "atk": 45, "def": 30, "rarity": 2}
+        DO NOT wrap in \`\`\`json. DO NOT add any introductory or concluding text.`;
+
         const response = await fetch('https://chat2.lightchain.ai/api/v1/chat/completions', {
             method: 'POST',
             headers: { 
@@ -861,8 +866,11 @@ async function getStarterPack() {
             },
             body: JSON.stringify({ 
                 model: "DeepSeek-V3-Base", 
-                messages: [{ role: "user", content: prompt }],
-                temperature: 0.3 // Lower temp means strictly formatted output
+                messages: [
+                    { role: "system", content: systemPrompt },
+                    { role: "user", content: userPrompt }
+                ],
+                temperature: 0.1 // 🟢 Very low temperature for maximum consistency
             })
         });
         
@@ -871,23 +879,25 @@ async function getStarterPack() {
         const data = await response.json();
         let content = data.choices[0].message.content;
 
-        // 2. The Aggressive JSON Extractor
-        // This strips out any ```json and ``` markdown tags before parsing
-        content = content.replace(/```json/gi, '').replace(/```/g, '').trim();
+        // 🟢 2. Ironclad Parsing
+        // Even if the AI disobeys and adds text, this finds the absolute first '[' and last ']'
+        const firstBracket = content.indexOf('[');
+        const lastBracket = content.lastIndexOf(']');
         
-        // Find the first '[' and last ']' just in case there's still chatter
-        const startIndex = content.indexOf('[');
-        const endIndex = content.lastIndexOf(']');
-        if (startIndex === -1 || endIndex === -1) throw new Error("AIVM failed to return a valid JSON array.");
+        if (firstBracket === -1 || lastBracket === -1) {
+            throw new Error("AIVM failed to return a valid array. Check console for raw output.");
+        }
         
-        const rawJson = content.substring(startIndex, endIndex + 1);
-        const deck = JSON.parse(rawJson);
+        const cleanJson = content.substring(firstBracket, lastBracket + 1);
+        const deck = JSON.parse(cleanJson);
 
-        if (deck.length !== 7) throw new Error(`AIVM returned ${deck.length} cards instead of 7.`);
+        if (!Array.isArray(deck) || deck.length !== 7) {
+            throw new Error(`AIVM returned ${deck?.length || 0} cards instead of exactly 7.`);
+        }
 
-        log("[TCG] Deck data forged! Awaiting MetaMask signature...");
+        log("[TCG] Deck forged successfully. Awaiting blockchain signature...");
 
-        // 3. Contract Execution (Synced to your Remix Deployment)
+        // 🟢 3. Contract Execution
         const tcgContract = new ethers.Contract("0xaE7d46Ce849A3F6ee2a26F6585f547c1eCfC9518", [
             "function mintAIVMStarterPack(string[] names, string[] types, uint256[] atks, uint256[] defs, uint256[] rarities) public payable"
         ], signer);
@@ -895,9 +905,9 @@ async function getStarterPack() {
         const tx = await tcgContract.mintAIVMStarterPack(
             deck.map(c => c.name), 
             deck.map(c => c.cardType),
-            deck.map(c => c.atk), 
-            deck.map(c => c.def), 
-            deck.map(c => c.rarity),
+            deck.map(c => Number(c.atk)), // Ensures these are passed as numbers
+            deck.map(c => Number(c.def)), 
+            deck.map(c => Number(c.rarity)),
             { value: ethers.parseEther("0.1"), gasLimit: 4000000 }
         );
 
@@ -906,7 +916,6 @@ async function getStarterPack() {
         await tx.wait();
         log("<span style='color:var(--green);'>[SUCCESS]</span> Starter Deck Secured!");
         
-        // Render the cards in the UI
         renderDeck(deck);
 
     } catch (e) {

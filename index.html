@@ -2834,37 +2834,38 @@ async function listInAuction(tokenId) {
 }
         
        function showView(viewId) {
-            // 1. Hide EVERYTHING that acts as a view
-           document.querySelectorAll('.view-section').forEach(v => v.style.display = 'none');
-            const allPanels = document.querySelectorAll('.view-section, .view-panel');
-            allPanels.forEach(p => {
-                p.style.display = 'none';
-                p.classList.remove('active');
+            console.log("Switching to View:", viewId);
+            
+            // 1. Hide all sections first
+            document.querySelectorAll('.view-section').forEach(view => {
+                view.style.display = 'none';
+                view.classList.remove('active');
             });
         
-            // 2. Show target
-            const target = document.getElementById(viewId);
-            if (target) {
-                target.style.display = 'block';
-                target.classList.add('active');
+            // 2. Show the requested section
+            const targetView = document.getElementById(viewId);
+            if (targetView) {
+                targetView.style.display = 'block';
+                targetView.classList.add('active');
+                
+                // 3. RESTORED: Trigger data loading for specific views
+                if (viewId === 'galleryView') {
+                    if (typeof loadGallery === 'function') loadGallery();
+                } 
+                else if (viewId === 'marketView') {
+                    if (typeof loadAuctions === 'function') loadAuctions();
+                }
+            } else {
+                console.error("View ID not found:", viewId);
             }
         
-            // 3. Highlight nav
+            // 4. Update Sidebar UI
             document.querySelectorAll('.nav-item').forEach(nav => {
                 nav.classList.remove('active');
-                const clickHandler = nav.getAttribute('onclick') || "";
-                if (clickHandler.includes(viewId)) {
+                if (nav.getAttribute('onclick')?.includes(viewId)) {
                     nav.classList.add('active');
                 }
-               // if (nav.getAttribute('onclick')?.includes(viewId)) nav.classList.add('active');
             });
-            if (viewId === 'galleryView') loadGallery();
-            if (viewId === 'marketView') {
-                const grid = document.getElementById('auctionGrid');
-                if (grid) grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:40px;">Syncing with Auction House...</div>';
-                renderAuctions(); 
-            }
-           
         }
 
         function log(m) {

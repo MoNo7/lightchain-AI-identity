@@ -797,6 +797,7 @@ async function autoConnectWallet() {
             const contract = new ethers.Contract(CONFIG.contract, CONFIG.abi, provider);
             
             const isVerified = await contract.verified(userWallet);
+            clearInterval(identityCheck);
             if (isVerified) {
                 hasInitializedVault = true; // LOCK THIS so it stops looping
                 clearInterval(identityCheck); // STOP the timer entirely
@@ -2292,6 +2293,20 @@ async function withdrawRevenue() {
 let isGenerating = false;
 
 async function generateAIVMArt() {
+    const userSelected = document.getElementById('modelSelector').value;
+    
+    const modelMap = {
+        'SDXL-TURBO': '@cf/stabilityai/stable-diffusion-xl-base-1.0',
+        'FLUX.1': '@cf/black-forest-labs/flux-1-schnell',
+        'DEEPSEEK-V3': '@cf/deepseek-ai/deepseek-v3' // This will fail for images!
+    };
+
+    const modelId = modelMap[userSelected] || modelMap['SDXL-TURBO'];
+    
+    // Ensure your fetch body uses this mapped ID
+    const aiImageUrl = `https://aivm.lightchain.ai/api/v1/render?prompt=${encodeURIComponent(finalPrompt)}&model=${modelId}&wallet=${userWallet}`;
+    
+    
     const btn = event.target; // Assuming called from the button
     btn.disabled = true;
     setTimeout(() => { btn.disabled = false; }, 10000); // 10s Cooldown

@@ -421,16 +421,29 @@
                     <button class="pill" onclick="getstarterPack()" style="width: 100%; background: var(--accent); color: #000; font-weight: bold;">
                         GET STARTER PACK!
                     </button>
+                    <button class="pill" onclick="openForgeMenu()" style="background: var(--accent); color: #000; font-weight: bold;">
+                        <i class="fas fa-hammer"></i> OPEN FORGE
+                    </button>
                 </div>
                 <p style="font-size: 0.7rem; color: var(--text-dim);">Load NFTs from your Gallery</p>
                 <button class="pill" onclick="loadTCGDeck()" style="width: 100%;">SYNC DECK</button>
             </div>
-            <div class="glass-card" style="text-align: center; padding: 30px; border-color: var(--green);">
-                <i class="fa-solid fa-bolt" style="font-size: 2rem; color: var(--green); margin-bottom: 15px;"></i>
-                <h4>QUICK BATTLE</h4>
-                <p style="font-size: 0.7rem; color: var(--text-dim);">Find a neural opponent</p>
-                <button class="pill" style="width: 100%; background: var(--green); color: #000;">MATCHMAKE</button>
+            <div class="glass-card">
+                <h4><i class="fas fa-store"></i> AIVM STORE</h4>
+            <div style="padding: 20px; text-align: center; border: 1px dashed var(--border); border-radius: 12px; margin-bottom: 15px;">
+                <i class="fas fa-bolt" style="font-size: 2rem; color: gold;"></i>
+                <h5>BOOSTER PACK</h5>
+                <p style="font-size: 0.7rem; color: #888;">Contains 1 AIVM Forged Card</p>
+                <button class="pill" onclick="buyPack()" style="background: var(--green); color: #000;">0.05 LCAI</button>
             </div>
+            </div>
+        <div style="padding: 20px; text-align: center; border: 1px dashed var(--border); border-radius: 12px;">
+            <i class="fas fa-gem" style="font-size: 2rem; color: #b700ff;"></i>
+            <h5>ELITE CRATE</h5>
+            <p style="font-size: 0.7rem; color: #888;">Guaranteed Rare or Higher</p>
+            <button class="pill" onclick="buyPack('elite')" style="background: var(--green); color: #000;">0.15 LCAI</button>
+        </div>
+    </div>
             <div class="glass-card" style="text-align: center; padding: 30px;">
                 <i class="fa-solid fa-scroll" style="font-size: 2rem; margin-bottom: 15px;"></i>
                 <h4>LEADERBOARD</h4>

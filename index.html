@@ -137,17 +137,15 @@
         
         #warriorTCGView {
             display: none;
-            height: 100vh;
-            width: 100vw;
             background: #050608;
             border: 1px solid var(--accent);
             padding: 20px;
             position: fixed; /* Fixes it to the viewport */
             top: 0;
             left: 0;
-            z-index: 9999;
             overflow: hidden !important; 
             display: flex;
+            justify-content: center;
             flex-direction: column;
             box-sizing: border-box;
         }
@@ -775,38 +773,35 @@ async function getStarterPack() {
 
         
 
-function renderDeck(deck) {
+async function renderDeck(deck) {
     const container = document.getElementById('tcgDeckContainer');
-    let html = `<div style="display:flex; gap:10px; justify-content:center; overflow-x:auto; padding-bottom:10px; margin-top:15px;">`;
-
-    deck.forEach(card => {
-        // Theme the card border based on the AIVM's chosen class
-        let color = "var(--accent)"; // Default Cyber/AI
-        let icon = "fa-robot";
+    container.innerHTML = ""; // Clear button
+    
+    for (let i = 0; i < deck.length; i++) {
+        const card = deck[i];
+        const cardEl = document.createElement('div');
+        cardEl.className = "glass-card";
+        cardEl.style = `
+            width:130px; padding:15px; opacity:0; transform: translateY(20px);
+            transition: all 0.5s ease; border: 1px solid var(--border);
+            ${card.rarity >= 4 ? 'box-shadow: 0 0 20px var(--accent); border-color: gold;' : ''}
+        `;
         
-        if(card.cardType === "Bio") { color = "var(--green)"; icon = "fa-dna"; }
-        if(card.cardType === "Void") { color = "var(--red)"; icon = "fa-meteor"; }
-        if(card.cardType === "AI") { color = "#00f2ff"; icon = "fa-network-wired"; }
-
-        html += `
-        <div style="min-width:130px; background:#0a0c10; border:2px solid ${color}; border-radius:8px; padding:15px; text-align:center; position:relative; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
-            <div style="font-size:0.55rem; color:#888; position:absolute; top:5px; left:5px; font-weight:bold; letter-spacing:1px;">${card.cardType.toUpperCase()}</div>
-            
-            <div style="font-size:2.5rem; margin: 20px 0 10px 0; color:${color}; opacity:0.8;">
-                <i class="fas ${icon}"></i>
-            </div>
-            
-            <h5 style="margin:5px 0; font-size:0.85rem; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${card.name}</h5>
-            
-            <div style="display:flex; justify-content:space-between; font-size:0.75rem; font-family:monospace; margin-top:15px; background:#000; padding:5px; border-radius:4px;">
-                <span style="color:var(--red);">⚔️ ${card.atk}</span>
-                <span style="color:var(--green);">🛡️ ${card.def}</span>
-            </div>
-        </div>`;
-    });
-
-    html += `</div>`;
-    container.innerHTML = html;
+        cardEl.innerHTML = `
+            <div style="font-size:0.6rem; color:gold;">${"⭐".repeat(card.rarity)}</div>
+            <h5 style="margin:5px 0; font-size:0.8rem;">${card.name}</h5>
+            <div style="font-size:0.7rem; color:var(--green);">ATK ${card.atk} | DEF ${card.def}</div>
+        `;
+        
+        container.appendChild(cardEl);
+        
+        // Staggered Reveal Animation
+        await new Promise(r => setTimeout(r, 200)); 
+        cardEl.style.opacity = "1";
+        cardEl.style.transform = "translateY(0)";
+        
+        if (card.rarity >= 4) log(`[LEGENDARY] You pulled ${card.name}!`);
+    }
 }
 
 async function loadLeaderboard() {
@@ -864,6 +859,26 @@ async function showLeaderboard() {
     });
     document.getElementById('leaderboardList').innerHTML = listHtml;
 }
+
+        async function refreshLeaderboard() {
+    const list = document.getElementById('leaderboardList');
+    try {
+        const provider = new ethers.JsonRpcProvider("https://light-testnet-rpc.lightchain.ai");
+        const utility = new ethers.Contract("0x896894...", ["function getTopWarriors(uint256) view returns (address[], uint256[])"], provider);
+        const [addrs, scores] = await utility.getTopWarriors(10);
+        
+        list.innerHTML = addrs.map((a, i) => `
+            <div style="display:flex; justify-content:space-between; font-size:0.7rem; padding:4px 0; border-bottom:1px solid #111;">
+                <span style="color:var(--accent)">${a.slice(0,6)}</span>
+                <span>${scores[i]} XP</span>
+            </div>
+        `).join('') || "Scanning AIVM Nodes...";
+    } catch (e) {
+        list.innerHTML = "Leaderboard Syncing...";
+    }
+}
+
+        
 
 
 // Add this if it's missing to bridge your interval to the actual check function

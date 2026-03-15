@@ -41,12 +41,11 @@
             font-size: 0.7rem;
         }
         /* Main View Container */
+                main { flex: 1; padding: 25px; overflow-y: auto; }
         main {
             flex: 1;
             display: flex;
-            flex-direction: column;
             align-items: center; 
-            width: 100%;
             padding-bottom: 160px; /* Space for the fixed console */
         }
         .card {
@@ -561,11 +560,10 @@
             
         </div>
     </div>
-            
-            
+        
             <div id="galleryView" class="card view-section" style="display:none;">
                 <h3>AIVM Community Gallery</h3>
-                <div id="galleryGrid" style="margin-top:20px;">
+                <div id="galleryGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">
                 <p style="color:var(--text-dim)">Gallery items will appear here after minting...</p>
                 </div>
             </div>

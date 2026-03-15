@@ -136,11 +136,14 @@
         }
         
         #warriorTCGView {
-            /* Use flex to handle internal layout */
-            display: flex;
-            flex-direction: column;
-            /* Occupy remaining space exactly */
-            height: 100%; 
+            display: none; 
+            height: 100vh; 
+            background: #050608; 
+            border: 1px solid var(--accent); 
+            border-radius: 12px; 
+            padding: 25px; 
+            position: relative; 
+            overflow: hidden !important; /* Forces scrollbars to vanish */
             box-sizing: border-box;
         }
         
@@ -411,6 +414,12 @@
             <div class="glass-card" style="text-align: center; padding: 30px;">
                 <i class="fa-solid fa-box-open" style="font-size: 2rem; margin-bottom: 15px;"></i>
                 <h4>MY COLLECTION</h4>
+                <div id="tcgDeckContainer">
+                    <p style="font-size: 0.7rem; color: var(--text-dim); margin-bottom: 15px;">No cards found in your NFT deck.</p>
+                    <button class="pill" onclick="getStarterPack()" style="width: 100%; background: var(--accent); color: #000; font-weight: bold;">
+                        GET STARTER PACK!
+                    </button>
+                </div>
                 <p style="font-size: 0.7rem; color: var(--text-dim);">Load NFTs from your Gallery</p>
                 <button class="pill" onclick="loadTCGDeck()" style="width: 100%;">SYNC DECK</button>
             </div>

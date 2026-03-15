@@ -416,7 +416,7 @@
                 <h4>MY COLLECTION</h4>
                 <div id="tcgDeckContainer">
                     <p style="font-size: 0.7rem; color: var(--text-dim); margin-bottom: 15px;">No cards found in your NFT deck.</p>
-                    <button class="pill" onclick="getStarterPack()" style="width: 100%; background: var(--accent); color: #000; font-weight: bold;">
+                    <button class="pill" onclick="getstarterPack()" style="width: 100%; background: var(--accent); color: #000; font-weight: bold;">
                         GET STARTER PACK!
                     </button>
                 </div>
@@ -721,6 +721,151 @@ async function autoConnectWallet() {
             checkRegistrationStatus(userWallet, contract);
         }
 }
+
+async function getStarterPack() {
+    const container = document.getElementById('tcgDeckContainer');
+    if (!userWallet) return log("<span style='color:var(--red);'>[ERR]</span> Connect wallet to claim starter pack.");
+
+    log("[TCG] Requesting AIVM to forge your unique Starter Deck...");
+    
+    // Show a cool loading state in the UI
+    container.innerHTML = `
+        <div style="padding:20px; color:var(--accent); font-family:monospace; text-align:center;">
+            <i class="fas fa-microchip fa-spin" style="font-size:2rem; margin-bottom:15px;"></i><br>
+            AIVM is calculating optimal deck parameters...
+        </div>`;
+
+    try {
+        // 1. Ask the LCAI AIVM to generate the deck stats
+        const prompt = `You are the game master for an on-chain TCG called Wallet Warriors. Generate a starter deck of 3 distinct trading cards for a new player. 
+        Allowed types: AI, Cyber, Bio, Void. 
+        ATK range: 10 to 50. DEF range: 10 to 50. 
+        Return ONLY a strict, valid JSON array of objects with keys: name, cardType, atk, def. Do not use markdown blocks or extra text.`;
+
+        const response = await fetch('https://chat2.lightchain.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${userWallet}` 
+            },
+            body: JSON.stringify({
+                model: "DeepSeek-V3-Base",
+                messages: [{ role: "user", content: prompt }],
+                temperature: 0.8 // High enough for variety, low enough to follow rules
+            })
+        });
+
+        if (!response.ok) throw new Error("AIVM Gateway busy. Could not forge cards at this time.");
+        const data = await response.json();
+
+        // 2. Parse the AIVM output
+        let cleanJson = data.choices[0].message.content.trim();
+        if (cleanJson.startsWith('```json')) {
+            cleanJson = cleanJson.replace(/```json/g, '').replace(/```/g, '').trim();
+        }
+        const deck = JSON.parse(cleanJson);
+        log(`[AIVM] Deck forged! Cards: <span style='color:#fff;'>${deck.map(c => c.name).join(', ')}</span>`);
+
+        // 3. Anchor the AIVM Deck to the Blockchain
+        log("[TCG] Anchoring generated deck to WarriorCards Contract...");
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+
+        // Ensure this address matches your WARRIORCARDS deployment
+        const tcgContract = new ethers.Contract("0xFBC...", [ 
+            "function mintAIVMStarterPack(string[] names, string[] types, uint256[] atks, uint256[] defs) public payable"
+        ], signer);
+
+        const names = deck.map(c => c.name);
+        const types = deck.map(c => c.cardType);
+        const atks = deck.map(c => c.atk);
+        const defs = deck.map(c => c.def);
+
+        const tx = await tcgContract.mintAIVMStarterPack(names, types, atks, defs, { 
+            value: ethers.parseEther("0.1") 
+        });
+        
+        log(`[PENDING] Tx: ${tx.hash.slice(0, 15)}...`);
+        await tx.wait();
+
+        log("<span style='color:var(--green);'>[SUCCESS]</span> AIVM Starter Pack secured in your Vault!");
+
+        // 4. Render the new cards in the UI
+        renderDeck(deck);
+
+    } catch (e) {
+        log(`<span style='color:var(--red);'>[TCG ERROR]</span> ${e.message}`);
+        // Restore the button if it fails
+        container.innerHTML = `<button class="pill" onclick="getStarterPack()" style="width: 100%; background: var(--accent); color: #000; font-weight: bold;">RETRY STARTER PACK</button>`;
+    }
+}
+
+function renderDeck(deck) {
+    const container = document.getElementById('tcgDeckContainer');
+    let html = `<div style="display:flex; gap:10px; justify-content:center; overflow-x:auto; padding-bottom:10px; margin-top:15px;">`;
+
+    deck.forEach(card => {
+        // Theme the card border based on the AIVM's chosen class
+        let color = "var(--accent)"; // Default Cyber/AI
+        let icon = "fa-robot";
+        
+        if(card.cardType === "Bio") { color = "var(--green)"; icon = "fa-dna"; }
+        if(card.cardType === "Void") { color = "var(--red)"; icon = "fa-meteor"; }
+        if(card.cardType === "AI") { color = "#00f2ff"; icon = "fa-network-wired"; }
+
+        html += `
+        <div style="min-width:130px; background:#0a0c10; border:2px solid ${color}; border-radius:8px; padding:15px; text-align:center; position:relative; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
+            <div style="font-size:0.55rem; color:#888; position:absolute; top:5px; left:5px; font-weight:bold; letter-spacing:1px;">${card.cardType.toUpperCase()}</div>
+            
+            <div style="font-size:2.5rem; margin: 20px 0 10px 0; color:${color}; opacity:0.8;">
+                <i class="fas ${icon}"></i>
+            </div>
+            
+            <h5 style="margin:5px 0; font-size:0.85rem; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${card.name}</h5>
+            
+            <div style="display:flex; justify-content:space-between; font-size:0.75rem; font-family:monospace; margin-top:15px; background:#000; padding:5px; border-radius:4px;">
+                <span style="color:var(--red);">⚔️ ${card.atk}</span>
+                <span style="color:var(--green);">🛡️ ${card.def}</span>
+            </div>
+        </div>`;
+    });
+
+    html += `</div>`;
+    container.innerHTML = html;
+}
+
+async function showLeaderboard() {
+    log("[TCG] Fetching Global AIVM Rankings...");
+    const modalHtml = `
+        <div id="tcgLeaderboard" style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#0a0c10; border:2px solid var(--green); padding:25px; border-radius:12px; z-index:10000; width:350px;">
+            <h3 style="color:var(--green); margin-top:0;">TOP 10 WARRIORS</h3>
+            <div id="leaderboardList" style="font-family:monospace; font-size:0.85rem; color:#fff;">
+                <div style="text-align:center; padding:10px;">Loading Scores...</div>
+            </div>
+            <button onclick="document.getElementById('tcgLeaderboard').remove()" class="btn-zk" style="background:var(--green); color:#000; margin-top:20px;">CLOSE</button>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    // Mock data for top 10 - this would typically pull from LCAIChatUtility.sol
+    const mockScores = [
+        { name: "MiMo", score: 2500 }, { name: "AIVM_Bot", score: 2100 },
+        { name: "Satoshi", score: 1950 }, { name: "NeuralNet", score: 1800 },
+        { name: "LCAI_King", score: 1750 }, { name: "DeepSeeker", score: 1600 },
+        { name: "Flux_Fan", score: 1550 }, { name: "ZkUser", score: 1400 },
+        { name: "Warrior_1", score: 1200 }, { name: "TestUser", score: 1000 }
+    ];
+
+    let listHtml = "";
+    mockScores.forEach((s, i) => {
+        listHtml += `<div style="display:flex; justify-content:space-between; padding:5px; border-bottom:1px solid #1b1f24;">
+            <span>${i+1}. ${s.name}</span>
+            <span style="color:var(--green)">${s.score} XP</span>
+        </div>`;
+    });
+    document.getElementById('leaderboardList').innerHTML = listHtml;
+}
+
 
 // Add this if it's missing to bridge your interval to the actual check function
 async function verifyIdentity() {

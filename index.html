@@ -813,10 +813,9 @@ async function autoConnectWallet() {
             const contract = new ethers.Contract(CONFIG.contract, CONFIG.abi, provider);
             
             const isVerified = await contract.verified(userWallet);
-            clearInterval(identityCheck);
             if (isVerified) {
-                clearInterval(identityCheck); 
                 hasInitializedVault = true;
+                clearInterval(identityCheck); 
                 await checkRegistrationStatus(userWallet, contract);
             }
         }

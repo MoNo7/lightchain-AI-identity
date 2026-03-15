@@ -2834,6 +2834,13 @@ async function listInAuction(tokenId) {
         
         function showView(viewId) {
             console.log("Navigating to:", viewId);
+
+            // 1. KILL THE OVERLAYS: Force Arcade/TCG to hide
+            const overlays = ['warriorTCGView', 'chessView', 'arcadeHub'];
+            overlays.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = 'none';
+            });
         
             // 1. Close Arcade/TCG Overlays first
             const tcgView = document.getElementById('warriorTCGView');

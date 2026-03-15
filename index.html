@@ -148,13 +148,15 @@
             display: none;
             background: #050608;
             border: 1px solid var(--accent);
-            padding: 25px;
-            position: relative; /* Fixes it to the viewport */
+            padding: 30px;
+            position: fixed; /* Fixes it to the viewport */
             top: 0;
             left: 0;
-            overflow: auto !important; 
-            display: none;
-            flex-direction: column;
+            z-index: 9999;
+            overflow: hidden !important; 
+            display: grid;
+            grid-template-columns: 1fr 1fr 300px; /* Collection | Store | Leaderboard */
+            gap: 20px;
             box-sizing: border-box;
         }
         
@@ -762,11 +764,10 @@ async function autoConnectWallet() {
 
 async function getStarterPack() {
     if (!userWallet) return log("Connect wallet first.");
-    const container = document.getElementById('tcgDeckContainer');
-    log("[TCG] AIVM is forging your 7-card Deck...");
+    log("[TCG] AIVM is forging your 7-card Deck (4 Standard, 1 Rare, 1 Epic, 1 Legendary)...");
 
     try {
-        const prompt = `Generate exactly 7 TCG cards: 4 Standard (rarity 1), 1 Rare (rarity 2), 1 Epic (rarity 3), 1 Legendary (rarity 4). Return ONLY valid JSON array: [{"name": "Name", "cardType": "AI", "atk": 20, "def": 20, "rarity": 1}]`;
+        const prompt = `Generate exactly 7 TCG cards: 4 Standard (rarity 1), 1 Rare (rarity 2), 1 Epic (rarity 3), 1 Legendary (rarity 4). Return ONLY valid JSON: [{"name": "Name", "cardType": "AI", "atk": 20, "def": 20, "rarity": 1}]`;
         
         const response = await fetch('https://chat2.lightchain.ai/api/v1/chat/completions', {
             method: 'POST',
@@ -775,16 +776,13 @@ async function getStarterPack() {
         });
         
         const data = await response.json();
-        // Extract JSON even if AIVM includes markdown code blocks
-        const rawContent = data.choices[0].message.content;
-        const jsonMatch = rawContent.match(/\[.*\]/s);
-        const deck = JSON.parse(jsonMatch ? jsonMatch[0] : rawContent);
+        const deck = JSON.parse(data.choices[0].message.content.match(/\[.*\]/s)[0]);
 
         const provider = new ethers.BrowserProvider(window.ethereum);
         const signer = await provider.getSigner();
         
-        // Target your ACTUAL deployed contract from the Remix tab
-        const tcgContract = new ethers.Contract("0xF3463878bC8A0813958999aA9777995A6421AAC6", [
+        // Use the exact Checksummed address from your Remix deployment
+        const tcgContract = new ethers.Contract("0xAE78BC8a0813958999aA9777995A6421AAC6", [
             "function mintAIVMStarterPack(string[] names, string[] types, uint256[] atks, uint256[] defs, uint256[] rarities) public payable"
         ], signer);
 
@@ -797,8 +795,9 @@ async function getStarterPack() {
             { value: ethers.parseEther("0.1"), gasLimit: 2000000 }
         );
         
+        log(`[PENDING] Anchoring AIVM Deck: ${tx.hash.slice(0, 15)}...`);
         await tx.wait();
-        log("<span style='color:var(--green);'>[SUCCESS]</span> Deck secured!");
+        log("<span style='color:var(--green);'>[SUCCESS]</span> Deck secured! Syncing Vault...");
         renderDeck(deck); 
 
     } catch (e) {

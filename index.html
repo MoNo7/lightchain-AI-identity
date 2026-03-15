@@ -42,17 +42,17 @@
         }
         /* Main View Container */
                 main { flex: 1; padding: 25px; overflow-y: auto; }
-        main {
+   /*     main {
             flex: 1;
             padding: 25px;
             display: flex;
-            flex-direction: column; /* This stacks cards vertically and keeps them in the window */
-            align-items: center;    /* This centers the gallery in the portal */
+            flex-direction: column; 
+            align-items: center;   
             overflow-y: auto;
-            padding-bottom: 160px;  /* Leaves room for your bottom console */
+            padding-bottom: 160px;  
             box-sizing: border-box;
             width: 100%;
-        }
+        }*/
         .card {
             background: var(--panel);
             border: 1px solid var(--border);
@@ -173,8 +173,13 @@
         .view-section.card {
             width: 95%;
             max-width: 1100px;
-            margin: 0 auto 20px auto !important; /* Forces horizontal centering */
-            /*display: none; /* Managed by JS */
+            margin: 0 auto 20px auto !important;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 25px;
+            box-sizing: border-box;
+            display: none; /* Managed by showView() */
         }
         
         .view-section.active {
@@ -200,6 +205,7 @@
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 20px;
             width: 100%;
+            margin-top: 20px;
         }
 
         /* Utility Classes */
@@ -574,13 +580,13 @@
         </div>
     </div>
         
-            <div id="galleryView" class="card view-section" style="display:none;">
+            <div id="galleryView" class="card view-section" >
                 <h3>AIVM Community Gallery</h3>
                 <div id="galleryGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">
                 <p style="color:var(--text-dim)">Gallery items will appear here after minting...</p>
                 </div>
             </div>
-            <div id="marketView" class="card view-section" style="display:none;">
+            <div id="marketView" class="card view-section" >
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <div>
                         <h3 style="margin:0;"><i class="fas fa-gavel"></i>AIVM Auction House</h3>

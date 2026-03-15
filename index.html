@@ -41,18 +41,27 @@
             font-size: 0.7rem;
         }
         /* Main View Container */
-        main { 
+        main {
             flex: 1;
             padding: 25px;
             display: flex;
             flex-direction: column;
-            align-items: center; /* This centers the cards */
+            align-items: center; 
             width: 100%;
             box-sizing: border-box;
             overflow-y: auto;
+            padding-bottom: 160px; /* Space for the fixed console */
         }
-        .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 25px; max-width: 1200px; margin: 0 auto 20px auto; box-sizing: border-box;}
-
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 25px;
+            width: 95%;
+            max-width: 1100px;
+            margin: 0 auto 20px auto; 
+            box-sizing: border-box;
+        }
         #modelSelector {
     appearance: none;
     -webkit-appearance: none;
@@ -178,8 +187,23 @@
         .status-text.locked { color: #ffcc00; }
         .status-text.offline { color: #ff4d4d; }
 
-        #console { height: 120px; position: fixed; bottom: 0; right: 0; background: #000; border-top: 1px solid var(--border); color: var(--green); padding: 15px; font-family: 'Courier New', monospace; overflow-y: auto; font-size: 0.75rem; width: calc(100% - 285px); box-sizing: border-box;z-index: 100;}
-       @keyframes pulse-green {
+        #console {
+            height: 140px;
+            position: fixed;
+            bottom: 0;
+            right: 0;
+            width: calc(100% - 260px); /* Subtracts the Sidebar width */
+            background: rgba(0, 0, 0, 0.95);
+            border-top: 1px solid var(--border);
+            color: var(--green);
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            overflow-y: auto;
+            font-size: 0.75rem;
+            z-index: 1000;
+        }
+        
+        @keyframes pulse-green {
             0% { background-color: rgba(57, 211, 83, 0.5); transform: scale(1.05); }
             100% { background-color: transparent; transform: scale(1); }
         }
@@ -443,7 +467,7 @@
                 <h4>MY COLLECTION</h4>
                 <div id="tcgDeckContainer">
                     <p style="font-size: 0.7rem; color: var(--text-dim); margin-bottom: 15px;">No cards found in your NFT deck.</p>
-                    <button class="pill" onclick="getstarterPack()" style="width: 100%; background: var(--accent); color: #000; font-weight: bold;">
+                    <button class="pill" onclick="getStarterPack()" style="width: 100%; background: var(--accent); color: #000; font-weight: bold;">
                         GET STARTER PACK!
                     </button>
                     <button class="pill" onclick="openForgeMenu()" style="background: var(--accent); color: #000; font-weight: bold;">
@@ -988,6 +1012,37 @@ async function showLeaderboard() {
         `).join('') || "Scanning AIVM Nodes...";
     } catch (e) {
         list.innerHTML = "Leaderboard Syncing...";
+    }
+}
+
+async function syncDeckFromStats() {
+    if (!userWallet) return log("Connect wallet to sync deck.");
+    log("[TCG] Fetching your AIVM cards from WarriorStats...");
+    
+    try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        // Using your WarriorStats address from the Deployed Contracts tab
+        const statsContract = new ethers.Contract("0x766E999...86E1F", [
+            "function cardStacks(address, uint256) view returns (string, uint256, uint256, uint256)"
+        ], provider);
+
+        // Fetch the first few cards to verify (expandable to a loop)
+        const deck = [];
+        for (let i = 0; i < 7; i++) {
+            try {
+                const card = await statsContract.cardStacks(userWallet, i);
+                deck.push({ name: "Warrior #" + i, cardType: card[0], atk: Number(card[1]), def: Number(card[2]), rarity: Number(card[3]) });
+            } catch (e) { break; }
+        }
+
+        if (deck.length > 0) {
+            renderDeck(deck);
+            log(`[SUCCESS] Synchronized ${deck.length} cards.`);
+        } else {
+            log("[TCG] No cards found. Have you minted your Starter Pack?");
+        }
+    } catch (e) {
+        log(`[SYNC ERR] ${e.message}`);
     }
 }
 

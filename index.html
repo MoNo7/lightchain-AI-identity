@@ -136,14 +136,19 @@
         }
         
         #warriorTCGView {
-            display: none; 
-            height: 100vh; 
-            background: #050608; 
-            border: 1px solid var(--accent); 
-            border-radius: 12px; 
-            padding: 25px; 
-            position: relative; 
-            overflow: hidden !important; /* Forces scrollbars to vanish */
+            display: none;
+            height: 100vh;
+            width: 100vw;
+            background: #050608;
+            border: 1px solid var(--accent);
+            padding: 20px;
+            position: fixed; /* Fixes it to the viewport */
+            top: 0;
+            left: 0;
+            z-index: 9999;
+            overflow: hidden !important; 
+            display: flex;
+            flex-direction: column;
             box-sizing: border-box;
         }
         
@@ -723,82 +728,52 @@ async function autoConnectWallet() {
 }
 
 async function getStarterPack() {
+    if (!userWallet) return log("Connect wallet first.");
     const container = document.getElementById('tcgDeckContainer');
-    if (!userWallet) return log("<span style='color:var(--red);'>[ERR]</span> Connect wallet to claim starter pack.");
-
-    log("[TCG] Requesting AIVM to forge your unique Starter Deck...");
-    
-    // Show a cool loading state in the UI
-    container.innerHTML = `
-        <div style="padding:20px; color:var(--accent); font-family:monospace; text-align:center;">
-            <i class="fas fa-microchip fa-spin" style="font-size:2rem; margin-bottom:15px;"></i><br>
-            AIVM is calculating optimal deck parameters...
-        </div>`;
+    log("[TCG] AIVM is forging your 7-card Deck...");
 
     try {
-        // 1. Ask the LCAI AIVM to generate the deck stats
-        const prompt = `You are the game master for an on-chain TCG called Wallet Warriors. Generate a starter deck of 3 distinct trading cards for a new player. 
-        Allowed types: AI, Cyber, Bio, Void. 
-        ATK range: 10 to 50. DEF range: 10 to 50. 
-        Return ONLY a strict, valid JSON array of objects with keys: name, cardType, atk, def. Do not use markdown blocks or extra text.`;
-
+        const prompt = `Generate exactly 7 TCG cards: 4 Standard (rarity 1), 1 Rare (rarity 2), 1 Epic (rarity 3), 1 Legendary (rarity 4). Return ONLY valid JSON array: [{"name": "Name", "cardType": "AI", "atk": 20, "def": 20, "rarity": 1}]`;
+        
         const response = await fetch('https://chat2.lightchain.ai/api/v1/chat/completions', {
             method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${userWallet}` 
-            },
-            body: JSON.stringify({
-                model: "DeepSeek-V3-Base",
-                messages: [{ role: "user", content: prompt }],
-                temperature: 0.8 // High enough for variety, low enough to follow rules
-            })
-        });
-
-        if (!response.ok) throw new Error("AIVM Gateway busy. Could not forge cards at this time.");
-        const data = await response.json();
-
-        // 2. Parse the AIVM output
-        let cleanJson = data.choices[0].message.content.trim();
-        if (cleanJson.startsWith('```json')) {
-            cleanJson = cleanJson.replace(/```json/g, '').replace(/```/g, '').trim();
-        }
-        const deck = JSON.parse(cleanJson);
-        log(`[AIVM] Deck forged! Cards: <span style='color:#fff;'>${deck.map(c => c.name).join(', ')}</span>`);
-
-        // 3. Anchor the AIVM Deck to the Blockchain
-        log("[TCG] Anchoring generated deck to WarriorCards Contract...");
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const signer = await provider.getSigner();
-
-        // Ensure this address matches your WARRIORCARDS deployment
-        const tcgContract = new ethers.Contract("0xFBC...", [ 
-            "function mintAIVMStarterPack(string[] names, string[] types, uint256[] atks, uint256[] defs) public payable"
-        ], signer);
-
-        const names = deck.map(c => c.name);
-        const types = deck.map(c => c.cardType);
-        const atks = deck.map(c => c.atk);
-        const defs = deck.map(c => c.def);
-
-        const tx = await tcgContract.mintAIVMStarterPack(names, types, atks, defs, { 
-            value: ethers.parseEther("0.1") 
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${userWallet}` },
+            body: JSON.stringify({ model: "DeepSeek-V3-Base", messages: [{ role: "user", content: prompt }] })
         });
         
-        log(`[PENDING] Tx: ${tx.hash.slice(0, 15)}...`);
+        const data = await response.json();
+        // Extract JSON even if AIVM includes markdown code blocks
+        const rawContent = data.choices[0].message.content;
+        const jsonMatch = rawContent.match(/\[.*\]/s);
+        const deck = JSON.parse(jsonMatch ? jsonMatch[0] : rawContent);
+
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        
+        // Target your ACTUAL deployed contract from the Remix tab
+        const tcgContract = new ethers.Contract("0xF3463878bC8A0813958999aA9777995A6421AAC6", [
+            "function mintAIVMStarterPack(string[] names, string[] types, uint256[] atks, uint256[] defs, uint256[] rarities) public payable"
+        ], signer);
+
+        const tx = await tcgContract.mintAIVMStarterPack(
+            deck.map(c => c.name),
+            deck.map(c => c.cardType),
+            deck.map(c => c.atk),
+            deck.map(c => c.def),
+            deck.map(c => c.rarity),
+            { value: ethers.parseEther("0.1"), gasLimit: 2000000 }
+        );
+        
         await tx.wait();
-
-        log("<span style='color:var(--green);'>[SUCCESS]</span> AIVM Starter Pack secured in your Vault!");
-
-        // 4. Render the new cards in the UI
-        renderDeck(deck);
+        log("<span style='color:var(--green);'>[SUCCESS]</span> Deck secured!");
+        renderDeck(deck); 
 
     } catch (e) {
-        log(`<span style='color:var(--red);'>[TCG ERROR]</span> ${e.message}`);
-        // Restore the button if it fails
-        container.innerHTML = `<button class="pill" onclick="getStarterPack()" style="width: 100%; background: var(--accent); color: #000; font-weight: bold;">RETRY STARTER PACK</button>`;
+        log(`[TCG ERR] ${e.message}`);
     }
 }
+
+        
 
 function renderDeck(deck) {
     const container = document.getElementById('tcgDeckContainer');
@@ -832,6 +807,30 @@ function renderDeck(deck) {
 
     html += `</div>`;
     container.innerHTML = html;
+}
+
+async function loadLeaderboard() {
+    const list = document.getElementById('leaderboardList');
+    if (!list) return;
+
+    try {
+        // Fetching from the LCAIChatUtility anchor
+        const provider = new ethers.JsonRpcProvider("https://light-testnet-rpc.lightchain.ai");
+        const utility = new ethers.Contract("0x896...894", ["function getTopWarriors(uint256) view returns (address[], uint256[])"], provider);
+        
+        const [addresses, scores] = await utility.getTopWarriors(10);
+        
+        let html = "";
+        addresses.forEach((addr, i) => {
+            html += `<div style="display:flex; justify-content:space-between; font-size:0.7rem; border-bottom:1px solid #222; padding:5px;">
+                <span>${addr.slice(0,6)}...</span>
+                <span style="color:var(--green)">${scores[i]} XP</span>
+            </div>`;
+        });
+        list.innerHTML = html || "No rankings yet.";
+    } catch (e) {
+        list.innerHTML = "Leaderboard Offline";
+    }
 }
 
 async function showLeaderboard() {

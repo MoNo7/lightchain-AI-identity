@@ -2327,50 +2327,81 @@ async function generateAIVMArt() {
     const basePrompt = document.getElementById('artPrompt').value.trim();
     const styleSuffix = document.getElementById('artStyle').value;
     
-    if (!basePrompt) return log("Error: Enter a prompt.");
-    if (isGenerating) return log("System busy...");
+    if (!basePrompt) return log("<span style='color:var(--red);'>[ERR]</span> Please enter a prompt.");
+    if (!userWallet) return log("<span style='color:var(--red);'>[ERR]</span> Wallet not connected.");
+    if (isGenerating) return log("[AIVM] System is currently busy...");
+    
     isGenerating = true;
 
-    // 🟢 THE FIX: Correct variable mapping and forcing image models
-    const finalPrompt = (basePrompt + styleSuffix).replace(/\s+/g, ' ');
-    const promptId = ethers.keccak256(ethers.toUtf8Bytes(finalPrompt + Date.now()));
+    // 1. Prepare Prompt & Model
+    const finalPrompt = (basePrompt + " " + styleSuffix).trim();
     
-    // Map text models to image models for the Render endpoint
-    let modelId = "@cf/stabilityai/stable-diffusion-xl-base-1.0";
+    // Map text UI options to exact Cloudflare Image Model IDs
+    let modelId = "@cf/stabilityai/stable-diffusion-xl-base-1.0"; // Default
     if (userSelected === "Flux-1") modelId = "@cf/black-forest-labs/flux-1-schnell";
     if (userSelected === "SDXL-Turbo") modelId = "@cf/stabilityai/stable-diffusion-xl-base-1.0";
 
-    const aiImageUrl = `https://aivm.lightchain.ai/api/v1/render?prompt=${encodeURIComponent(finalPrompt)}&model=${modelId}&promptId=${promptId}&wallet=${userWallet}`;
-
-    // UI Feedback
+    // 2. UI Feedback
     const loader = document.getElementById('renderLoader');
     loader.style.display = 'block';
     loader.querySelector('div').innerText = `Inference: ${userSelected}...`;
+    log(`[AIVM] Initiating Render Pipeline for: ${userSelected}`);
 
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => {
-        const mainCanvas = document.getElementById('generatedCanvas');
-        const mainCtx = mainCanvas.getContext('2d');
-        mainCanvas.width = 1024; mainCanvas.height = 1024;
-        mainCtx.drawImage(img, 0, 0, 1024, 1024);
+    try {
+        // 3. Authenticated Fetch Request
+        // Ensure this matches your Worker's expected GET format, but we use fetch() to pass headers
+        const targetUrl = `https://aivm.lightchain.ai/api/v1/render?prompt=${encodeURIComponent(finalPrompt)}&model=${encodeURIComponent(modelId)}&wallet=${userWallet}`;
         
-        currentArtData = mainCanvas.toDataURL('image/jpeg', 0.8);
-        document.getElementById('aivmOutputImage').src = currentArtData;
-        document.getElementById('aivmOutputImage').style.display = 'block';
-        document.getElementById('renderLoader').style.display = 'none';
-        document.getElementById('saveArtBtn').style.display = 'block';
-        isGenerating = false;
-        log("[AIVM] Art Rendered and Verified.");
-    };
-    img.onerror = () => {
+        const response = await fetch(targetUrl, {
+            method: 'GET',
+            headers: { 
+                'Authorization': `Bearer ${userWallet}`, // 🟢 CRITICAL: This bypasses the 429 error
+                'Accept': 'image/jpeg, image/png, application/json'
+            }
+        });
+
+        if (!response.ok) throw new Error(`Gateway Error (${response.status})`);
+
+        // 4. Convert Response to an Image Blob
+        const imageBlob = await response.blob();
+        const imageUrl = URL.createObjectURL(imageBlob);
+
+        // 5. Render to Canvas
+        const img = new Image();
+        img.onload = () => {
+            const mainCanvas = document.getElementById('generatedCanvas');
+            const mainCtx = mainCanvas.getContext('2d');
+            mainCanvas.width = 1024; 
+            mainCanvas.height = 1024;
+            mainCtx.drawImage(img, 0, 0, 1024, 1024);
+            
+            currentArtData = mainCanvas.toDataURL('image/jpeg', 0.8);
+            
+            // Update UI
+            const outputImg = document.getElementById('aivmOutputImage');
+            outputImg.src = currentArtData;
+            outputImg.style.display = 'block';
+            
+            loader.style.display = 'none';
+            document.getElementById('saveArtBtn').style.display = 'block';
+            isGenerating = false;
+            log("<span style='color:var(--green);'>[SUCCESS]</span> AIVM Art Rendered & Verified.");
+            
+            // Clean up memory
+            URL.revokeObjectURL(imageUrl);
+        };
+        img.onerror = () => throw new Error("Failed to decode image data.");
+        
+        // Trigger the image load
+        img.src = imageUrl;
+
+    } catch (e) {
         isGenerating = false;
         loader.style.display = 'none';
-        log("[AIVM] Gateway Busy (429). Retry in 30s.");
-    };
-    img.src = aiImageUrl;
+        log(`<span style='color:var(--red);'>[AIVM ERR]</span> Render Failed: ${e.message}`);
+        console.error("AIVM Render Exception:", e);
+    }
 }
-
 let currentArtData = null; // Stores the Base64 of the generated image
 
 function deleteCurrentArt() {

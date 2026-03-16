@@ -221,7 +221,7 @@ display: none; /* Managed by JS */
         /* 🟢 Prevents cards from expanding to fill the whole screen width */
         .gallery-card, .glass-card {
             width: 100%;
-            max-width: 350px; 
+            max-width: 340px; 
             justify-self: center;
         }
 
@@ -240,6 +240,7 @@ display: none; /* Managed by JS */
             gap: 25px;
             width: 100%;
             padding: 20px;
+            align-items: start;
         }
 
         /* Utility Classes */
@@ -827,7 +828,7 @@ async function autoConnectWallet() {
             if (isVerified) {
                 hasInitializedVault = true;
                 clearInterval(identityCheck);
-                await checkRegistrationStatus(userWallet, contract);
+              //  await checkRegistrationStatus(userWallet, contract);
             }
         }
     }, 5000);
@@ -2350,7 +2351,7 @@ async function generateAIVMArt() {
     try {
         // 3. Authenticated Fetch Request
         // Ensure this matches your Worker's expected GET format, but we use fetch() to pass headers
-        const targetUrl = `https://aivm.lightchain.ai/api/v1/render?prompt=${encodeURIComponent(finalPrompt)}&model=${encodeURIComponent(modelId)}&wallet=${userWallet}`;
+        const targetUrl = `https://api.lightchain.ai/v1/render?prompt=${encodeURIComponent(finalPrompt)}&model=${encodeURIComponent(modelId)}&wallet=${userWallet}`;
         
         const response = await fetch(targetUrl, {
             method: 'GET',

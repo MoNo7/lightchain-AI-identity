@@ -2390,8 +2390,9 @@ async function generateAIVMArt() {
             // Clean up memory
             URL.revokeObjectURL(imageUrl);
         };
-        img.onerror = () => throw new Error("Failed to decode image data.");
-        
+        img.onerror = () => {
+            throw new Error("Failed to decode image data.");
+            };
         // Trigger the image load
         img.src = imageUrl;
 
@@ -2402,6 +2403,7 @@ async function generateAIVMArt() {
         console.error("AIVM Render Exception:", e);
     }
 }
+        
 let currentArtData = null; // Stores the Base64 of the generated image
 
 function deleteCurrentArt() {

@@ -1367,7 +1367,7 @@ function saveGameState() {
                     "function requestMove(bytes32 sessionKey, string fen) public",
                     "function getLatestMove(bytes32 sessionKey) public view returns (string)"
                 ];
-                const refereeContract = new ethers.Contract("0x479b15998f4E63901b089b033d47C62464D6856", refereeAbi, signer);
+                const refereeContract = new ethers.Contract("0xB1ad15336095b61a9eCEcc8929d3FAa9C12C1926", refereeAbi, signer);
         
                 logMsg("Requesting AIVM Inference...");
                 const tx = await refereeContract.requestMove(sessionKey, game.fen(), { gasLimit: 500000 });
@@ -1408,12 +1408,14 @@ function saveGameState() {
             // ==========================================
             const response = await fetch('https://api.lightchain.ai/v1/chess/move', {
             method: 'POST',
+            mode: 'cors',
             headers: { 
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${userWallet}` // Using wallet as session auth
             },
             body: JSON.stringify({ 
-                fen: currentFen, 
+                //fen: currentFen,
+                fen: chessGame.fen(),
                 model: "Neural-Llama-3-70B",
                 contract: "0x479b15998f4E63901b089b033d47C62464D6856" // Your Referee Contract
             })

@@ -1432,7 +1432,6 @@ function saveGameState() {
                 'Authorization': `Bearer ${authWallet}` // Using wallet as session auth
             },
             body: JSON.stringify({ 
-                //fen: currentFen,
                 fen: chessGame.fen(),
                 model: "Neural-Llama-3-70B",
                 contract: CONFIG.refereeAddress 
@@ -1464,7 +1463,7 @@ function saveGameState() {
 
     } catch (err) {
         console.error("Inference Error:", err);
-        
+        aivmIsThinking = false;
         if (err.message.includes("429")) {
             logAIVM(`<span style='color:var(--red);'>[ERR]</span> Gateway Busy (Error 429). Cooling down for 30s...`);
             // Wait 32 seconds to be safe before trying exactly once more
@@ -1477,6 +1476,7 @@ function saveGameState() {
             logAIVM("<span style='color:var(--text-dim);'>[SYS]</span> Connection reset. Please undo your move and try again.");
             // We do NOT auto-retry on generic errors to prevent infinite loops
         }
+        
     } finally {
         if (!err || !err.message.includes("429")) {
             aivmIsThinking = false;
@@ -1537,8 +1537,8 @@ function saveGameState() {
     
     // Function to manually resign
     async function resignChessGame() {
-        if (chessGame.game_over() || chessGame.history().length === 0) {
-            return logAIVM("<span style='color:var(--text-dim);'>[SYS]</span> No active game to resign.");
+        if (chessGame.fen() === "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1") {
+            return logAIVM("<span style='color:var(--text-dim);'>[SYS]</span> No moves made yet.");
         }
 
     const confirmResign = confirm("Are you sure you want to resign? This will record a win for the AIVM on-chain.");

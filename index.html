@@ -1206,7 +1206,13 @@ async function getArcadeKey() {
 async function initArcadeEngine() {
     if (!isRegistered) return log("Register to unlock AIVM games.");
     
-    chessGame = new Chess();
+    const savedPgn = localStorage.getItem('lcai_chess_pgn');
+    if (savedPgn) {
+        chessGame.load_pgn(savedPgn);
+        logAIVM("<span style='color:var(--accent);'>[SYS]</span> Restored moves from local vault.");
+    } else {
+        chessGame = new Chess();
+    }
     document.getElementById('arcadeHub').style.display = "none";
     document.getElementById('chessView').style.display = 'flex';
 

@@ -507,7 +507,7 @@ display: none; /* Managed by JS */
                     <i class="fa-solid fa-chess-knight" style="font-size: 4rem; color: var(--accent); margin-bottom: 1.5rem;"></i>
                     <button class="pill" onclick="initArcadeEngine()" style="width: 180px; background:var(--accent); color:#000;">START CHESS</button>
                 </div>
-                <div id="boardInner" style="width: 100%; max-width: 400px; aspect-ratio: 1/1;"></div>
+                <div id="arcadeBoardInner" style="width: 100%; max-width: 400px; aspect-ratio: 1/1;"></div>
                 <button id="playChessBtn" class="pill" style="width:100%; margin-top:15px; display:none;"> CONNECTING... </button>
             </div>
         </div>
@@ -575,7 +575,7 @@ display: none; /* Managed by JS */
     
             <div style="display:flex; gap:20px; justify-content:center; align-items:flex-start; flex:1;">
             <div style="width: 450px; background:var(--panel); padding:15px; border-radius:12px; border:1px solid var(--border);">
-            <div id="boardInner" style="width: 100%;"></div>
+            <div id="activeChessBoardInner" style="width: 100%;"></div>
             </div>
             
             <div style="flex:1; min-width:300px; max-width:500px; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:20px; display:flex; flex-direction:column;">
@@ -1186,19 +1186,37 @@ async function getArcadeKey() {
     if (!userWallet) return null;
     return ethers.keccak256(ethers.solidityPacked(["address", "string"], [userWallet, "LCAI_ARCADE_SESSION_V1"]));
 }
-        
+
+// Global variables for the game
+let board = null;
+let game = new Chess(); // From chess.js
+    
 // ---------------------------------------------------------
     // 9. ARCADE ENGINE (Preserved and Insulated from Gallery)
     // ---------------------------------------------------------
+        
 function initArcadeEngine() {
     if (!isRegistered) return log("Register to unlock AIVM games.");
     // Hide overlay and show board
     document.getElementById('arcadeOverlay').style.display = "none";
     document.getElementById('arcadeHub').style.display = "none";
+    document.getElementById('arcadeView').style.display = 'none';
+    document.getElementById('chessView').style.display = 'flex';
     // 2. Show the Chess Board and Log
     const chessView = document.getElementById('chessView');
     chessView.style.display = 'flex';
     // 3. Initialize or Restore the Engine
+    // 2. Configure and initialize the main game board
+    const config = {
+        draggable: true,
+        position: 'start',
+        onDragStart: onDragStart,
+        onDrop: onDrop,
+        onSnapEnd: onSnapEnd
+    };
+    
+    // Target the NEW ID we just created
+    board = Chessboard('activeChessBoardInner', config);
     if (!chessBoard) {
         launchGrandmasterEngine();
     } else {
@@ -1230,7 +1248,7 @@ function launchGrandmasterEngine() {
         onSnapEnd: onSnapEnd
     };
     
-    chessBoard = Chessboard('boardInner', config);
+    chessBoard = Chessboard('activeChessBoardInner', config);
     setTimeout(() => {
         chessBoard.resize();
         updateChessStatus();
@@ -1256,23 +1274,24 @@ function saveGameState() {
     }
 
     // 3. Handle piece drop and validate rules
-        function onDrop(source, target) {
-            let move = chessGame.move({
-                from: source,
-                to: target,
-                promotion: 'q'
-            });
-        
-            if (move === null) return 'snapback';
-        
-            updateChessStatus();
-            saveGameState(); // Save after user move
-            logAIVM(`<span>[USER]</span> Move: <b>${move.san}</b>`);
-            
-            if (checkGameOver()) return; // Stop if user ended the game
-        
-            window.setTimeout(triggerAIVMMove, 250);
-        }
+async function onDrop(source, target) {
+    // 1. See if the move is legal in chess.js
+    let move = game.move({
+        from: source,
+        to: target,
+        promotion: 'q' // NOTE: always promote to a queen for simplicity
+    });
+
+    // Illegal move
+    if (move === null) return 'snapback';
+
+    // 2. Update the UI FEN display
+    document.getElementById('chessFen').innerText = game.fen();
+    document.getElementById('chessStatus').innerText = "AIVM is thinking...";
+
+    // 3. Send the new FEN to the AIVM for its response
+     await fetchAIVMMove(game.fen()); 
+}}
 
     // 2. Validate the user's move
     function handleMove(source, target) {
@@ -1298,6 +1317,7 @@ function saveGameState() {
 
     function onSnapEnd() {
         chessBoard.position(chessGame.fen());
+        board.position(game.fen());
     }
 
     // 5. Update UI text and FEN
@@ -1584,7 +1604,7 @@ if (chessGame.game_over() || chessGame.history().length === 0) {
     function resetArcadeBoard() {
      logMsg("Resetting board state...");
         document.getElementById('arcadeOverlay').style.display = "flex";
-        document.getElementById('boardInner').innerHTML = "";
+        document.getElementById('arcadeBoardInner').innerHTML = "";
         document.getElementById('arcadeStatus').innerText = "Awaiting Initialization";
     }
         

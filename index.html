@@ -1409,7 +1409,7 @@ function saveGameState() {
                 return;
             }
     
-            const response = await fetch('encodeURIComponent("https://chat2.lightchain.ai/api/v1/chat/completions")'), {
+            const response = await fetch('encodeURIComponent("https://chat2.lightchain.ai/api/v1/chat/completions")', {
                 method: 'POST',
                 referrerPolicy: "no-referrer",
                 credentials: "omit",

@@ -1425,12 +1425,11 @@ async function triggerAIVMMove() {
     logAIVM("<span style='color:var(--accent);'>[AIVM]</span> Requesting Legacy Inference...");
 
     try {
-        if (!userWallet) {
+
             const accounts = await window.ethereum.request({ method: 'eth_accounts' });
             const activeWallet = accounts[0] || userWallet;
-        }
 
-        const response = await fetch('https://api.lightchain.ai/v1/chat/completions', {
+            const response = await fetch('https://api.lightchain.ai/v1/chat/completions', {
             method: 'POST',
             mode: 'cors', 
             credentials: 'omit', // 🟢 FIX: Prevents certain CORS pre-flight blocks

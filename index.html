@@ -772,12 +772,7 @@ window.onload = async () => {
     setInterval(refreshModelDashboard, 3000);
     fetchPrices();
     refreshModelDashboard();
-    setInterval(() => {
-        if (document.getElementById('marketView').style.display === 'block') {
-            renderAuctions();
-            console.log("[SYS] Auto-refresh: Marketplace synced with explorer.");
-        }
-    }, 30000); // 30 second pulse
+
     
 };
 
@@ -813,6 +808,12 @@ window.onload = async () => {
                 showView('galleryView');
                 loadGallery();
             }
+                setInterval(() => {
+        if (document.getElementById('marketView').style.display === 'block') {
+            renderAuctions();
+            console.log("[SYS] Auto-refresh: Marketplace synced with explorer.");
+        }
+    }, 30000); // 30 second pulse
         }
         
 async function autoConnectWallet() {

@@ -1202,52 +1202,52 @@ async function getArcadeKey() {
 // ---------------------------------------------------------
     // 9. ARCADE ENGINE (Preserved and Insulated from Gallery)
     // ---------------------------------------------------------
-        
-function initArcadeEngine() {
+async function initArcadeEngine() {
     if (!isRegistered) return log("Register to unlock AIVM games.");
+
+    // 1. Initialize Logic
+    chessGame = new Chess();
+
+    // 2. UI Transition
+    document.getElementById('arcadeHub').style.display = "none";
+    const chessView = document.getElementById('chessView');
+    chessView.style.display = 'flex';
+
+    const config = {
+        draggable: true,
+        position: 'start',
+        pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
+        onDragStart: onDragStart,
+        onDrop: onDrop,
+        onSnapEnd: onSnapEnd
+    };
 
     try {
         const provider = new ethers.BrowserProvider(window.ethereum);
-        //const signer = await provider.getSigner();
+        const signer = await provider.getSigner();
+        
         const referee = new ethers.Contract(CONFIG.refereeAddress, [
             "function startMatch(string memory initialFEN) external payable"
         ], signer);
 
         logAIVM("<span style='color:var(--accent);'>[SYS]</span> Opening AIVM Escrow...");
-        // Calling startMatch with 0 value as requested
+        
+        // Static wager set to 0 as requested
         const tx = await referee.startMatch(chessGame.fen(), { value: 0 });
         await tx.wait();
-        
-        // Now proceed to UI transition
-        document.getElementById('arcadeHub').style.display = "none";
-        document.getElementById('chessView').style.display = 'flex';
-         chessGame = new Chess();
-        // 2. Show the Chess Board and Log
-        const chessView = document.getElementById('chessView');
-        chessView.style.display = 'flex';
-        // 3. Initialize or Restore the Engine
-        // 2. Configure and initialize the main game board
-        const config = {
-            draggable: true,
-            position: 'start',
-            pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
-            onDragStart: onDragStart,
-            onDrop: onDrop,
-            onSnapEnd: onSnapEnd
-        };
+
+        logAIVM("<span style='color:var(--green);'>[SUCCESS]</span> Match synchronized on-chain.");
     } catch (e) {
-        logAIVM("<span style='color:var(--red);'>[ERR]</span> Failed to initialize match: " + e.message);
+        logAIVM("<span style='color:var(--red);'>[ERR]</span> Contract Sync Failed: " + e.message);
+
     }
 
-
-    
-    
     setTimeout(() => {
-            chessBoard = Chessboard('activeChessBoardInner', config);
-            updateChessStatus();
-            logAIVM("<span style='color:var(--accent);'>[SYS]</span> Grandmaster Engine Online.");
-        }, 50);
-    }
+        chessBoard = Chessboard('activeChessBoardInner', config);
+        updateChessStatus();
+        logAIVM("<span style='color:var(--accent);'>[SYS]</span> Grandmaster Engine Online.");
+    }, 50);
+}
 
 
 function launchGrandmasterEngine() {

@@ -1205,22 +1205,7 @@ async function getArcadeKey() {
         
 function initArcadeEngine() {
     if (!isRegistered) return log("Register to unlock AIVM games.");
-        // 2. Initialize Logic
-    chessGame = new Chess();
-    // 2. Show the Chess Board and Log
-    const chessView = document.getElementById('chessView');
-    chessView.style.display = 'flex';
-    // 3. Initialize or Restore the Engine
-    // 2. Configure and initialize the main game board
-    const config = {
-        draggable: true,
-        position: 'start',
-        pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
-        onDragStart: onDragStart,
-        onDrop: onDrop,
-        onSnapEnd: onSnapEnd
-    };
-    // Hide overlay and show board
+
     try {
         const provider = new ethers.BrowserProvider(window.ethereum);
         //const signer = await provider.getSigner();
@@ -1236,7 +1221,20 @@ function initArcadeEngine() {
         // Now proceed to UI transition
         document.getElementById('arcadeHub').style.display = "none";
         document.getElementById('chessView').style.display = 'flex';
-        // ... rest of your initialization logic
+         chessGame = new Chess();
+        // 2. Show the Chess Board and Log
+        const chessView = document.getElementById('chessView');
+        chessView.style.display = 'flex';
+        // 3. Initialize or Restore the Engine
+        // 2. Configure and initialize the main game board
+        const config = {
+            draggable: true,
+            position: 'start',
+            pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
+            onDragStart: onDragStart,
+            onDrop: onDrop,
+            onSnapEnd: onSnapEnd
+        };
     } catch (e) {
         logAIVM("<span style='color:var(--red);'>[ERR]</span> Failed to initialize match: " + e.message);
     }

@@ -1208,7 +1208,6 @@ function initArcadeEngine() {
     // Hide overlay and show board
 //    document.getElementById('arcadeOverlay').style.display = "none";
     document.getElementById('arcadeHub').style.display = "none";
-    document.getElementById('arcadeView').style.display = 'none';
     document.getElementById('chessView').style.display = 'flex';
 
     // 2. Initialize Logic
@@ -2374,16 +2373,29 @@ async function generateAIVMArt() {
     try {
         // 3. Authenticated Fetch Request
         // Ensure this matches your Worker's expected GET format, but we use fetch() to pass headers
-        const targetUrl = `https://api.lightchain.ai/v1/render?prompt=${encodeURIComponent(finalPrompt)}&model=${encodeURIComponent(modelId)}&wallet=${userWallet}`;
+//        const targetUrl = `https://api.lightchain.ai/v1/render?prompt=${encodeURIComponent(finalPrompt)}&model=${encodeURIComponent(modelId)}&wallet=${userWallet}`;
         
-        const response = await fetch(targetUrl, {
-            method: 'GET',
-            headers: { 
-                'Authorization': `Bearer ${userWallet}`, // 🟢 CRITICAL: This bypasses the 429 error
-                'Accept': 'image/jpeg, image/png, application/json'
-            }
-        });
+//        const response = await fetch(targetUrl, {
+//            method: 'GET',
+//            headers: { 
+//                'Authorization': `Bearer ${userWallet}`, // 🟢 CRITICAL: This bypasses the 429 error
+//                'Accept': 'image/jpeg, image/png, application/json'
+//            }
+//        });
 
+        const response = await fetch('https://api.lightchain.ai/v1/render', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${userWallet}`
+            },
+            body: JSON.stringify({
+                prompt: finalPrompt,
+                model: modelId,
+                wallet: userWallet
+            })
+        });
+        
         if (!response.ok) throw new Error(`Gateway Error (${response.status})`);
 
         // 4. Convert Response to an Image Blob

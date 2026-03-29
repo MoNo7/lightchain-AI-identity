@@ -656,7 +656,7 @@ LCAI_TOKEN : "0x9ca8530ca349c966fe9ef903df17a75b8a778927",
 ETH_TOKEN : "0x0000000000000000000000000000000000000000",
 USDC_TOKEN : "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",  
 WETH_TOKEN : "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
-refereeAddress: "0xB1ad15336095b61a9eCEcc8929d3FAa9C12C1926",   
+refereeAddress: "0x78B74C7DcA169eA824589A45b52b15D11da6D039",   
 contract: "0x87188af8d112AAaF52Fe203568de0d3F36714987", // ZK KYC
 identity: "0x9A07d6a0eF4a8037318a0731E41bd4061f27B172",
 artStudio: "0xe80d9542Ef60B680a621970d209d04DB24767614",
@@ -1354,6 +1354,35 @@ function saveGameState() {
         logMsg("[ARCADE] Returned to Hub.");
     }
 
+    async function getAIVMChessMove(fen) {
+        log("[AIVM] Step 1: Anchoring Task On-Chain...");
+        
+        // 1. Anchor the request on Lightchain Testnet
+        const inferenceContract = new ethers.Contract(CONFIG.aivmInference, AIVM_ABI, signer);
+        const promptHash = ethers.id(fen); // Hash the current board state
+        const tx = await inferenceContract.requestInferenceV2(promptHash, "chess-v1-model");
+        const receipt = await tx.wait();
+        
+        // Extract TaskID from the event to satisfy the Gateway
+        const taskId = receipt.logs[0].args.taskId; 
+        log(`[SYS] Task Anchored. ID: ${taskId}`);
+    
+        // 2. Now call the API (This prevents the 404)
+        const response = await fetch("https://chat2.lightchain.ai/api/v1/chat/send", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${sessionStorage.getItem('lcai_token')}`,
+                "X-AIVM-Task-ID": taskId 
+            },
+            body: JSON.stringify({
+                message: `Current FEN: ${fen}. Next move?`,
+                model: "lightchain-chess-v1"
+            })
+        });
+        return await response.json();
+    }
+
    async function makeAIVMMove() {
     if (game.game_over()) return logMsg("Game Over.");
 
@@ -1368,7 +1397,7 @@ function saveGameState() {
                     "function requestMove(bytes32 sessionKey, string fen) public",
                     "function getLatestMove(bytes32 sessionKey) public view returns (string)"
                 ];
-                const refereeContract = new ethers.Contract("0xB1ad15336095b61a9eCEcc8929d3FAa9C12C1926", refereeAbi, signer);
+                const refereeContract = new ethers.Contract("0x78B74C7DcA169eA824589A45b52b15D11da6D039", refereeAbi, signer);
         
                 logMsg("Requesting AIVM Inference...");
                 const tx = await refereeContract.requestMove(sessionKey, game.fen(), { gasLimit: 500000 });

@@ -1205,48 +1205,50 @@ async function getArcadeKey() {
     // ---------------------------------------------------------
 async function initArcadeEngine() {
     if (!isRegistered) return log("Register to unlock AIVM games.");
-
-    // 1. Initialize Logic
+    
     chessGame = new Chess();
-
-    // 2. UI Transition
     document.getElementById('arcadeHub').style.display = "none";
-    const chessView = document.getElementById('chessView');
-    chessView.style.display = 'flex';
-
-    const config = {
-        draggable: true,
-        position: 'start',
-        pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
-        onDragStart: onDragStart,
-        onDrop: onDrop,
-        onSnapEnd: onSnapEnd
-    };
+    document.getElementById('chessView').style.display = 'flex';
 
     try {
         const provider = new ethers.BrowserProvider(window.ethereum);
         const signer = await provider.getSigner();
-        
         const referee = new ethers.Contract(CONFIG.refereeAddress, [
-            "function startMatch(string memory initialFEN) external payable"
+            "function startMatch(string memory initialFEN) external payable",
+            "function matches(address) view returns (uint256 wager, string memory currentFEN, uint256 startTime, bool active)"
         ], signer);
 
-        logAIVM("<span style='color:var(--accent);'>[SYS]</span> Opening AIVM Escrow...");
-        
-        // Static wager set to 0 as requested
-        const tx = await referee.startMatch(chessGame.fen(), { value: 0 });
-        await tx.wait();
-
-        logAIVM("<span style='color:var(--green);'>[SUCCESS]</span> Match synchronized on-chain.");
+        // CHECK IF MATCH IS ALREADY ACTIVE
+        const matchData = await referee.matches(userWallet);
+        if (matchData.active) {
+            logAIVM("<span style='color:var(--accent);'>[SYS]</span> Active match found. Resuming...");
+            // Optional: Load the FEN from the contract instead of starting fresh
+            if (matchData.currentFEN) chessGame.load(matchData.currentFEN);
+        } else {
+            logAIVM("<span style='color:var(--accent);'>[SYS]</span> Opening AIVM Escrow...");
+            const tx = await referee.startMatch(chessGame.fen(), { value: 0 });
+            await tx.wait();
+            logAIVM("<span style='color:var(--green);'>[SUCCESS]</span> Match synchronized.");
+        }
     } catch (e) {
-        logAIVM("<span style='color:var(--red);'>[ERR]</span> Contract Sync Failed: " + e.message);
-
+        // If it reverts because it's already in progress, just ignore and keep playing
+        if (e.message.includes("Match already in progress")) {
+            logAIVM("<span style='color:var(--accent);'>[SYS]</span> Sync: Match In-Progress.");
+        } else {
+            logAIVM("<span style='color:var(--red);'>[ERR]</span> Sync Failed: " + e.message);
+        }
     }
 
     setTimeout(() => {
-        chessBoard = Chessboard('activeChessBoardInner', config);
+        chessBoard = Chessboard('activeChessBoardInner', {
+            draggable: true,
+            position: chessGame.fen(), // Use current position (handles resumes)
+            pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
+            onDragStart: onDragStart,
+            onDrop: onDrop,
+            onSnapEnd: onSnapEnd
+        });
         updateChessStatus();
-        logAIVM("<span style='color:var(--accent);'>[SYS]</span> Grandmaster Engine Online.");
     }, 50);
 }
 

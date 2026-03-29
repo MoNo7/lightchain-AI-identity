@@ -1446,7 +1446,7 @@ function saveGameState() {
             body: JSON.stringify({ 
                 fen: chessGame.fen(),
                 model: "Neural-Llama-3-70B",
-                contract: CONFIG.refereeAddress 
+                contract: "0xB1ad15336095b61a9eCEcc8929d3FAa9C12C1926"
             })
         });
 
@@ -1499,6 +1499,12 @@ function saveGameState() {
     // 7. Utility Controls
     function startNewChessGame() {
         if (aivmIsThinking) return;
+
+        if (chessGame.history().length > 0) {
+            logAIVM("<span style='color:#888;'>[SYS]</span> Clearing previous match data...");
+            await submitGameToChain("*");
+        }
+        
         chessGame.reset();
         chessBoard.start();
         updateChessStatus();

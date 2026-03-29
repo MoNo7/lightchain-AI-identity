@@ -656,6 +656,7 @@ LCAI_TOKEN : "0x9ca8530ca349c966fe9ef903df17a75b8a778927",
 ETH_TOKEN : "0x0000000000000000000000000000000000000000",
 USDC_TOKEN : "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",  
 WETH_TOKEN : "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+refereeAddress: "0xB1ad15336095b61a9eCEcc8929d3FAa9C12C1926",   
 contract: "0x87188af8d112AAaF52Fe203568de0d3F36714987", // ZK KYC
 identity: "0x9A07d6a0eF4a8037318a0731E41bd4061f27B172",
 artStudio: "0xe80d9542Ef60B680a621970d209d04DB24767614",
@@ -1417,6 +1418,7 @@ function saveGameState() {
         logAIVM("<span style='color:#888;'>[SYS]</span> Computing optimal inference...");
     
         try {
+            const authWallet = userWallet || (await (await new ethers.BrowserProvider(window.ethereum).getSigner()).getAddress());
             const currentFen = chessGame.fen();
             
             // ==========================================
@@ -1427,13 +1429,13 @@ function saveGameState() {
             mode: 'cors',
             headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${userWallet}` // Using wallet as session auth
+                'Authorization': `Bearer ${authWallet}` // Using wallet as session auth
             },
             body: JSON.stringify({ 
                 //fen: currentFen,
                 fen: chessGame.fen(),
                 model: "Neural-Llama-3-70B",
-                contract: "0x479b15998f4E63901b089b033d47C62464D6856" // Your Referee Contract
+                contract: CONFIG.refereeAddress 
             })
         });
 
@@ -1445,7 +1447,7 @@ function saveGameState() {
             }
                 
             const data = await response.json();
-            const bestMove = data.move; 
+            const bestMove = data.move|| (data.choices && data.choices[0].message.content);
 
             if (bestMove) {
                 chessGame.move(bestMove);
@@ -1453,9 +1455,9 @@ function saveGameState() {
                 
                 logAIVM(`<span style='color:var(--accent);'>[AIVM]</span> PoI Verified Move: <b>${bestMove}</b>`);
                 updateChessStatus();
-                saveGameState(); // Save after AIVM move
+ //               saveGameState(); // Save after AIVM move
                 
-                checkGameOver(); // Check if AIVM ended the game
+  //              checkGameOver(); // Check if AIVM ended the game
             } else {
                 throw new Error("Empty move payload returned.");
             }

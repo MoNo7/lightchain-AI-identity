@@ -1497,7 +1497,7 @@ function saveGameState() {
 }
     
     // 7. Utility Controls
-    function startNewChessGame() {
+    async function startNewChessGame() {
         if (aivmIsThinking) return;
 
         if (chessGame.history().length > 0) {

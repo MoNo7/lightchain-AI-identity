@@ -1203,55 +1203,40 @@ async function getArcadeKey() {
 // ---------------------------------------------------------
     // 9. ARCADE ENGINE (Preserved and Insulated from Gallery)
     // ---------------------------------------------------------
-async function initArcadeEngine() {
-    if (!isRegistered) return log("Register to unlock AIVM games.");
+    async function initArcadeEngine() {
+        if (!isRegistered) return log("Register to unlock AIVM games.");
     
-    const savedPgn = localStorage.getItem('lcai_chess_pgn');
-    if (savedPgn && savedPgn !== "") {
-        chessGame.load_pgn(savedPgn);
-        logAIVM("<span style='color:var(--accent);'>[SYS]</span> Restored state from local storage.");
-    } else {
-        chessGame = new Chess();
-    }
-    document.getElementById('arcadeHub').style.display = "none";
-    document.getElementById('chessView').style.display = 'flex';
-
-    try {
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const signer = await provider.getSigner();
-        const referee = new ethers.Contract(CONFIG.refereeAddress, [
-            "function startMatch(string memory initialFEN) external payable",
-            "function matches(address) view returns (uint256 wager, string memory currentFEN, uint256 startTime, bool active)"
-        ], signer);
-        const matchData = await referee.matches(userWallet);
-        if (matchData.active && matchData.currentFEN) {
-            // Only load if it's different to prevent resetting the PGN history
-            if (chessGame.fen() !== matchData.currentFEN) {
-                chessGame.load(matchData.currentFEN);
-                logAIVM("<span style='color:var(--accent);'>[SYS]</span> Synchronized with Lightchain Testnet.");
-            }
-        }
-    } catch (e) {
-        // If it reverts because it's already in progress, just ignore and keep playing
-        if (e.message.includes("Match already in progress")) {
-            logAIVM("<span style='color:var(--accent);'>[SYS]</span> Sync: Match In-Progress.");
+        // 🟢 1. Check Local Storage FIRST
+        const savedPgn = localStorage.getItem('lcai_chess_pgn');
+        if (savedPgn && savedPgn !== "") {
+            chessGame.load_pgn(savedPgn);
+            logAIVM("<span style='color:var(--accent);'>[SYS]</span> Game Resumed from Local State.");
         } else {
-            logAIVM("<span style='color:var(--red);'>[ERR]</span> Sync Failed: " + e.message);
+            chessGame = new Chess();
+            logAIVM("<span style='color:var(--accent);'>[SYS]</span> New Local Match Initialized.");
         }
+    
+        document.getElementById('arcadeHub').style.display = "none";
+        document.getElementById('chessView').style.display = 'flex';
+    
+        // 🟢 2. Render board at the LOADED position
+        setTimeout(() => {
+            chessBoard = Chessboard('activeChessBoardInner', {
+                draggable: true,
+                position: chessGame.fen(), // This uses the resumed FEN
+                pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
+                onDragStart: onDragStart,
+                onDrop: onDrop,
+                onSnapEnd: onSnapEnd
+            });
+            updateChessStatus();
+            
+            // 🟢 3. If it's the AI's turn after resuming, trigger it automatically
+            if (chessGame.turn() === 'b' && !chessGame.game_over()) {
+                triggerAIVMMove();
+            }
+        }, 50);
     }
-
-    setTimeout(() => {
-        chessBoard = Chessboard('activeChessBoardInner', {
-            draggable: true,
-            position: chessGame.fen(), // CRITICAL: Start board at the restored FEN
-            pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
-            onDragStart: onDragStart,
-            onDrop: onDrop,
-            onSnapEnd: onSnapEnd
-        });
-        updateChessStatus();
-    }, 50);
-}
 
 
 function launchGrandmasterEngine() {
@@ -1299,22 +1284,18 @@ function saveGameState() {
 
     // 3. Handle piece drop and validate rules
     async function onDrop(source, target) {
-        let move = chessGame.move({
-            from: source,
-            to: target,
-            promotion: 'q'
-        });
-    
+        let move = chessGame.move({from: source, to: target, promotion: 'q'});
         if (move === null) return 'snapback';
-    
+        
+        // 🟢 Save to Browser Memory (No Gas)
+        saveGameState(); 
         updateChessStatus();
-        
-        // Trigger AIVM Logic
+    
         aivmIsThinking = true;
-        logAIVM("[USER] Move confirmed. Requesting AIVM Inference...");
+        logAIVM("<span style='color:var(--text-dim);'>[USER]</span> Move recorded locally. Requesting AIVM...");
         
-        // Call your existing AIVM function
-        await triggerAIVMMove(); 
+        // 🟢 Request AI move via Legacy API (No Gas)
+        await triggerAIVMMove();
     }
 
     // 3. Update the board visual after the logic move

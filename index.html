@@ -1427,15 +1427,17 @@ async function triggerAIVMMove() {
     try {
         if (!userWallet) {
             const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-            userWallet = accounts[0];
+            const activeWallet = accounts[0] || userWallet;
         }
 
         const response = await fetch('https://api.lightchain.ai/v1/chat/completions', {
             method: 'POST',
-            mode: 'cors',
+            mode: 'cors', 
+            credentials: 'omit', // 🟢 FIX: Prevents certain CORS pre-flight blocks
             headers: {
+                'Accept': 'application/json',
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${userWallet}`
+                'Authorization': `Bearer ${activeWallet}`
             },
             body: JSON.stringify({
                 model: "Neural-Llama-3-70B",
@@ -1450,28 +1452,31 @@ async function triggerAIVMMove() {
             })
         });
 
-        if (!response.ok) throw new Error(`Status ${response.status}`);
-
-        const data = await response.json();
-        // Extract content and strip any accidental non-chess characters
-        let bestMove = data.choices[0].message.content.trim().toLowerCase().replace(/[^a-h1-8q]/g, '');
-
-        if (bestMove) {
-            const moveResult = chessGame.move(bestMove);
-            if (moveResult) {
-                chessBoard.position(chessGame.fen());
-                logAIVM(`<span style='color:var(--green);'>[AIVM]</span> Move: <b>${bestMove}</b>`);
-                updateChessStatus();
-            } else {
-                logAIVM(`<span style='color:var(--red);'>[ERR]</span> Illegal Move: ${bestMove}`);
+            if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(`Gateway Reject (${response.status})`);
             }
+    
+            const data = await response.json();
+            let bestMove = data.choices[0].message.content.trim().toLowerCase().replace(/[^a-h1-8q]/g, '');
+    
+            if (bestMove) {
+                const moveResult = chessGame.move(bestMove);
+                if (moveResult) {
+                    chessBoard.position(chessGame.fen());
+                    logAIVM(`<span style='color:var(--green);'>[AIVM]</span> Move Verified: <b>${bestMove}</b>`);
+                    updateChessStatus();
+                } else {
+                    logAIVM(`<span style='color:var(--red);'>[ERR]</span> AI proposed illegal move: ${bestMove}`);
+                }
+            }
+        } catch (err) {
+            logAIVM(`<span style='color:var(--red);'>[DIAGNOSTIC]</span> ${err.message}`);
+            console.error("AIVM Fetch Error:", err);
+        } finally {
+            aivmIsThinking = false;
         }
-    } catch (err) {
-        logAIVM(`<span style='color:var(--red);'>[DIAGNOSTIC]</span> ${err.message}`);
-    } finally {
-        aivmIsThinking = false;
     }
-}
     
     // 7. Utility Controls
     async function startNewChessGame() {

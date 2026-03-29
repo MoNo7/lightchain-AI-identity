@@ -1207,9 +1207,9 @@ async function initArcadeEngine() {
     if (!isRegistered) return log("Register to unlock AIVM games.");
     
     const savedPgn = localStorage.getItem('lcai_chess_pgn');
-    if (savedPgn) {
+    if (savedPgn && savedPgn !== "") {
         chessGame.load_pgn(savedPgn);
-        logAIVM("<span style='color:var(--accent);'>[SYS]</span> Restored moves from local vault.");
+        logAIVM("<span style='color:var(--accent);'>[SYS]</span> Restored state from local storage.");
     } else {
         chessGame = new Chess();
     }
@@ -1223,24 +1223,13 @@ async function initArcadeEngine() {
             "function startMatch(string memory initialFEN) external payable",
             "function matches(address) view returns (uint256 wager, string memory currentFEN, uint256 startTime, bool active)"
         ], signer);
-
-        // CHECK IF MATCH IS ALREADY ACTIVE
         const matchData = await referee.matches(userWallet);
-        if (matchData.active) {
-            logAIVM("<span style='color:var(--accent);'>[SYS]</span> Active match found. Resuming...");
-            // Optional: Load the FEN from the contract instead of starting fresh
-            if (matchData.currentFEN) {
+        if (matchData.active && matchData.currentFEN) {
+            // Only load if it's different to prevent resetting the PGN history
+            if (chessGame.fen() !== matchData.currentFEN) {
                 chessGame.load(matchData.currentFEN);
-                if (chessGame.turn() === 'b') {
-                    logAIVM("<span style='color:var(--accent);'>[SYS]</span> It is the AIVM's turn. Requesting move...");
-                    setTimeout(triggerAIVMMove, 500); 
-                }
+                logAIVM("<span style='color:var(--accent);'>[SYS]</span> Synchronized with Lightchain Testnet.");
             }
-        } else {
-            logAIVM("<span style='color:var(--accent);'>[SYS]</span> Opening AIVM Escrow...");
-            const tx = await referee.startMatch(chessGame.fen(), { value: 0 });
-            await tx.wait();
-            logAIVM("<span style='color:var(--green);'>[SUCCESS]</span> Match synchronized.");
         }
     } catch (e) {
         // If it reverts because it's already in progress, just ignore and keep playing
@@ -1254,7 +1243,7 @@ async function initArcadeEngine() {
     setTimeout(() => {
         chessBoard = Chessboard('activeChessBoardInner', {
             draggable: true,
-            position: chessGame.fen(), // Use current position (handles resumes)
+            position: chessGame.fen(), // CRITICAL: Start board at the restored FEN
             pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
             onDragStart: onDragStart,
             onDrop: onDrop,
@@ -1435,22 +1424,17 @@ async function triggerAIVMMove() {
             const accounts = await window.ethereum.request({ method: 'eth_accounts' });
             const activeWallet = accounts[0] || userWallet;
 
-            const response = await fetch('https://api.lightchain.ai/v1/chat/completions', {
+          const response = await fetch('https://api.lightchain.ai/v1/chat/completions', {
             method: 'POST',
             mode: 'cors', 
-            credentials: 'omit', // 🟢 FIX: Prevents certain CORS pre-flight blocks
             headers: {
-                'Accept': 'application/json',
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${activeWallet}`
             },
             body: JSON.stringify({
                 model: "Neural-Llama-3-70B",
                 messages: [
-                    { 
-                        role: "system", 
-                        content: "You are a Grandmaster chess engine. Respond ONLY with the best move in UCI format (e.g., 'e2e4'). No text." 
-                    },
+                    { role: "system", content: "You are a chess engine. Respond ONLY with the move in UCI (e.g., e2e4)." },
                     { role: "user", content: `FEN: ${chessGame.fen()}` }
                 ],
                 temperature: 0.1

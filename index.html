@@ -1223,7 +1223,7 @@ function initArcadeEngine() {
     // Hide overlay and show board
     try {
         const provider = new ethers.BrowserProvider(window.ethereum);
-        const signer = await provider.getSigner();
+        //const signer = await provider.getSigner();
         const referee = new ethers.Contract(CONFIG.refereeAddress, [
             "function startMatch(string memory initialFEN) external payable"
         ], signer);

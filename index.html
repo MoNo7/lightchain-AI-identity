@@ -1421,7 +1421,6 @@ function saveGameState() {
     // 6. The AIVM Engine Call
     async function triggerAIVMMove() {
         if (chessGame.game_over()) return;
-    
         aivmIsThinking = true;
         logAIVM("<span style='color:#888;'>[SYS]</span> Computing optimal inference...");
     
@@ -1431,24 +1430,22 @@ function saveGameState() {
                 userWallet = accounts[0];
             }
 
-            const currentFen = chessGame.fen();
-            
             // ==========================================
             // 🚀 LCAI AIVM INTEGRATION POINT
             // ==========================================
             const response = await fetch('https://api.lightchain.ai/v1/chess/move', {
-            method: 'POST',
-            mode: 'cors',
-            headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${userWallet}`
-            },
-            body: JSON.stringify({ 
-                fen: chessGame.fen(),
-                model: "Neural-Llama-3-70B",
-                contract: "0xB1ad15336095b61a9eCEcc8929d3FAa9C12C1926"
-            })
-        });
+                method: 'POST',
+                mode: 'cors', // FIX: Explicitly handle Cross-Origin requirements
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${userWallet}`
+                },
+                body: JSON.stringify({
+                    fen: chessGame.fen(),
+                    model: "Neural-Llama-3-70B",
+                    contract: CONFIG.refereeAddress // Ensure this is 0xB1ad...C1926
+                })
+            });
 
             if (response.status === 429) {
                 throw new Error("Rate Limited (429)");
@@ -1458,8 +1455,7 @@ function saveGameState() {
             }
                 
             const data = await response.json();
-            const bestMove = data.move|| (data.choices && data.choices[0].message.content);
-
+            const bestMove = data.move || (data.choices && data.choices[0].message.content);
             if (bestMove) {
                 chessGame.move(bestMove);
                 chessBoard.position(chessGame.fen());
@@ -1493,6 +1489,7 @@ function saveGameState() {
         if (!err || !err.message.includes("429")) {
             aivmIsThinking = false;
         }
+                        aivmIsThinking = false;
     }
 }
     

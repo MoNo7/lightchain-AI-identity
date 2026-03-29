@@ -1407,7 +1407,6 @@ async function triggerAIVMMove() {
 
           const response = await fetch('https://api.lightchain.ai/v1/chat/completions', {
             method: 'POST',
-            mode: 'cors', 
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${activeWallet}`

@@ -148,6 +148,12 @@
             padding: 10px;
         }
 
+        #activeChessBoardInner, #arcadeBoardInner {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
         /* Prevent workspace scrolling in TCG mode */
         .workspace.tcg-active {
             overflow: hidden !important;
@@ -708,6 +714,7 @@ let isPrompting = false;
 
 async function getEncryptionKey() {
     if (userEncryptionKey) return userEncryptionKey;
+    if (!userWallet || isPrompting) return null;
     if (isPrompting) return null; // Prevent double-triggering
     
     isPrompting = true;
@@ -1202,6 +1209,9 @@ function initArcadeEngine() {
     document.getElementById('arcadeHub').style.display = "none";
     document.getElementById('arcadeView').style.display = 'none';
     document.getElementById('chessView').style.display = 'flex';
+    setTimeout(() => {
+        board = Chessboard('activeChessBoardInner', config);
+    }, 10);
     // 2. Show the Chess Board and Log
     const chessView = document.getElementById('chessView');
     chessView.style.display = 'flex';

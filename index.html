@@ -869,7 +869,7 @@ async function getStarterPack() {
         const systemPrompt = "You are a TCG data server. Output ONLY a raw JSON array. No markdown. No text.";
         const userPrompt = `Generate 7 cards: 4 Common (1), 1 Rare (2), 1 Epic (3), 1 Legendary (4). Format: [{"name":"N","cardType":"AI","atk":20,"def":20,"rarity":1}]`;
         
-        const response = await fetch('[https://api.lightchain.ai/api/v1/chat/completions](https://api.lightchain.ai/api/v1/chat/completions)', {
+        const response = await fetch('[https://api.lightchain.ai/v1/chat/completions](https://api.lightchain.ai/v1/chat/completions)', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${userWallet}` },
             body: JSON.stringify({ 

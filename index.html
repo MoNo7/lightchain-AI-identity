@@ -1206,10 +1206,25 @@ async function getArcadeKey() {
 function initArcadeEngine() {
     if (!isRegistered) return log("Register to unlock AIVM games.");
     // Hide overlay and show board
-//    document.getElementById('arcadeOverlay').style.display = "none";
-    document.getElementById('arcadeHub').style.display = "none";
-    document.getElementById('chessView').style.display = 'flex';
+    try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        const referee = new ethers.Contract(CONFIG.refereeAddress, [
+            "function startMatch(string memory initialFEN) external payable"
+        ], signer);
 
+        logAIVM("<span style='color:var(--accent);'>[SYS]</span> Opening AIVM Escrow...");
+        // Calling startMatch with 0 value as requested
+        const tx = await referee.startMatch(chessGame.fen(), { value: 0 });
+        await tx.wait();
+        
+        // Now proceed to UI transition
+        document.getElementById('arcadeHub').style.display = "none";
+        document.getElementById('chessView').style.display = 'flex';
+        // ... rest of your initialization logic
+    } catch (e) {
+        logAIVM("<span style='color:var(--red);'>[ERR]</span> Failed to initialize match: " + e.message);
+    }
     // 2. Initialize Logic
     chessGame = new Chess();
     // 2. Show the Chess Board and Log
@@ -1225,6 +1240,8 @@ function initArcadeEngine() {
         onDrop: onDrop,
         onSnapEnd: onSnapEnd
     };
+
+    
     
     setTimeout(() => {
             chessBoard = Chessboard('activeChessBoardInner', config);
@@ -1545,7 +1562,7 @@ function saveGameState() {
             const signer = await provider.getSigner();
             
             // Ensure this matches your actual AIVMChessReferee deployment address
-            const refereeAddress = "0x479b15998f4E63901b089b033d47C62464D6856"; 
+            const refereeAddress = "0xB1ad15336095b61a9eCEcc8929d3FAa9C12C1926"; 
             const refereeContract = new ethers.Contract(refereeAddress, [
                 "function recordGame(string pgn, string result) public"
             ], signer);

@@ -1272,12 +1272,9 @@ function saveGameState() {
         
     // 1. Only allow the user to move White pieces on their turn
     function onDragStart (source, piece, position, orientation) {
-        if (game.game_over()) return false;
-        // Only pick up pieces for White
-        if (piece.search(/^b/) !== -1) return false;
         if (chessGame.game_over() || piece.search(/^b/) !== -1 || aivmIsThinking) {
-        return false;
-    }
+            return false;
+        }
     }
 
     // 3. Handle piece drop and validate rules
@@ -1298,23 +1295,6 @@ function saveGameState() {
         
         // Call your existing AIVM function
         await triggerAIVMMove(); 
-    }
-
-    // 2. Validate the user's move
-    function handleMove(source, target) {
-        const move = game.move({
-            from: source,
-            to: target,
-            promotion: 'q' // Always promote to queen for simplicity
-        });
-    
-        // Illegal move
-        if (move === null) return 'snapback';
-    
-        log(`[ARCADE] Move: ${source}-${target}. AIVM Thinking...`);
-        
-        // Trigger AI move after a short delay
-        window.setTimeout(makeAIVMMove, 500);
     }
 
     // 3. Update the board visual after the logic move
@@ -1537,9 +1517,9 @@ function saveGameState() {
     
     // Function to manually resign
     async function resignChessGame() {
-if (chessGame.game_over() || chessGame.history().length === 0) {
-        return logAIVM("<span style='color:var(--text-dim);'>[SYS]</span> No active game to resign.");
-    }
+        if (chessGame.game_over() || chessGame.history().length === 0) {
+            return logAIVM("<span style='color:var(--text-dim);'>[SYS]</span> No active game to resign.");
+        }
 
     const confirmResign = confirm("Are you sure you want to resign? This will record a win for the AIVM on-chain.");
     if (!confirmResign) return;

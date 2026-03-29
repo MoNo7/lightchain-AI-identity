@@ -1395,37 +1395,36 @@ function saveGameState() {
 
 
     // 6. The AIVM Engine Call
-async function triggerAIVMMove() {
-    if (chessGame.game_over()) return;
-    aivmIsThinking = true;
-    logAIVM("<span style='color:var(--accent);'>[AIVM]</span> Requesting Legacy Inference...");
-
-    try {
-
+    async function triggerAIVMMove() {
+        if (chessGame.game_over()) return;
+        aivmIsThinking = true;
+        logAIVM("<span style='color:var(--accent);'>[AIVM]</span> Requesting Proxy Inference...");
+    
+        try {
             const accounts = await window.ethereum.request({ method: 'eth_accounts' });
             const activeWallet = accounts[0] || userWallet;
-        const proxyUrl = 'https://corsproxy.io/?https://api.lightchain.ai/v1/chat/completions';
-
-        const response = await fetch(proxyUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${activeWallet}`
-            },
-            body: JSON.stringify({
-                model: "Neural-Llama-3-70B",
-                messages: [
-                    { role: "system", content: "You are a chess engine. Respond ONLY with the move in UCI (e.g., e2e4)." },
-                    { role: "user", content: `FEN: ${chessGame.fen()}` }
-                ],
-                temperature: 0.1
-            })
-        });
-
-            if (!response.ok) {
-                const errText = await response.text();
-                throw new Error(`Gateway Reject (${response.status})`);
-            }
+    
+            // 🟢 THE FIX: Route through a CORS proxy to bypass Cloudflare/Gateway restrictions
+            const targetUrl = 'https://api.lightchain.ai/v1/chat/completions';
+            const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+    
+            const response = await fetch(proxyUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${activeWallet}`
+                },
+                body: JSON.stringify({
+                    model: "Neural-Llama-3-70B",
+                    messages: [
+                        { role: "system", content: "You are a chess engine. Respond ONLY with the move in UCI (e.g., e2e4)." },
+                        { role: "user", content: `FEN: ${chessGame.fen()}` }
+                    ],
+                    temperature: 0.1
+                })
+            });
+    
+            if (!response.ok) throw new Error(`Gateway Reject (${response.status})`);
     
             const data = await response.json();
             let bestMove = data.choices[0].message.content.trim().toLowerCase().replace(/[^a-h1-8q]/g, '');
@@ -1434,6 +1433,7 @@ async function triggerAIVMMove() {
                 const moveResult = chessGame.move(bestMove);
                 if (moveResult) {
                     chessBoard.position(chessGame.fen());
+                    saveGameState(); 
                     logAIVM(`<span style='color:var(--green);'>[AIVM]</span> Move Verified: <b>${bestMove}</b>`);
                     updateChessStatus();
                 } else {
@@ -1442,7 +1442,7 @@ async function triggerAIVMMove() {
             }
         } catch (err) {
             logAIVM(`<span style='color:var(--red);'>[DIAGNOSTIC]</span> ${err.message}`);
-            console.error("AIVM Fetch Error:", err);
+            console.error("Inference Error:", err);
         } finally {
             aivmIsThinking = false;
         }

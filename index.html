@@ -1223,7 +1223,13 @@ async function initArcadeEngine() {
         if (matchData.active) {
             logAIVM("<span style='color:var(--accent);'>[SYS]</span> Active match found. Resuming...");
             // Optional: Load the FEN from the contract instead of starting fresh
-            if (matchData.currentFEN) chessGame.load(matchData.currentFEN);
+            if (matchData.currentFEN) {
+                chessGame.load(matchData.currentFEN);
+                if (chessGame.turn() === 'b') {
+                    logAIVM("<span style='color:var(--accent);'>[SYS]</span> It is the AIVM's turn. Requesting move...");
+                    setTimeout(triggerAIVMMove, 500); 
+                }
+            }
         } else {
             logAIVM("<span style='color:var(--accent);'>[SYS]</span> Opening AIVM Escrow...");
             const tx = await referee.startMatch(chessGame.fen(), { value: 0 });
@@ -1420,7 +1426,11 @@ function saveGameState() {
         logAIVM("<span style='color:#888;'>[SYS]</span> Computing optimal inference...");
     
         try {
-            const authWallet = userWallet || (await (await new ethers.BrowserProvider(window.ethereum).getSigner()).getAddress());
+            if (!userWallet) {
+                const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                userWallet = accounts[0];
+            }
+
             const currentFen = chessGame.fen();
             
             // ==========================================
@@ -1431,7 +1441,7 @@ function saveGameState() {
             mode: 'cors',
             headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authWallet}` // Using wallet as session auth
+                'Authorization': `Bearer ${userWallet}`
             },
             body: JSON.stringify({ 
                 fen: chessGame.fen(),

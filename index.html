@@ -1205,13 +1205,13 @@ async function getArcadeKey() {
 function initArcadeEngine() {
     if (!isRegistered) return log("Register to unlock AIVM games.");
     // Hide overlay and show board
-    document.getElementById('arcadeOverlay').style.display = "none";
+//    document.getElementById('arcadeOverlay').style.display = "none";
     document.getElementById('arcadeHub').style.display = "none";
     document.getElementById('arcadeView').style.display = 'none';
     document.getElementById('chessView').style.display = 'flex';
-    setTimeout(() => {
-        board = Chessboard('activeChessBoardInner', config);
-    }, 10);
+
+    // 2. Initialize Logic
+    chessGame = new Chess();
     // 2. Show the Chess Board and Log
     const chessView = document.getElementById('chessView');
     chessView.style.display = 'flex';
@@ -1220,21 +1220,18 @@ function initArcadeEngine() {
     const config = {
         draggable: true,
         position: 'start',
+        pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
         onDragStart: onDragStart,
         onDrop: onDrop,
         onSnapEnd: onSnapEnd
     };
     
-    // Target the NEW ID we just created
-    board = Chessboard('activeChessBoardInner', config);
-    if (!chessBoard) {
-        launchGrandmasterEngine();
-    } else {
-        // If board exists, force it to snap to the new container size
-        chessBoard.resize();
-        chessBoard.position(chessGame.fen());
+    setTimeout(() => {
+            chessBoard = Chessboard('activeChessBoardInner', config);
+            updateChessStatus();
+            logAIVM("<span style='color:var(--accent);'>[SYS]</span> Grandmaster Engine Online.");
+        }, 50);
     }
-}
 
 
 function launchGrandmasterEngine() {
@@ -1284,24 +1281,24 @@ function saveGameState() {
     }
 
     // 3. Handle piece drop and validate rules
-async function onDrop(source, target) {
-    // 1. See if the move is legal in chess.js
-    let move = game.move({
-        from: source,
-        to: target,
-        promotion: 'q' // NOTE: always promote to a queen for simplicity
-    });
-
-    // Illegal move
-    if (move === null) return 'snapback';
-
-    // 2. Update the UI FEN display
-    document.getElementById('chessFen').innerText = game.fen();
-    document.getElementById('chessStatus').innerText = "AIVM is thinking...";
-
-    // 3. Send the new FEN to the AIVM for its response
-     await fetchAIVMMove(game.fen()); 
-}
+    async function onDrop(source, target) {
+        let move = chessGame.move({
+            from: source,
+            to: target,
+            promotion: 'q'
+        });
+    
+        if (move === null) return 'snapback';
+    
+        updateChessStatus();
+        
+        // Trigger AIVM Logic
+        aivmIsThinking = true;
+        logAIVM("[USER] Move confirmed. Requesting AIVM Inference...");
+        
+        // Call your existing AIVM function
+        await triggerAIVMMove(); 
+    }
 
     // 2. Validate the user's move
     function handleMove(source, target) {
@@ -1321,13 +1318,8 @@ async function onDrop(source, target) {
     }
 
     // 3. Update the board visual after the logic move
-    function onSnapEnd () {
-        board.position(game.fen());
-    }
-
     function onSnapEnd() {
         chessBoard.position(chessGame.fen());
-        board.position(game.fen());
     }
 
     // 5. Update UI text and FEN

@@ -839,50 +839,36 @@ window.onload = async () => {
 };
 
     
-       async function updateValidatorData() {
-            const VALIDATOR_ID = "213";
-            const logDiv = document.getElementById('validatorLog');
+    async function updateValidatorData() {
+    const NODE_IP = "192.168.1.157"; // Your Ubuntu Local IP
+    const logDiv = document.getElementById('validatorLog');
+
+    try {
+        // Fetch from your local node's status endpoint
+        // Note: Using http because local nodes rarely have SSL/HTTPS configured
+        const response = await fetch(`http://${NODE_IP}:8080/status`);
+        if (!response.ok) throw new Error("Local Node API Unreachable");
         
-            try {
-                // 1. Fetch from the specific Telemetry Metrics endpoint
-                const response = await fetch('https://chat2.lightchain.ai/api/v1/consensus/metrics');
-                if (!response.ok) throw new Error("Metrics Gateway Offline");
-                
-                const data = await response.json();
-                
-                // 2. Locate Validator 213 in the peer list
-                // Note: property names are based on chain-node/metrics/prometheus logic
-                const node = data.validators ? data.validators.find(v => v.id == VALIDATOR_ID) : null;
+        const node = await response.json();
+
+        // Map live hardware telemetry to the UI
+        document.getElementById('consensusRate').innerText = node.accuracy + "%";
+        document.getElementById('nodeLatency').innerText = node.latency_ms + "ms";
+        document.getElementById('activeTasks').innerText = node.current_jobs || "0";
+        document.getElementById('totalTasksCount').innerText = node.total_completed || "0";
         
-                if (node) {
-                    // Actual Accuracy (Percentage of successfully verified PoI tasks)
-                    document.getElementById('consensusRate').innerText = (node.uptime_score * 100).toFixed(2) + "%";
-                    
-                    // Actual Latency (Time to solve inference/consensus tasks)
-                    document.getElementById('nodeLatency').innerText = node.latency_ms + "ms";
-                    
-                    // Active Duties (Current PoI tasks in progress)
-                    document.getElementById('activeTasks').innerText = node.active_tasks || "0";
-        
-                    // Tasks Performed (Lifetime count of verified tasks)
-                    document.getElementById('totalTasksCount').innerText = node.lifetime_tasks || "0";
-        
-                    // Validator Rewards (Strictly accumulated LCAI for Node 213)
-                    document.getElementById('validatorEarnings').innerText = parseFloat(node.accumulated_rewards).toFixed(2) + " LCAI";
-                    
-                    log(`[INFRA] Node 213 Telemetry Synced.`);
-                } else {
-                    log(`[WARN] Node 213 not found in current epoch. Retrying...`);
-                }
-        
-            } catch (err) {
-                console.error("Validator Sync Error:", err);
-                // Reset fields to 0 or -- instead of ERR to keep the UI clean
-                ["consensusRate", "nodeLatency", "activeTasks", "totalTasksCount", "validatorEarnings"].forEach(id => {
-                    document.getElementById(id).innerText = "--";
-                });
-            }
+        // Rewards should come from the node's internal tracking
+        document.getElementById('validatorEarnings').innerText = parseFloat(node.rewards_earned).toFixed(2) + " LCAI";
+
+        if (logDiv) {
+            logDiv.innerHTML += `<br>[${new Date().toLocaleTimeString()}] Local Sync: Node 213 is Active.`;
         }
+    } catch (err) {
+        console.warn("Local Node Sync Failed:", err.message);
+        // Fallback to the public gateway if local is down
+        fetchPublicGatewayFallback(); 
+    }
+}
         
 
         const inferenceModels = [

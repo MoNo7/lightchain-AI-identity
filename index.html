@@ -376,6 +376,21 @@ display: none; /* Managed by JS */
                     <h2 id="validatorEarnings">0.00 LCAI</h2>
                 </div>
             </div>
+            <div style="margin-top: 30px;">
+                <h4 style="color: var(--text-dim); margin-bottom: 15px;">AIVM TASK HISTORY</h4>
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.8rem; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                    <thead>
+                        <tr style="text-align: left; color: var(--text-dim); border-bottom: 1px solid var(--border);">
+                            <th style="padding: 10px;">TASK ID</th>
+                            <th style="padding: 10px;">MODEL</th>
+                            <th style="padding: 10px;">RESULT</th>
+                            <th style="padding: 10px;">STATUS</th>
+                        </tr>
+                    </thead>
+                    <tbody id="taskHistoryTable">
+                        </tbody>
+                </table>
+            </div>
         
             <div style="margin-top: 20px; text-align: right;">
                 <button onclick="window.open('https://testnet.lightscan.app/withdrawals')" class="btn-zk-sm" style="background: var(--sidebar);">

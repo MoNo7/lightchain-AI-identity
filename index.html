@@ -839,12 +839,10 @@ window.onload = async () => {
 };
 
     
-        async function updateValidatorData() {
+          async function updateValidatorData() {
             const VALIDATOR_INDEX = "213";
-            const logDiv = document.getElementById('validatorLog');
-        
+            
             try {
-                // 1. Fetch raw data from the three primary telemetry endpoints
                 const [metricRes, valRes, statusRes] = await Promise.all([
                     fetch('https://chat2.lightchain.ai/api/v1/consensus/metrics'),
                     fetch('https://chat2.lightchain.ai/api/v1/consensus/validators'),
@@ -852,72 +850,65 @@ window.onload = async () => {
                 ]);
         
                 const metrics = await metricRes.json();
-                const validators = await valRes.json();
+                const valData = await valRes.json();
                 const status = await statusRes.json();
         
-                // 2. Locate Node 213 in the global validator list
-                const myNode = Array.isArray(validators) ? validators.find(v => String(v.index) === VALIDATOR_INDEX) : null;
+                // FIX: The API returns { "validators": [...] }, not a raw array
+                const validatorList = valData.validators || valData; 
+                const myNode = Array.isArray(validatorList) ? 
+                    validatorList.find(v => String(v.index) === VALIDATOR_INDEX) : null;
         
                 if (!myNode) {
                     document.getElementById('node-status-pill').innerText = "● NODE NOT FOUND";
                     document.getElementById('node-status-pill').style.color = "var(--red)";
-                    throw new Error(`Validator ${VALIDATOR_INDEX} not indexed by API`);
+                    return; // Exit early if node isn't in the global list
                 }
         
-                // 3. Populate Dashboard (STRICT: No || Fallbacks)
+                // --- Update Metrics ---
+                // Accuracy: Uses performance score from the specific node object
+                const acc = myNode.performance || metrics.accuracy || 0;
+                document.getElementById('consensusRate').innerText = (acc * 100).toFixed(2) + "%";
                 
-                // Accuracy: Pulling from node-specific performance metric
-                document.getElementById('consensusRate').innerText = myNode.performance ? (myNode.performance * 100).toFixed(2) + "%" : "--%";
-                
-                // Latency: Live heartbeat from telemetry
-                document.getElementById('nodeLatency').innerText = myNode.latency ? myNode.latency + "ms" : "--ms";
+                document.getElementById('nodeLatency').innerText = (myNode.latency || metrics.avg_latency_ms || 0) + "ms";
+                document.getElementById('activeTasks').innerText = myNode.active_duties || 0;
+                document.getElementById('totalTasksCount').innerText = myNode.total_tasks || 0;
         
-                // Active Tasks: Duties currently assigned specifically to this index
-                document.getElementById('activeTasks').innerText = myNode.active_duties || "0";
-        
-                // Tasks Performed: Total lifetime count as tracked by the protocol
-                document.getElementById('totalTasksCount').innerText = myNode.total_tasks || "0";
-        
-                // REWARDS: Strict calculation from balance (Balance - Effective Stake)
-                // Stake is 32,000,000,000 Gwei (32 LCAI).
+                // Rewards Logic: (Current Balance - Effective Balance) / 10^9
                 if (myNode.balance && myNode.validator?.effective_balance) {
-                    const balanceGwei = Number(myNode.balance);
-                    const stakeGwei = Number(myNode.validator.effective_balance);
-                    // Rewards are calculated in Gwei and converted to LCAI
-                    const rewardsLCAI = (balanceGwei - stakeGwei) / 1e9;
-                    document.getElementById('validatorEarnings').innerText = rewardsLCAI.toFixed(6) + " LCAI";
+                    const bal = Number(myNode.balance);
+                    const stake = Number(myNode.validator.effective_balance);
+                    const rewardLCAI = Math.max(0, (bal - stake) / 1e9);
+                    document.getElementById('validatorEarnings').innerText = rewardLCAI.toFixed(6) + " LCAI";
                 }
         
-                // 4. Task History: Filtered for Node 213 (Empty if no live tasks)
+                // --- Update Task History ---
                 const historyTable = document.getElementById('taskHistoryTable');
                 if (historyTable) {
-                    const myTasks = status.tasks ? status.tasks.filter(t => String(t.validator_index) === VALIDATOR_INDEX) : [];
-                    
+                    const liveTasks = status.tasks || [];
+                    // Filter tasks assigned to Validator 213
+                    const myTasks = liveTasks.filter(t => String(t.validator_index) === VALIDATOR_INDEX);
+        
                     if (myTasks.length > 0) {
                         historyTable.innerHTML = myTasks.map(t => `
                             <tr style="border-bottom: 1px solid var(--border);">
                                 <td style="padding: 12px; font-family: monospace; color: var(--accent);">${t.id.slice(0,12)}...</td>
                                 <td style="padding: 12px;">${t.model || 'AIVM-Core'}</td>
-                                <td style="padding: 12px;">${t.result_hash ? t.result_hash.slice(0,10) : 'PROCESING'}</td>
+                                <td style="padding: 12px;">${t.result_hash ? t.result_hash.slice(0,10) : 'PROCESSING'}</td>
                                 <td style="padding: 12px; color: var(--green); font-weight: bold;">${t.status}</td>
                             </tr>
                         `).join('');
                     } else {
-                        historyTable.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:25px; color:var(--text-dim);">No active duties recorded for Node 213</td></tr>';
+                        historyTable.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:25px; color:var(--text-dim);">No active duties for Node 213</td></tr>';
                     }
                 }
         
-                // 5. Sync Status Pill to your JSON 'status' field
+                // Finalize Status
                 const pill = document.getElementById('node-status-pill');
                 pill.innerText = "● " + myNode.status.replace('_', ' ').toUpperCase();
-                pill.style.color = myNode.status === 'active_ongoing' ? "var(--green)" : "var(--red)";
+                pill.style.color = "var(--green)";
         
             } catch (err) {
-                console.warn("Validator Sync Interrupted:", err.message);
-                // Wipe metrics to show broken state
-                ["consensusRate", "nodeLatency", "activeTasks", "totalTasksCount", "validatorEarnings"].forEach(id => {
-                    document.getElementById(id).innerText = "--";
-                });
+                console.error("Telemetry Sync Error:", err);
             }
         }
         

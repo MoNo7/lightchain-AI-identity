@@ -371,6 +371,10 @@ display: none; /* Managed by JS */
                     <small style="color: var(--text-dim);">ACTIVE TASKS</small>
                     <h2 id="activeTasks">0</h2>
                 </div>
+                <div class="stats-box">
+                    <small style="color: var(--text-dim);">TASKS PERFORMED</small>
+                    <h2 id="totalTasksCount">0</h2> 
+                </div>
                 <div class="stats-box" style="padding: 15px; border: 1px solid var(--border); border-radius: 8px;">
                     <small style="color: var(--text-dim);">TOTAL REWARDS</small>
                     <h2 id="validatorEarnings">0.00 LCAI</h2>
@@ -888,7 +892,8 @@ window.onload = async () => {
                 if (userWallet) {
                     const provider = new ethers.BrowserProvider(window.ethereum);
                     const balanceWei = await provider.getBalance(userWallet);
-                    document.getElementById('validatorEarnings').innerText = ethers.formatEther(balanceWei) + " LCAI";
+                    const earned = ethers.formatEther(balanceWei);
+                    document.getElementById('validatorEarnings').innerText = parseFloat(earned).toFixed(2) + " LCAI";
                 }
         
                 // 5. Update Status Pill

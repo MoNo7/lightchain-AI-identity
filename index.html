@@ -839,46 +839,63 @@ window.onload = async () => {
 };
 
     
-       async function updateValidatorData() {
-    try {
-        // 1. Fetch from Lightchain AI Infrastructure Endpoints
-        const [metricRes, healthRes, statusRes] = await Promise.all([
-            fetch('https://chat2.lightchain.ai/api/v1/consensus/metrics'),
-            fetch('https://chat2.lightchain.ai/api/v1/consensus/health'),
-            fetch('https://chat2.lightchain.ai/api/v1/consensus/status')
-        ]);
-
-        const metrics = await metricRes.json();
-        const health = await healthRes.json();
-        const status = await statusRes.json();
-
-        // 2. Map API data to UI
-        // Accuracy comes from PoI verification metrics
-        document.getElementById('consensusRate').innerText = (metrics.accuracy * 100).toFixed(2) + "%";
+        async function updateValidatorData() {
+            try {
+                const validatorId = "213";
+                const logDiv = document.getElementById('validatorLog');
+                
+                if (logDiv) logDiv.innerHTML += `<br>[SYS] Fetching live data for Validator ${validatorId}...`;
         
-        // Latency comes from the health/telemetry endpoint
-        document.getElementById('nodeLatency').innerText = (health.response_time_ms || "42") + "ms";
+                // 1. Fetch Validator-Specific Data (NOT Global Data)
+                // Update this URL if Lightchain uses a different path for specific validators
+                const response = await fetch(`https://chat2.lightchain.ai/api/v1/validators/${validatorId}`);
+                
+                if (!response.ok) throw new Error(`API returned status: ${response.status}`);
+                
+                const validatorData = await response.json();
         
-        // Active Tasks are current pending AI inferences in the global queue
-        document.getElementById('activeTasks').innerText = status.pending_tasks || "0";
-
-        // 3. Update Rewards (Wallet Balance)
-        if (userWallet) {
-            const provider = new ethers.BrowserProvider(window.ethereum);
-            const balance = await provider.getBalance(userWallet);
-            document.getElementById('validatorEarnings').innerText = parseFloat(ethers.formatEther(balance)).toFixed(2) + " LCAI";
+                // 2. Map Actual Validator Data to the UI
+                
+                // Validator Accuracy (Safely handled to prevent NaN%)
+                const accuracy = validatorData.accuracy !== undefined ? (validatorData.accuracy * 100).toFixed(2) : "0.00";
+                document.getElementById('consensusRate').innerText = `${accuracy}%`;
+        
+                // Node Latency
+                const latency = validatorData.latency_ms || "0";
+                document.getElementById('nodeLatency').innerText = `${latency}ms`;
+        
+                // Active Duties / Tasks currently assigned to Validator 213
+                const activeTasks = validatorData.active_duties || validatorData.pending_tasks || "0";
+                document.getElementById('activeTasks').innerText = activeTasks;
+        
+                // Total Tasks performed by Validator 213
+                const totalTasks = validatorData.total_tasks_performed || "0";
+                document.getElementById('totalTasksCount').innerText = totalTasks;
+        
+                // Validator Rewards (Strictly from the Validator API, NOT the wallet balance)
+                const rewards = validatorData.total_rewards || validatorData.earned_lcai || "0.00";
+                document.getElementById('validatorEarnings').innerText = `${parseFloat(rewards).toFixed(2)} LCAI`;
+        
+                if (logDiv) {
+                    const timestamp = new Date().toLocaleTimeString();
+                    logDiv.innerHTML += `<br>[${timestamp}] Node ${validatorId}: Data synced successfully.`;
+                    logDiv.scrollTop = logDiv.scrollHeight; // Auto-scroll to bottom
+                }
+        
+            } catch (err) {
+                console.error("Validator API Sync Error:", err);
+                
+                // Fallback UI to show an error state instead of broken NaN data
+                document.getElementById('consensusRate').innerText = "ERR";
+                document.getElementById('nodeLatency').innerText = "ERR";
+                document.getElementById('activeTasks').innerText = "ERR";
+                document.getElementById('totalTasksCount').innerText = "ERR";
+                document.getElementById('validatorEarnings').innerText = "ERR";
+                
+                const logDiv = document.getElementById('validatorLog');
+                if (logDiv) logDiv.innerHTML += `<br><span style="color:var(--red);">[ERR] Sync failed: ${err.message}</span>`;
+            }
         }
-
-        // 4. Update Log
-        const logDiv = document.getElementById('validatorLog');
-        const timestamp = new Date().toLocaleTimeString();
-        logDiv.innerHTML += `<br>[${timestamp}] Node 213: PoI Verified. Efficiency: ${metrics.accuracy.toFixed(4)}`;
-        logDiv.scrollTop = logDiv.scrollHeight;
-
-    } catch (err) {
-        console.error("Validator API Sync Error:", err);
-    }
-}
         
 
         const inferenceModels = [

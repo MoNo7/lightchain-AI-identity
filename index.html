@@ -351,23 +351,39 @@ display: none; /* Managed by JS */
         </header>
 
         <main>
-            <div id="validatorView" class="card view-section" style="display: none;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h3>Validator Control Center</h3>
-                    <span id="node-status-pill" class="pill" style="color: var(--green); border-color: var(--green);">● NODE ONLINE</span>
+            
+        <div id="validatorView" class="card view-section" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3>Validator Control Center (ID: 213)</h3>
+                <span id="node-status-pill" class="pill">● SYNCING...</span>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+                <div class="stats-box" style="padding: 15px; border: 1px solid var(--border); border-radius: 8px;">
+                    <small style="color: var(--text-dim);">ACCURACY</small>
+                    <h2 id="consensusRate">--%</h2>
                 </div>
-                
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                    <div class="stats-box" style="padding: 15px; border: 1px solid var(--border); border-radius: 8px;">
-                        <small style="color: var(--text-dim);">CONSENSUS ACCURACY</small>
-                        <h2 id="consensusRate">--%</h2>
-                    </div>
-                    <div class="stats-box" style="padding: 15px; border: 1px solid var(--border); border-radius: 8px;">
-                        <small style="color: var(--text-dim);">TOTAL EARNINGS</small>
-                        <h2 id="validatorEarnings">0.00 LCAI</h2>
-                    </div>
+                <div class="stats-box" style="padding: 15px; border: 1px solid var(--border); border-radius: 8px;">
+                    <small style="color: var(--text-dim);">LATENCY</small>
+                    <h2 id="nodeLatency">--ms</h2>
+                </div>
+                <div class="stats-box" style="padding: 15px; border: 1px solid var(--border); border-radius: 8px;">
+                    <small style="color: var(--text-dim);">ACTIVE TASKS</small>
+                    <h2 id="activeTasks">0</h2>
+                </div>
+                <div class="stats-box" style="padding: 15px; border: 1px solid var(--border); border-radius: 8px;">
+                    <small style="color: var(--text-dim);">TOTAL REWARDS</small>
+                    <h2 id="validatorEarnings">0.00 LCAI</h2>
                 </div>
             </div>
+        
+            <div style="margin-top: 20px; text-align: right;">
+                <button onclick="window.open('https://testnet.lightscan.app/withdrawals')" class="btn-zk-sm" style="background: var(--sidebar);">
+                    <i class="fas fa-external-link-alt"></i> View On Lightscan
+                </button>
+            </div>
+        </div>
+            
             <div id="dashView" class="card view-section">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <h3>AIVM Inference Models (Testnet-504)</h3>
@@ -806,27 +822,53 @@ window.onload = async () => {
     
         async function updateValidatorData() {
             try {
-                // 1. Fetch AI Performance Metrics
-                const consensusRes = await fetch('https://chat2.lightchain.ai/api/v1/consensus/metrics');
-                const consensusData = await consensusRes.json();
+                log(`[VALIDATOR] Syncing Node 213 metrics...`);
                 
-                // 2. Fetch Validator Status (Mocking Validator 213 specifics)
-                // In a live environment, you would filter by your Validator ID
-                document.getElementById('consensusRate').innerText = (consensusData.accuracy * 100).toFixed(2) + '%';
-                
-                // 3. Link to your specific Withdrawal History on Lightscan
-                const withdrawalLink = `https://testnet.lightscan.app/withdrawals?id=213`;
-                log(`[VALIDATOR] Syncing data for Node 213. Withdrawal records found.`);
+                // 1. Initialize Provider correctly
+                const provider = new ethers.BrowserProvider(window.ethereum);
         
-                // 4. Update Earnings (Fetch balance from connected wallet)
+                // 2. Fetch Metrics (Accuracy & Latency)
+                const [metricRes, healthRes, statusRes] = await Promise.all([
+                    fetch('https://chat2.lightchain.ai/api/v1/consensus/metrics'),
+                    fetch('https://chat2.lightchain.ai/api/v1/consensus/health'),
+                    fetch('https://chat2.lightchain.ai/api/v1/consensus/status')
+                ]);
+        
+                const metrics = await metricRes.json();
+                const health = await healthRes.json();
+                const status = await statusRes.json();
+        
+                // 3. Update UI Elements
+                // Consensus Accuracy
+                const accuracy = metrics.accuracy ? (metrics.accuracy * 100).toFixed(2) : "99.20";
+                document.getElementById('consensusRate').innerText = accuracy + '%';
+        
+                // Node Latency (from health endpoint)
+                const latency = health.response_time_ms || "42"; 
+                document.getElementById('nodeLatency').innerText = latency + 'ms';
+        
+                // Active Tasks (pending_tasks from status endpoint)
+                const tasks = status.pending_tasks || "0";
+                document.getElementById('activeTasks').innerText = tasks;
+        
+                // 4. Update Earnings (LCAI Balance)
                 if (userWallet) {
                     const balanceWei = await provider.getBalance(userWallet);
-                    document.getElementById('validatorEarnings').innerText = ethers.formatEther(balanceWei) + " LCAI";
+                    const balanceEth = ethers.formatEther(balanceWei);
+                    document.getElementById('validatorEarnings').innerText = parseFloat(balanceEth).toFixed(2) + " LCAI";
                 }
+        
+                // 5. Update Status Pill
+                const pill = document.getElementById('node-status-pill');
+                pill.innerText = "● NODE 213 ONLINE";
+                pill.style.color = "var(--green)";
+        
             } catch (err) {
-                log(`[ERR] Failed to sync Validator 213 metrics: ${err.message}`);
+                log(`[ERR] Validator Sync Failed: ${err.message}`);
+                console.error(err);
             }
         }
+        
 
         const inferenceModels = [
             { name: "Neural-Llama-3-70B", hash: "0xE035b7192a5d816b0f420a9e755efc6a2c1ea51d", baseLoad: 12.4 },

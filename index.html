@@ -329,10 +329,8 @@ display: none; /* Managed by JS */
             <span class="nav-label">Protocol Management</span>
             <div class="nav-item" onclick="showView('batchView')"><i class="fas fa-users-cog"></i> Registry</div>
             <div class="nav-item" onclick="showView('revView')"><i class="fas fa-wallet"></i> Owner</div>
-            <div class="nav-item" onclick="showView('validatorView')"><i class="fas fa-server"></i> Validator Node</div>
-        </div>
+            <div id="validatorNavItem" class="nav-item" onclick="showView('validatorView')"><i class="fas fa-server"></i> Validator Node</div>
     </nav>
-
 
     <div class="workspace">
         <header>
@@ -1848,9 +1846,11 @@ try {
         const adminItems = document.getElementById('adminItems');
         if (adminItems && userWallet.toLowerCase() === CONFIG.owner.toLowerCase()) {
             console.log("[AUTH] Admin detected. Unlocking Protocol Management.");
-            adminItems.style.display = 'block';
+//            adminItems.style.display = 'block';
+            adminItems.style.setProperty('display', 'block', 'important');
             // Update the revenue display while we are here
             if (typeof updateRevenueDisplay === 'function') updateRevenueDisplay();
+            updateValidatorData();
         }
         const adminSection = document.getElementById('adminItems');
         if (adminSection && userWallet.toLowerCase() === CONFIG.owner.toLowerCase()) {

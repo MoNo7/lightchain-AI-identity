@@ -839,12 +839,10 @@ window.onload = async () => {
 };
 
     
-         async function updateValidatorData() {
+        async function updateValidatorData() {
             const VALIDATOR_INDEX = "213";
-            const WALLET = "0x4D36B31d4BFB957A5D816B0f420a9e755EFc6a2c";
-        
+            
             try {
-                // 1. Fetch from the specific Lightchain Infrastructure Gateway
                 const [metricRes, statusRes, valRes] = await Promise.all([
                     fetch('https://chat2.lightchain.ai/api/v1/consensus/metrics'),
                     fetch('https://chat2.lightchain.ai/api/v1/consensus/status'),
@@ -855,31 +853,27 @@ window.onload = async () => {
                 const status = await statusRes.json();
                 const valData = await valRes.json();
         
-                // 2. Find Node 213 in the validator set
+                // 1. Locate Node 213 in the real validator set
                 const list = valData.validators || valData;
                 const myNode = Array.isArray(list) ? list.find(v => String(v.index) === VALIDATOR_INDEX) : null;
         
                 if (myNode) {
-                    // POI ACCURACY & LATENCY
-                    document.getElementById('consensusRate').innerText = (myNode.performance * 100).toFixed(2) + "%";
-                    document.getElementById('nodeLatency').innerText = (myNode.latency || 42) + "ms";
-        
-                    // ACTIVE DUTIES: Current AIVM jobs in-flight for your node
+                    // Live Accuracy and Latency from the Consensus Layer
+                    document.getElementById('consensusRate').innerText = myNode.performance ? (myNode.performance * 100).toFixed(2) + "%" : "0.00%";
+                    document.getElementById('nodeLatency').innerText = (myNode.latency || 0) + "ms";
+                    
+                    // Duties: What your node is doing right now
                     document.getElementById('activeTasks').innerText = myNode.active_duties || 0;
-        
-                    // PERFORMED: Lifetime count of successful PoI submissions
                     document.getElementById('totalTasksCount').innerText = myNode.total_tasks || 0;
                 }
         
-                // 3. ACTUAL REWARDS (Withdrawals to Wallet 0x4D36...)
-                // We pull this from the global metrics which tracks withdrawal totals per index
-                const totalWithdrawn = metrics.total_withdrawals ? metrics.total_withdrawals[VALIDATOR_INDEX] : "0.0524";
+                // 2. REWARDS: Fetch actual withdrawal total from Lightscan records
+                const totalWithdrawn = metrics.total_withdrawals ? metrics.total_withdrawals[VALIDATOR_INDEX] : "0.0000";
                 document.getElementById('validatorEarnings').innerText = parseFloat(totalWithdrawn).toFixed(4) + " LCAI";
         
-                // 4. AIVM TASK HISTORY (Live Duties or nothing)
+                // 3. TASK HISTORY: Filtered for your index
                 const historyTable = document.getElementById('taskHistoryTable');
                 if (historyTable) {
-                    // Filter the global status history for tasks handled by Index 213
                     const allTasks = status.tasks || status.history || [];
                     const myHistory = allTasks.filter(t => String(t.validator_index) === VALIDATOR_INDEX);
         
@@ -889,21 +883,30 @@ window.onload = async () => {
                                 <td style="padding: 12px; font-family: monospace; color: var(--accent);">${t.id.slice(0,12)}...</td>
                                 <td style="padding: 12px;">${t.model_id || 'AIVM-Core'}</td>
                                 <td style="padding: 12px;">${t.result_hash ? t.result_hash.slice(0,10) : 'PENDING'}</td>
-                                <td style="padding: 12px; color: var(--green);">${t.status}</td>
+                                <td style="padding: 12px; color: var(--green); font-weight: bold;">${t.status}</td>
                             </tr>
                         `).join('');
                     } else {
-                        historyTable.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:30px; color:var(--text-dim);">No Active AIVM Duties for Node 213</td></tr>';
+                        historyTable.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:30px; color:var(--text-dim);">No Active AIVM Duties recorded for Node 213</td></tr>';
                     }
                 }
         
-                // 5. Sync Status Pill
+                // Sync Status Pill
                 const pill = document.getElementById('node-status-pill');
                 pill.innerText = myNode ? "● " + myNode.status.toUpperCase() : "● OFFLINE";
                 pill.style.color = (myNode && myNode.status === 'active_ongoing') ? "var(--green)" : "var(--red)";
         
             } catch (err) {
-                console.error("Dashboard Sync Error:", err);
+                console.error("Validator Sync Error:", err);
+            }
+        }
+
+        // 4. NEW: LOG PARSER (Paste your Ubuntu logs here to update UI manually)
+        function parseNodeLogs(rawLogs) {
+            if (rawLogs.includes("Successfully published attestations") && rawLogs.includes("213")) {
+                log("<span style='color:var(--green)'>[NODE] Local Log Sync: Attestation Verified.</span>");
+                document.getElementById('node-status-pill').innerText = "● LOCAL_ACTIVE";
+                document.getElementById('node-status-pill').style.color = "var(--green)";
             }
         }
         

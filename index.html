@@ -866,9 +866,14 @@ window.onload = async () => {
         document.getElementById('activeTasks').innerText = activeJobs;
         document.getElementById('totalTasksCount').innerText = metrics.total_tasks_processed || "1248";
 
-        // 4. Validator Rewards (Derived from PoI submissions, not wallet balance)
-        const nodeRewards = metrics.validator_rewards ? metrics.validator_rewards[VALIDATOR_ID] : "750.42";
-        document.getElementById('validatorEarnings').innerText = nodeRewards + " LCAI";
+        // 4. Validator Rewards (Derived from PoI submissions)
+        if (metrics.validator_rewards && metrics.validator_rewards[VALIDATOR_ID]) {
+            const myRewards = metrics.validator_rewards[VALIDATOR_ID];
+            document.getElementById('validatorEarnings').innerText = parseFloat(myRewards).toFixed(2) + " LCAI";
+        } else {
+            // Fallback if the node hasn't earned in this epoch yet
+            document.getElementById('validatorEarnings').innerText = "0.00 LCAI";
+        }
 
         // 5. Populate Live Task History (Duties Log)
         const historyTable = document.getElementById('taskHistoryTable');

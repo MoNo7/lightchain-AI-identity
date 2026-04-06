@@ -841,74 +841,88 @@ window.onload = async () => {
     
           async function updateValidatorData() {
             const VALIDATOR_INDEX = "213";
-            
+            log("[DIAGNOSTIC] Starting Verbose Sync for Node 213...");
+        
             try {
-                const [metricRes, valRes, statusRes] = await Promise.all([
+                // 1. Fetch from the three core telemetry sources
+                const [mRes, vRes, sRes] = await Promise.all([
                     fetch('https://chat2.lightchain.ai/api/v1/consensus/metrics'),
                     fetch('https://chat2.lightchain.ai/api/v1/consensus/validators'),
                     fetch('https://chat2.lightchain.ai/api/v1/consensus/status')
                 ]);
         
-                const metrics = await metricRes.json();
-                const valData = await valRes.json();
-                const status = await statusRes.json();
+                const metrics = await mRes.json();
+                const valData = await vRes.json();
+                const status = await sRes.json();
         
-                // FIX: The API returns { "validators": [...] }, not a raw array
-                const validatorList = valData.validators || valData; 
-                const myNode = Array.isArray(validatorList) ? 
-                    validatorList.find(v => String(v.index) === VALIDATOR_INDEX) : null;
+                // --- VERBOSE LOGGING FOR TROUBLESHOOTING ---
+                console.log("DEBUG_METRICS:", metrics);
+                console.log("DEBUG_VALIDATORS:", valData);
+                console.log("DEBUG_STATUS:", status);
+                log(`[DEBUG] Received ${Array.isArray(valData.validators) ? valData.validators.length : '0'} validators from API.`);
         
-                if (!myNode) {
-                    document.getElementById('node-status-pill').innerText = "● NODE NOT FOUND";
-                    document.getElementById('node-status-pill').style.color = "var(--red)";
-                    return; // Exit early if node isn't in the global list
+                // 2. Identify the Data Structure (Handles both {validators:[]} and [])
+                const list = valData.validators || valData;
+                if (!Array.isArray(list)) {
+                    log("<span style='color:var(--red)'>[ERR] API returned Object, expected Array. Check Console.</span>");
+                    return;
                 }
         
-                // --- Update Metrics ---
-                // Accuracy: Uses performance score from the specific node object
-                const acc = myNode.performance || metrics.accuracy || 0;
-                document.getElementById('consensusRate').innerText = (acc * 100).toFixed(2) + "%";
-                
+                // 3. Find Node 213
+                const myNode = list.find(v => String(v.index) === VALIDATOR_INDEX);
+        
+                if (!myNode) {
+                    log(`<span style='color:var(--red)'>[ERR] Node 213 missing from global list of ${list.length} nodes.</span>`);
+                    document.getElementById('node-status-pill').innerText = "● OFFLINE / NOT INDEXED";
+                    document.getElementById('node-status-pill').style.color = "var(--red)";
+                    return;
+                }
+        
+                log("<span style='color:var(--green)'>[OK] Node 213 found. Mapping metrics...</span>");
+        
+                // 4. Map Live Data (Using exact keys from lcai-smart-contract)
+                document.getElementById('consensusRate').innerText = myNode.performance ? (myNode.performance * 100).toFixed(2) + "%" : "0.00%";
                 document.getElementById('nodeLatency').innerText = (myNode.latency || metrics.avg_latency_ms || 0) + "ms";
                 document.getElementById('activeTasks').innerText = myNode.active_duties || 0;
                 document.getElementById('totalTasksCount').innerText = myNode.total_tasks || 0;
         
-                // Rewards Logic: (Current Balance - Effective Balance) / 10^9
-                if (myNode.balance && myNode.validator?.effective_balance) {
+                // 5. Rewards Calculation (Balance - Effective Balance)
+                if (myNode.balance && myNode.validator) {
                     const bal = Number(myNode.balance);
-                    const stake = Number(myNode.validator.effective_balance);
-                    const rewardLCAI = Math.max(0, (bal - stake) / 1e9);
+                    const stake = Number(myNode.validator.effective_balance || 32000000000);
+                    const rewardLCAI = (bal - stake) / 1e9;
                     document.getElementById('validatorEarnings').innerText = rewardLCAI.toFixed(6) + " LCAI";
+                    log(`[DEBUG] Bal: ${bal} | Stake: ${stake} | Net: ${rewardLCAI}`);
                 }
         
-                // --- Update Task History ---
+                // 6. Update History
                 const historyTable = document.getElementById('taskHistoryTable');
-                if (historyTable) {
-                    const liveTasks = status.tasks || [];
-                    // Filter tasks assigned to Validator 213
-                    const myTasks = liveTasks.filter(t => String(t.validator_index) === VALIDATOR_INDEX);
+                const tasks = status.tasks || status.history || [];
+                const myTasks = tasks.filter(t => String(t.validator_index) === VALIDATOR_INDEX);
         
+                if (historyTable) {
                     if (myTasks.length > 0) {
                         historyTable.innerHTML = myTasks.map(t => `
                             <tr style="border-bottom: 1px solid var(--border);">
                                 <td style="padding: 12px; font-family: monospace; color: var(--accent);">${t.id.slice(0,12)}...</td>
                                 <td style="padding: 12px;">${t.model || 'AIVM-Core'}</td>
-                                <td style="padding: 12px;">${t.result_hash ? t.result_hash.slice(0,10) : 'PROCESSING'}</td>
-                                <td style="padding: 12px; color: var(--green); font-weight: bold;">${t.status}</td>
+                                <td style="padding: 12px;">${t.result_hash ? t.result_hash.slice(0,10) : 'VERIFYING'}</td>
+                                <td style="padding: 12px; color: var(--green);">${t.status}</td>
                             </tr>
                         `).join('');
                     } else {
-                        historyTable.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:25px; color:var(--text-dim);">No active duties for Node 213</td></tr>';
+                        historyTable.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; color:var(--text-dim);">No duties found in current API frame.</td></tr>';
                     }
                 }
         
-                // Finalize Status
+                // 7. Final Status Pill
                 const pill = document.getElementById('node-status-pill');
-                pill.innerText = "● " + myNode.status.replace('_', ' ').toUpperCase();
+                pill.innerText = "● " + (myNode.status || 'ACTIVE').toUpperCase();
                 pill.style.color = "var(--green)";
         
             } catch (err) {
-                console.error("Telemetry Sync Error:", err);
+                log(`<span style='color:var(--red)'>[FATAL] ${err.message}</span>`);
+                console.error("Full Error Context:", err);
             }
         }
         

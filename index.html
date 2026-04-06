@@ -353,31 +353,31 @@ display: none; /* Managed by JS */
         <main>
             
         <div id="validatorView" class="card view-section" style="display: none;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h3>Validator Control Center (ID: 213)</h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                <h2 style="margin:0; font-family: monospace;">AIVM_NODE_213</h2>
                 <span id="node-status-pill" class="pill">● SYNCING...</span>
             </div>
-            
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
-                <div class="stats-box" style="padding: 15px; border: 1px solid var(--border); border-radius: 8px;">
-                    <small style="color: var(--text-dim);">ACCURACY</small>
-                    <h2 id="consensusRate">--%</h2>
+        
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px;">
+                <div class="stats-box" style="padding: 20px; border: 1px solid var(--border); border-radius: 12px;">
+                    <small style="color: var(--text-dim); letter-spacing: 1px;">POI_ACCURACY</small>
+                    <h2 id="consensusRate" style="color: var(--accent);">--%</h2>
                 </div>
-                <div class="stats-box" style="padding: 15px; border: 1px solid var(--border); border-radius: 8px;">
-                    <small style="color: var(--text-dim);">LATENCY</small>
+                <div class="stats-box" style="padding: 20px; border: 1px solid var(--border); border-radius: 12px;">
+                    <small style="color: var(--text-dim); letter-spacing: 1px;">LATENCY</small>
                     <h2 id="nodeLatency">--ms</h2>
                 </div>
-                <div class="stats-box" style="padding: 15px; border: 1px solid var(--border); border-radius: 8px;">
-                    <small style="color: var(--text-dim);">ACTIVE TASKS</small>
+                <div class="stats-box" style="padding: 20px; border: 1px solid var(--border); border-radius: 12px;">
+                    <small style="color: var(--text-dim); letter-spacing: 1px;">ACTIVE_DUTIES</small>
                     <h2 id="activeTasks">0</h2>
                 </div>
-                <div class="stats-box"style="padding: 15px; border: 1px solid var(--border); border-radius: 8px;">
-                    <small style="color: var(--text-dim);">TASKS PERFORMED</small>
-                    <h2 id="totalTasksCount">0</h2> 
+                <div class="stats-box" style="padding: 20px; border: 1px solid var(--border); border-radius: 12px;">
+                    <small style="color: var(--text-dim); letter-spacing: 1px;">PERFORMED</small>
+                    <h2 id="totalTasksCount">0</h2>
                 </div>
-                <div class="stats-box" style="padding: 15px; border: 1px solid var(--border); border-radius: 8px;">
-                    <small style="color: var(--text-dim);">TOTAL REWARDS</small>
-                    <h2 id="validatorEarnings">0.00 LCAI</h2>
+                <div class="stats-box" style="padding: 20px; border: 1px solid var(--border); border-radius: 12px;">
+                    <small style="color: var(--text-dim); letter-spacing: 1px;">REWARDS</small>
+                    <h2 id="validatorEarnings" style="color: var(--green);">0.0000 LCAI</h2>
                 </div>
             </div>
             <div style="margin-top: 30px;">
@@ -844,67 +844,80 @@ window.onload = async () => {
             const logDiv = document.getElementById('validatorLog');
         
             try {
-                // 1. Fetch live infrastructure data
-                const [metricRes, statusRes] = await Promise.all([
+                // 1. Fetch raw data from the three primary telemetry endpoints
+                const [metricRes, valRes, statusRes] = await Promise.all([
                     fetch('https://chat2.lightchain.ai/api/v1/consensus/metrics'),
+                    fetch('https://chat2.lightchain.ai/api/v1/consensus/validators'),
                     fetch('https://chat2.lightchain.ai/api/v1/consensus/status')
                 ]);
         
                 const metrics = await metricRes.json();
+                const validators = await valRes.json();
                 const status = await statusRes.json();
         
-                // 2. Accuracy & Latency (Using Network Averages as a reliable baseline)
-                const accuracy = metrics.accuracy || metrics.global_performance || 0.9920;
-                document.getElementById('consensusRate').innerText = (accuracy * 100).toFixed(2) + "%";
-                document.getElementById('nodeLatency').innerText = (metrics.avg_latency_ms || 42) + "ms";
+                // 2. Locate Node 213 in the global validator list
+                const myNode = Array.isArray(validators) ? validators.find(v => String(v.index) === VALIDATOR_INDEX) : null;
         
-                // 3. Active Tasks (Current duties assigned to Node 213)
-                document.getElementById('activeTasks').innerText = status.pending_tasks || "0";
-        
-                // 4. Tasks Performed (Lifetime count)
-                // If the API doesn't return your specific count, we use your known benchmark
-                document.getElementById('totalTasksCount').innerText = metrics.total_tasks_processed || "1248";
-        
-                // 5. TOTAL REWARDS (Calculated from Validator Balance)
-                // Based on your provided data: balance 31999962680 Gwei vs 32000000000 Effective
-                const currentBalanceGwei = 31999962680; 
-                const effectiveStakeGwei = 32000000000;
-                
-                // Rewards = (Current - Effective) / 10^9. 
-                // If negative (initial state), we show 0.00 until the first epoch clears.
-                let rewardValue = (currentBalanceGwei - effectiveStakeGwei) / 1e9;
-                if (rewardValue < 0) rewardValue = 0.0524; // Known pending rewards for Node 213
-                
-                document.getElementById('validatorEarnings').innerText = rewardValue.toFixed(4) + " LCAI";
-
-                // Populate the Task History Table
-                const historyTable = document.getElementById('taskHistoryTable');
-                if (historyTable) {
-                    // We try to get real tasks, but fallback to your actual Node 213 activity
-                    const liveTasks = status.tasks || status.history || [];
-                    
-                    const displayData = liveTasks.length > 0 ? liveTasks.slice(0, 5) : [
-                        { id: "0x8f86f12...740", model: "AIVM-Chess-v1", result: "e2e4 (Verified)", status: "COMPLETED" },
-                        { id: "0x5297aa1...806", model: "Neural-Llama-3", result: "0xaf...32", status: "COMPLETED" }
-                    ];
-                
-                    historyTable.innerHTML = displayData.map(task => `
-                        <tr style="border-bottom: 1px solid var(--border); font-family: monospace;">
-                            <td style="padding: 12px; color: var(--accent);">${task.id.slice(0,12)}...</td>
-                            <td style="padding: 12px;">${task.model || 'Inference'}</td>
-                            <td style="padding: 12px; color: var(--text-dim);">${task.result || task.result_hash?.slice(0,10) || 'Verified'}</td>
-                            <td style="padding: 12px; color: var(--green); font-weight: bold;">${task.status}</td>
-                        </tr>
-                    `).join('');
+                if (!myNode) {
+                    document.getElementById('node-status-pill').innerText = "● NODE NOT FOUND";
+                    document.getElementById('node-status-pill').style.color = "var(--red)";
+                    throw new Error(`Validator ${VALIDATOR_INDEX} not indexed by API`);
                 }
         
-                // 6. Status Pill
+                // 3. Populate Dashboard (STRICT: No || Fallbacks)
+                
+                // Accuracy: Pulling from node-specific performance metric
+                document.getElementById('consensusRate').innerText = myNode.performance ? (myNode.performance * 100).toFixed(2) + "%" : "--%";
+                
+                // Latency: Live heartbeat from telemetry
+                document.getElementById('nodeLatency').innerText = myNode.latency ? myNode.latency + "ms" : "--ms";
+        
+                // Active Tasks: Duties currently assigned specifically to this index
+                document.getElementById('activeTasks').innerText = myNode.active_duties || "0";
+        
+                // Tasks Performed: Total lifetime count as tracked by the protocol
+                document.getElementById('totalTasksCount').innerText = myNode.total_tasks || "0";
+        
+                // REWARDS: Strict calculation from balance (Balance - Effective Stake)
+                // Stake is 32,000,000,000 Gwei (32 LCAI).
+                if (myNode.balance && myNode.validator?.effective_balance) {
+                    const balanceGwei = Number(myNode.balance);
+                    const stakeGwei = Number(myNode.validator.effective_balance);
+                    // Rewards are calculated in Gwei and converted to LCAI
+                    const rewardsLCAI = (balanceGwei - stakeGwei) / 1e9;
+                    document.getElementById('validatorEarnings').innerText = rewardsLCAI.toFixed(6) + " LCAI";
+                }
+        
+                // 4. Task History: Filtered for Node 213 (Empty if no live tasks)
+                const historyTable = document.getElementById('taskHistoryTable');
+                if (historyTable) {
+                    const myTasks = status.tasks ? status.tasks.filter(t => String(t.validator_index) === VALIDATOR_INDEX) : [];
+                    
+                    if (myTasks.length > 0) {
+                        historyTable.innerHTML = myTasks.map(t => `
+                            <tr style="border-bottom: 1px solid var(--border);">
+                                <td style="padding: 12px; font-family: monospace; color: var(--accent);">${t.id.slice(0,12)}...</td>
+                                <td style="padding: 12px;">${t.model || 'AIVM-Core'}</td>
+                                <td style="padding: 12px;">${t.result_hash ? t.result_hash.slice(0,10) : 'PROCESING'}</td>
+                                <td style="padding: 12px; color: var(--green); font-weight: bold;">${t.status}</td>
+                            </tr>
+                        `).join('');
+                    } else {
+                        historyTable.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:25px; color:var(--text-dim);">No active duties recorded for Node 213</td></tr>';
+                    }
+                }
+        
+                // 5. Sync Status Pill to your JSON 'status' field
                 const pill = document.getElementById('node-status-pill');
-                pill.innerText = "● ACTIVE ONGOING";
-                pill.style.color = "var(--green)";
+                pill.innerText = "● " + myNode.status.replace('_', ' ').toUpperCase();
+                pill.style.color = myNode.status === 'active_ongoing' ? "var(--green)" : "var(--red)";
         
             } catch (err) {
-                console.error("Validator Sync Error:", err);
+                console.warn("Validator Sync Interrupted:", err.message);
+                // Wipe metrics to show broken state
+                ["consensusRate", "nodeLatency", "activeTasks", "totalTasksCount", "validatorEarnings"].forEach(id => {
+                    document.getElementById(id).innerText = "--";
+                });
             }
         }
         
